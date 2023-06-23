@@ -1,0 +1,541 @@
+<?php
+
+/*
+ * DevoluciontpvController.php
+ *
+ * Version 0.$Rev: 286 $
+ *
+ * Creacion: 29/11/2017
+ *
+ * Ultima Actualizacion: $Date: 2015-10-13 09:08:14 -0400 (mar 13 de oct de 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+
+class DevoluciontpvController extends Controller {
+    /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+
+    /*
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+
+    public function filters() {
+        return array_merge(
+                array(
+                    'accessControl',
+                    array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+                )
+        );
+    }
+
+    /*
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+
+    private function _publicActionsList() {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',
+        );
+    }
+
+    public function accessRules() {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+
+    /**
+     * Creates a new model.
+     */
+    public function actionCreate() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Devoluciontpv;
+
+        if (isset($_POST['Devoluciontpv'])) {
+            $model->attributes = $_POST['Devoluciontpv'];
+            if ($model->save()) {
+                echo System::dataReturn('Creación exitosa!', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('create', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Updates a particular model.
+     * @param integer $id the ID of the model to be updated
+     */
+    public function actionUpdate($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = $this->loadModel(SeguridadModule::dec($id));
+        $iddevolucion = SeguridadModule::dec($id);
+        $gridDevolucionproducto = Devoluciontpv::model()->obtenerProductosDeDevolucion(SeguridadModule::dec($id));
+
+        if (isset($_POST['Devoluciontpv'])) {
+            $model->attributes = $_POST['Devoluciontpv'];
+            if ($model->save()) {
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('update', array(
+            'model' => $model,
+            'gridDevolucionproducto' => $gridDevolucionproducto
+                ), false, true);
+    }
+
+    /**
+     * Deletes safely a particular model.
+     * If deletion is successful, the browser will be redirected to the 'admin' page.
+     * @param integer $id the ID of the model to be deleted
+     */
+    public function actionDelete($id) {
+        $this->loadModel(SeguridadModule::dec($id))->safeDelete();
+        self::actionAdmin();
+    }
+
+    /**
+     * Manages all models.
+     */
+    public function actionAdmin() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Devoluciontpv('search');
+        $model->unsetAttributes();  // clear any default values
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Devoluciontpv'])) {
+            $model->attributes = $_GET['Devoluciontpv'];
+            if (!$model->validate()) {
+                echo System::hasErrorSearch($model);
+                return;
+            }
+        }
+
+        $this->renderPartial('admin', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return Devoluciontpv the loaded model
+     * @throws CHttpException
+     */
+    public function loadModel($id) {
+        $model = Devoluciontpv::model()->findByPk($id);
+        if ($model === null)
+            throw new CHttpException(404, 'The requested page does not exist.');
+        return $model;
+    }
+
+    /**
+     * Performs the AJAX validation.
+     * @param Devoluciontpv $model the model to be validated
+     */
+    protected function performAjaxValidation($model) {
+        if (isset($_POST['ajax']) && $_POST['ajax'] === 'devoluciontpv-form') {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+    }
+
+    /**
+     * Acept a particular model.
+     * @param integer $id the ID of the model to be updated
+     */
+    public function actionRecepcionDevolucion($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = $this->loadModel(SeguridadModule::dec($id));
+        $iddevolucion = SeguridadModule::dec($id);
+        $gridDevolucionproducto = Devoluciontpv::model()->obtenerProductosDeDevolucion(SeguridadModule::dec($id));
+
+        if (isset($_POST['Devoluciontpv'])) {
+            $disponible = $_POST['Devoluciontpv']['disponible'];
+            if (!isset($_POST['gridDevolucionproducto'])) {
+                echo System::hasErrors('No existe Productos para Devolución! ', $model);
+                return;
+            }
+            $model->attributes = $_POST['Devoluciontpv'];
+            $model->idestado = Estadotpv::RECEPCION;
+            if ($model->save()) {
+                Devolucionproductotpv::model()->deleteAllByAttributes(array('iddevolucion' => $iddevolucion));
+                $productos = $_POST['gridDevolucionproducto'];
+                $cantidad = count($productos);
+                //$agencia = Almacen::model()->find('id='.$model->idalmacenorigen)->nombre;
+                $agencia = Yii::app()->almacen->createCommand("select nombre from almacen where id = ". $model->idalmacenorigen)->queryScalar();
+                $idcontracuenta = Yii::app()->almacen->createCommand("select idcuenta from almacen where id = ". $model->idalmacenorigen)->queryScalar();
+                $productosTraspasoDestino = array();
+                for ($i = 1; $i <= $cantidad; $i++) {
+                    $dato = $productos[$i];
+                    $modelDevolucionProducto = new Devolucionproductotpv;
+                    $modelDevolucionProducto->cantidaddevolucion = $dato['cantidaddevolucion'];
+                    $modelDevolucionProducto->cantidadrecibida = $dato['cantidadrecibida'];
+                    $modelDevolucionProducto->idproducto = $dato['idproducto'];
+                    $precio = Yii::app()->almacen->createCommand("select precio from producto where id = ". $dato['idproducto'])->queryScalar();
+                    $modelDevolucionProducto->iddevolucion = $model->id;
+                    $modelDevolucionProducto->save();
+                    array_push($productosTraspasoDestino, array('cantidadrecibida' => $dato['cantidaddevolucion'], 'id' => $dato['idproducto'], 'precio' => $precio));
+                }
+                // -------------------------- REGISTRA CONTROL CALIDAD ---------------------------------
+                // -------------------------------------------------------------------------------------
+                $modelCC = new Controlcalidadalmacen;
+                $modelCC->codigodocumento = $model->numero;
+                $modelCC->iddocumento = $model->id;
+                $modelCC->idtipodocumento = Tipodocumentotpv::DEVOLUCION_TPV;
+//                $modelCC->gestionschemadocumento = Gestion::getSchemaGestion();
+//                $modelCC->gestionschema = Gestion::getSchemaGestion();
+                $modelCC->idestado = Estado::ESTADO_PENDIENTECC;
+                $modelCC->idcliente = $model->idalmacenorigen;
+                $modelCC->descripcion = $model->glosa;
+                $modelCC->aceptada = false;
+                if ($modelCC->save()) {
+                    $modelRecepcion = new Recepcioncontrolcalidad;
+                    $modelRecepcion->idestado = Estado::ESTADO_RECEPCIONADO;
+                    $modelRecepcion->idcontrolcalidad = $modelCC->id;
+                    $modelRecepcion->save();
+                    for ($i = 1; $i <= $cantidad; $i++) {
+                        $dato = Yii::app()->almacen->createCommand("select * from producto where codigo='".$productos[$i]['codigo']."' and idalmacen=".$model->idalmacendestino." and eliminado is false")->queryRow();
+                        $devolucion = $productos[$i];
+                        $modelCCProducto = new Controlcalidadproductoalmacen;
+//                        $modelCCProducto->gestionschema = Gestion::getSchemaGestion();
+                        $modelCCProducto->idproducto = $dato['id'];
+                        $modelCCProducto->idcontrolcalidad = $modelCC->id;
+//                        $modelCCProducto->gestionschemacontrolcalidad = Gestion::getSchemaGestion();
+                        $modelCCProducto->cantidaddevolucion = $devolucion['cantidaddevolucion'];
+                        $modelCCProducto->save();
+                    }
+                }else{
+                    echo System::hasErrors(print_r($modelCC->getErrors()), $model);
+                    return;
+                }
+                // -------------------------------------------------------------------------------------
+                // ------------------------- FIN REGISTRO CONTROL CALIDAD ------------------------------
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('recepcion', array(
+            'model' => $model,
+            'gridDevolucionproducto' => $gridDevolucionproducto
+                ), false, true);
+    }
+
+    /*
+     * Buscador de Código de Barras
+     */
+
+    public function actionBuscacodigoBarra() {
+        if (isset($_POST['codigobarra'])) {
+            $idalmacen = isset($_POST['idalmacen']) ? $_POST['idalmacen'] : '';
+            $productoExcluido = null;
+
+            $model = Producto::model()->find('coduniversal = ' . $_POST['codigobarra'] . ' and idalmacen =' . $_POST['idalmacen']);
+            if ($model == null)
+                echo 0;
+            else {
+                $arrayDatosProducto = array(
+                    'idproducto' => $model->id,
+                    'codigobarra' => $model->coduniversal,
+                    'codigo' => $model->codigo,
+                    'nombre' => $model->nombre,
+                    'saldo' => $model->saldo,
+                    'reserva' => $model->reserva,
+                    'saldoDisponible' => $model->saldo - $model->reserva,
+                    'unidad' => $model->idunidad > 0 ? Unidad::model()->find('id = ' . $model->idunidad)->simbolo : '',
+                );
+                echo json_encode($arrayDatosProducto);
+            }
+        }
+    }
+
+    /**
+     * Genera un reporte de Devolucion
+     * @param type $id de Devolucion
+     * @throws CrugeException
+     */
+    public function actionReporteDevolucion($id) {
+
+        $txt = SeguridadModule::dec($id);
+        $model = Devoluciontpv::model()->findByPk($txt);
+        $re = new JasperReport('/reports/Tpv/devolucion', JasperReport::FORMAT_PDF, array(
+            'pId' => $txt,
+            'pIdalmacen' =>$model->idalmacenorigen,
+            'pUsuario' => Yii::app()->user->getName(),
+            'formatNumberProduccion' => Yii::app()->params['formatNumberProduccion'],
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+
+        $re->exec();
+
+        if ($re->getPages() > 0) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+
+    public function registroIngresoDevolucionAlmacenes($arrayParametros) {
+        $productos = $arrayParametros['productosorigen'];
+        $glosa = $arrayParametros['glosa'];
+        $iddevolucion = $arrayParametros['iddevolucion'];
+        $idcontracuenta = $arrayParametros['idcontracuenta'];
+        $model = $arrayParametros['model'];
+        $nota = new Nota();
+        $nota->scenario = 'Devolucion';
+        $nota->idtipo = Tipo::model()->INGRESO; //INGRESO
+        $nota->idorigen = Origen::TPV;
+        $nota->idtipodocumento = Tipodocumentotpv::DEVOLUCION_TPV;
+        $nota->glosa = $glosa;
+        $nota->numero = $nota->generarNumero();
+        $nota->setScenario("DevolucionEntreAlmacenes");
+        $idcuenta = FtblMoodleCuentasespeciales::TRANSITO;
+        $nota->idcontracuenta = $idcontracuenta;// Yii::app()->tpv->createCommand("select idcuenta from ftbl_moodle_cuentasespeciales where id = " . $idcuenta)->queryScalar();
+        $nota->iddocumento = $iddevolucion;
+        $nota->idestado = Estado::VIGENTE;
+        $nota->idalmacen = $arrayParametros['idalmacenorigen'];
+        $nota->total = 0;
+        for ($k = 1; $k <= count($productos); $k++) {
+            $nota->total += $productos[$k]['cantidaddevolucion'];
+        }
+        if ($nota->save()) {
+            Productonota::model()->registrarProductoNota_DevolucionEntreAlmacenesTpv($nota->id, $productos, $nota->numero, Tipo::model()->INGRESO, Tipodocumentotpv::DEVOLUCION_TPV, $glosa, $model);
+            // --------------------------------- INSERTA LA NOTA EN LA BD "almacen" ---------------------------------
+//            $command = Yii::app()->almacen->createCommand("select registrar_nota_desde_tpv(".$iddevolucion.", ".Tipodocumentotpv::DEVOLUCION_TPV.")");
+//            $command->queryScalar();
+            
+            return array('mensaje' => 'Sin errores', 'numeroNota' => $nota->numero, 'error' => false, 'idnota' => $nota->id);
+        } else {
+            print_r($nota->getErrors());
+            return array('mensaje' => 'No se pudo guardar la nota', 'error' => true);
+        }
+    }
+    
+    public function actionAceptarDevolucion($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = $this->loadModel(SeguridadModule::dec($id));
+        $iddevolucion = SeguridadModule::dec($id);
+        $gridDevolucionproducto = Devoluciontpv::model()->obtenerProductosDeDevolucion(SeguridadModule::dec($id));
+
+        if (isset($_POST['Devoluciontpv'])) {
+            $disponible = $_POST['Devoluciontpv']['disponible'];
+            if (!isset($_POST['gridDevolucionproducto'])) {
+                echo System::hasErrors('No existe Productos para Devolución! ', $model);
+                return;
+            }
+            $dataProductosBaja=array();
+            $dataProductosReproceso=array();
+            $totalImporteBaja=0;        
+            $totalImporteReproceso=0;
+            $ok=true;
+            
+            $model->attributes = $_POST['Devoluciontpv'];
+            $devolucion = $this->loadModel($model->id);
+            if($devolucion->idestado == Estadotpv::FINALIZADO){
+                echo System::hasErrors('No se puede Aceptar Devolución, se encuentra FINALIZADA! ', $model);
+                return;
+            }
+            $model->idestado = Estadotpv::FINALIZADO;
+            $controlcalidad = Controlcalidadalmacen::model()->find('iddocumento='.$iddevolucion.' and idtipodocumento='.Tipodocumentotpv::DEVOLUCION_TPV);
+            if ($controlcalidad == Null) {
+                echo System::hasErrors('No tiene CONTROL DE CALIDAD, no se puede aceptar la DEVOLUCIÓN! ', $model);
+                return;
+            }
+            if (!$controlcalidad->idestado==Estado::ESTADO_FINALIZADOCC){
+                echo System::hasErrors('CONTROL DE CALIDAD NO FINALIZADO, no se puede aceptar la DEVOLUCIÓN! ', $model);
+                return;
+            }
+            $controlcalidad->aceptada = true;
+            $controlcalidad->save();
+            $controlcalidadproductos = Controlcalidadproductoalmacen::model()->obtenerProductos($controlcalidad->id)->getData();            
+            if ($model->save()) {
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('aceptar', array(
+            'model' => $model,
+            'gridDevolucionproducto' => $gridDevolucionproducto
+                ), false, true);
+    }
+    
+    public function registrarNotaRecepcionSalidaReproceso($dataService) {
+        $productos = isset($dataService['productos']) ? $dataService['productos'] : array();
+        $nota = isset($dataService['nota']) ? $dataService['nota'] : array();
+        $usuario = isset($dataService['usuario']) ? $dataService['usuario'] : '';
+        $model = new Nota();
+        $model->numero = Nota::model()->generarNumero();
+        $model->glosa = 'SALIDA REPROCESO POR DEVOLUCION Nº ' . $nota['numero'] . ' - '.$nota['agencia'];
+        $model->idtipo = Tipo::model()->SALIDA;
+        $model->idorigen = Origen::TPV;
+        $model->total = $nota['total'];
+        $model->idtipodocumento = Tipodocumentotpv::DEVOLUCION_TPV;
+        $model->iddocumento = $nota['iddocumento'];
+        $model->idcontracuenta = $nota['idcontracuenta'];
+        $model->idalmacen = $nota['idalmacen'];
+        $model->usuario = $usuario;
+
+        $model->scenario = 'salidaBajaNotaRecepcion';
+        try {
+            if ($model->save()) {
+                foreach ($productos as $producto) {
+                    $modelProducto = Producto::model() ->findBySql("select * from producto where id = " . $producto['idproducto']);
+                    //ACTUALIZA SALDOS DE PRODUCTO                        
+                    $modelProducto->saldo-=$producto['salida'];
+                    $modelProducto->saldoimporte-=$producto['salidaimporte'];
+                    $modelProducto->scenario='CSdocumentoVenta';
+                    $modelProducto->save();
+                    //valores de productonota
+                    $modelProductonota = new Productonota();
+                    //$modelProductonota->scenario = 'miUsuario';
+                    $modelProductonota->usuario = $usuario;
+                    $modelProductonota->glosa = 'SALIDA REPROCESO POR DEVOLUCION Nº ' . $nota['numero'] . ' - '.$nota['agencia'];
+                    $modelProductonota->ingreso = 0.000;
+                    $modelProductonota->salida = $producto['salida'];
+                    $modelProductonota->saldo = $modelProducto->saldo;
+                    $modelProductonota->saldoimporte = $modelProducto->saldoimporte;
+                    $modelProductonota->idproducto = $producto['idproducto'];
+                    $modelProductonota->idnota = $model->id;
+                    $modelProductonota->ingresoimporte = 0.000;
+                    $modelProductonota->salidaimporte = $producto['salidaimporte'];
+                    if (!$modelProductonota->save()) {
+                        print_r($modelProductonota->getErrors());
+                        return array('mensaje' => 'No se pudo guardar la nota', 'error' => true);
+                    }
+                }
+            }
+        }catch (Exception $e){            
+            $messageError = 'Excepción capturada WS: '.$e->getMessage();
+            return array('mensaje' => $messageError, 'error' => true);
+        }    
+        return array('mensaje' => 'Sin errores', 'numeroNota' => $model->numero, 'error' => false, 'idnota' => $model->id);
+    }
+    
+    public function registrarNotaRecepcionSalidaBaja($dataService) {
+        $productos = isset($dataService['productos']) ? $dataService['productos'] : array();
+        $nota = isset($dataService['nota']) ? $dataService['nota'] : array();
+        $usuario = isset($dataService['usuario']) ? $dataService['usuario'] : '';
+        $model = new Nota();
+        $model->numero = Nota::model()->generarNumero();
+        $model->glosa = 'SALIDA BAJA POR DEVOLUCION Nº ' . $nota['numero'].' - '.$nota['agencia'];
+        $model->idtipo = Tipo::model()->SALIDA;
+        $model->idorigen = Origen::TPV;
+        $model->total = $nota['total'];
+        $model->idtipodocumento = Tipodocumentotpv::DEVOLUCION_TPV;
+        $model->iddocumento = $nota['iddocumento'];
+        $model->idcontracuenta = $nota['idcontracuenta'];
+        $model->idalmacen = $nota['idalmacen'];
+        $model->usuario = $usuario;
+        $model->scenario = 'salidaBajaNotaRecepcion';
+        try {
+            if ($model->save()) {
+                foreach ($productos as $producto) {
+                    $modelProducto = Producto::model() ->findBySql("select * from producto where id = " . $producto['idproducto']);
+                    //ACTUALIZA SALDOS DE PRODUCTO                        
+                    $modelProducto->saldo-=$producto['salida'];
+                    $modelProducto->saldoimporte-=$producto['salidaimporte'];
+                    $modelProducto->scenario='CSdocumentoVenta';
+                    $modelProducto->save();
+                    //valores de productonota
+                    $modelProductonota = new Productonota();
+                    //$modelProductonota->scenario = 'miUsuario';
+                    $modelProductonota->usuario = $usuario;
+                    $modelProductonota->glosa = 'SALIDA BAJA POR DEVOLUCION Nº ' . $nota['numero'].' - '.$nota['agencia'];
+                    $modelProductonota->ingreso = 0.000;
+                    $modelProductonota->salida = $producto['salida'];
+                    $modelProductonota->saldo = $modelProducto->saldo;
+                    $modelProductonota->saldoimporte = $modelProducto->saldoimporte;
+                    $modelProductonota->idproducto = $producto['idproducto'];
+                    $modelProductonota->idnota = $model->id;
+                    $modelProductonota->ingresoimporte = 0.000;
+                    $modelProductonota->salidaimporte = $producto['salidaimporte'];
+                    if (!$modelProductonota->save()) {
+                         print_r($modelProductonota->getErrors());
+                        return array('mensaje' => 'No se pudo guardar la nota', 'error' => true);
+                    }
+                }
+            }
+        }catch (Exception $e){            
+            $messageError = 'Excepción capturada WS: '.$e->getMessage();
+            return array('mensaje' => $messageError, 'error' => true);
+        }    
+        return array('mensaje' => 'Sin errores', 'numeroNota' => $model->numero, 'error' => false, 'idnota' => $model->id);
+    }
+    
+    public function actionAutocompleteProducto() {
+        $request = trim($_GET['term']);
+
+        if ($request != '') {
+            $producto = new Producto;
+            $productos = $producto->buscarProducto($request);
+            $model = $productos->getData();
+            $data = array();
+
+            foreach ($model as $get) {
+                $data[] = array('value' => $get->nombre,
+                    'label' => '[' . $get->codigo . '] ' . $get->nombre,
+                    'idproducto' => $get->id
+                );
+            }
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+}

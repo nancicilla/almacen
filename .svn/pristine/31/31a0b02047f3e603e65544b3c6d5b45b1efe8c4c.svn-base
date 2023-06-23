@@ -1,0 +1,52 @@
+<?php
+/* @var $this CausaController */
+/* @var $model Causa */
+/* @var $form CActiveForm */
+?>
+
+<div class="form">
+
+<?php $form=$this->beginWidget('CActiveForm', array(
+    'focus'=>'input:visible:enabled:first'  ,
+	'id'=>'causa-form',
+	// Please note: When you enable ajax validation, make sure the corresponding
+	// controller action is handling ajax validation correctly.
+	// There is a call to performAjaxValidation() commented in generated controller code.
+	// See class documentation of CActiveForm for details on this.
+	'enableAjaxValidation'=>false,
+)); ?>
+
+	<p class="note"><span class="required">*</span> Campos requeridos.</p>
+
+	<?php echo $form->errorSummary($model); ?>
+
+	<div class="row">
+		<?php echo $form->labelEx($model,'nombre'); ?>
+		<?php echo $form->textField($model,'nombre',array('size'=>50,'maxlength'=>50,'style' => 'text-transform: uppercase')); ?>
+		<?php echo $form->error($model,'nombre'); ?>
+	</div>
+	<div class="row">
+		<?php echo $form->labelEx($model,'descripcion'); ?>
+		<?php echo $form->textArea($model,'descripcion',array('rows'=>6, 'cols'=>50,'style' => 'text-transform: uppercase')); ?>
+		<?php echo $form->error($model,'descripcion'); ?>
+	</div>
+
+        <div class="row">
+            <?php echo $form->labelEx($model,'idtipo'); ?>
+            <?php
+            echo $form->dropDownList(
+                    $model, 
+                    'idtipo', 
+                    CHtml::listData(Tipo::model()->findAll(), 'id', 'nombre') 
+            );
+            ?>
+            <?php echo $form->error($model,'idtipo'); ?>
+        </div>
+
+	<div class="row buttons">
+		<?php echo TbHtml::submitButton($model->isNewRecord ? 'Crear' : 'Guardar'); ?>
+	</div>
+
+<?php $this->endWidget(); ?>
+
+</div><!-- form -->

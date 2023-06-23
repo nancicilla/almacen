@@ -1,0 +1,59 @@
+<?php
+
+/* @var $this ProductoController */
+/* @var $model Producto */
+
+echo System::Search(array(
+    'title' => 'Asignación de Saldos y Punto de pedido',
+    'formSearch' => $this->renderPartial('_searchAsignacionsaldos', array('model' => $model,), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admAsignacionsaldos',
+        'dataProvider' => $model->asignacionSaldos(),
+        'eventAfterEdition' => 'admAsignacionsaldos.cambiarSaldos()',
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'codigo',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'nombre',
+                'width' => 45,
+            ),
+            array(
+                'width' => 15,
+                'name' => 'idalmacen',
+                'value' => '$data->idalmacen0->nombre',
+            ),
+            array(
+                'width' => 10,
+                'name' => 'stockminimo',
+                'align' => 'right',
+                'type' => 'number', // le da el formato de número decimal                     
+                'typeCol' => 'editable',
+                'background'=>'#F5D6CC'
+            ),
+            array(
+                'width' => 10,
+                'name' => 'stockmaximo',
+                'align' => 'right',
+                'type' => 'number', // le da el formato de número decimal
+                'typeCol' => 'editable',
+                'background'=>'#F5D6CC'
+            ),
+            array(
+                'width' => 10,
+                'name' => 'puntopedido',
+                'align' => 'right',
+                'type' => 'number', // le da el formato de número decimal
+                'typeCol' => 'editable',
+                'background'=>'#F5D6CC'
+            ),
+            array(
+                'name' => 'id',
+                'typeCol' => 'hidden'
+            ),
+        ),
+            )
+)));

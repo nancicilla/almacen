@@ -1,0 +1,108 @@
+<?php
+
+/* @var $this OrdenController */
+/* @var $model Orden */
+
+echo System::Search(array(
+    'title' => 'Administración de Ordenes',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admOrden',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+          array(
+            'name' => 'numero',
+            'width' => 5,
+            ),
+          array(
+            'name' => 'fecha',
+            'value'=>'$data->id0->fecha',
+            'type' => 'datetime', 
+            'width' => 12,
+            ),
+          array(
+            'name' => 'ultimoEstado',
+            'value' => '$data->ultimoestado',
+            'width' => 12,
+            ),
+          array(
+            'name' => 'codigo',
+            'value'=>'$data->id0->idproducto0->codigo',
+            'width' => 10,
+            ),
+          array(
+            'name' => 'producto',
+            'value'=>'$data->id0->idproducto0->nombre',
+            'width' => 23,
+            ),
+          array(
+            'name' => 'cantidad',
+            'value'=>'(int)($data->id0->cantidadproducir)',
+            'width' => 5,
+            'align'=>'right',
+            ),
+            array(
+                'name' => 'idunidad',
+                'value' => '$data->id0->idproducto0->idunidad0->simbolo',
+                'width' => 5,
+            ),
+          array(
+            'name' => 'descripcionOrdenReceta',
+            'value'=>'$data->id0->descripcion',
+            'width' => 10,
+            ),
+          array(
+            'name' => 'usuario',
+            'value'=>'$data->id0->usuario',
+            'width' => 6,
+            ),
+          array('typeCol' => 'buttons',
+            'width' => 12,
+            'deleteConfirmation'=>'¿Seguro que desea eliminar este elemento?',
+            
+            'buttons' => array(                
+                
+                
+                'registrarDevolucion' => array(
+                    'visible' => Yii::app()->user->checkAccess('action_produccion_orden_registrarDevolucion'),
+                    'label' => 'Registrar Devolución',
+                    'icon' => 'share',
+                    'click' =>'                                                        
+                    function(){                                                            
+                        SGridView.selectRow(this);
+                        admOrden.registrarDevolucion();
+                        return false;
+                    }',
+                    ),
+                'registrarEntrega' => array(
+                    'visible' => Yii::app()->user->checkAccess('action_produccion_orden_registrarEntrega'),
+                    'label' => 'Registrar Entrega',                    
+                    'icon' => 'circle-arrow-up',   
+                    //'visible' => 'Orden::model()->mostrarBotonRegistrarEntrega($data->ultimoestado)',
+                    'click' =>'                                                        
+                    function(){                                                            
+                        SGridView.selectRow(this);
+                        admOrden.registrarEntrega();
+                        return false;
+                    }',
+                    ),                
+                
+                'registrarResidual' => array(
+                    'visible' => Yii::app()->user->checkAccess('action_produccion_orden_registrarResidual'),
+                    'label' => 'Registrar Residual',
+                    'icon' => 'icon-large icon-download-alt',
+                    //'visible' => 'Orden::model()->mostrarBotonRegistrarEntrega($data->ultimoestado)',
+                    'click' =>'                                                        
+                    function(){                                                            
+                        SGridView.selectRow(this);
+                        admOrden.registrarResidual();
+                        return false;
+                    }',
+                    ),
+),
+),
+))
+)));
+

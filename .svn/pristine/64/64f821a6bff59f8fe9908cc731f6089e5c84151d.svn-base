@@ -1,0 +1,77 @@
+<?php
+
+/*
+ * WSNotaborradorController.php
+ *
+ * Version 0.$Rev: 204 $
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date: 2015-05-19 15:24:15 -0400 (Tue, 19 May 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+
+class WSAlertaController extends CController {
+    protected static $success=true;
+    protected static $messageError='';
+    protected static $modelError=array();
+    protected static $usuario='';
+
+
+    public function actions() {
+        return array(
+            'registrarNuevoPedido' => array(//url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarNuevoPedido'//funcion
+            ),
+            'registrarAlertaOrdenConfirmada' => array(//url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarAlertaOrdenConfirmada'//funcion
+            )
+            
+        );
+    }
+   
+    
+    public static function getResponse(){
+        if(self::$messageError!='')self::$success=false;
+        
+        return array('success'=>  self::$success,
+                     'messageError'=>  self::$messageError==''?'':'ERROR EN EJECUCION [WSSeguimientoController]: '.PHP_EOL.self::$messageError,
+                     '$modelError'=>  self::$modelError
+                );
+    }
+    
+    /**
+     * VENTA Registra alerta nuevo pedido en almacen 
+     * @return array
+     * @soap
+     */
+    public function registrarNuevoPedido() {
+        try {
+            
+            $q="update alerta set desactivado=true where idalertatipo=".Alertatipo::$NUEVO_PEDIDO." and desactivado=false";
+          
+          $command = Yii::app()->almacen->createCommand($q);
+          $command->query();
+            
+            $modelAlerta=new Alerta;
+             $modelAlerta->idalertatipo=Alertatipo::$NUEVO_PEDIDO;
+             $modelAlerta->iddocumento=-1;
+             $modelAlerta->descripcion='NUEVO PEDIDO EN LISTA';
+             $modelAlerta->save();
+            
+            return self::getResponse();
+        }catch (Exception $e){            
+                  self::$messageError = 'Excepción capturada WS: '.$e->getMessage();
+                  return self::getResponse();
+        }
+    }    
+}

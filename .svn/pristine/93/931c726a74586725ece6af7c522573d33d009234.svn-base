@@ -1,0 +1,113 @@
+<?php
+/* @var $this NotaborradorController */
+/* @var $model Notaborrador */
+
+echo System::Search(array(
+    'title' => 'Administración de Notas Borrador',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model,), true),
+    'buttons' => array(
+        array('name' => 'print', 'icon' => 'print', 'widthLinks' => 100,
+            'links' => array(
+                array('icon' => 'print', 'url' => 'reporteNotaBorradorLote', 'title' => 'Lote'),
+            )
+        ),
+    ),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admNotaborrador',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'numero',
+                'split'=> false,
+                'align'=>'left',
+                'width' => 6
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'datetime',
+                'split'=> false,
+                'width' => 10
+            ),
+            array(
+                'name' => 'idorigen',
+                'header' => 'Origen',
+                'value' => '$data->idorigen0->nombre',
+                'width' => 10
+            ),
+            array(
+                'name' => 'idtipo',
+                'value' => '$data->idtipo0->nombre',
+                'width' => 8
+            ),
+            array(
+                'name' => 'idtipodocumento',
+                'value' => '$data->idtipodoc0->nombre',
+                'width' => 8,
+                'style' => array('text-transform' => 'uppercase')
+            ),
+//            array(
+//                'name' => 'idestado',
+//                'value' => '$data->idestado0->nombre',
+//                'width' => 8
+//            ),            
+            array(
+                'name' => 'glosa',
+                'width' => 25),
+            array(
+                'name' => 'idalmacen',
+                'value' => '$data->idalmacen0->nombre',
+                'width' => 15
+            ),
+            array(
+                'name' => 'usuario',
+                'width' => 10),
+            array('typeCol' => 'buttons',
+                'width' => 8,
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'buttons' => array(
+                    'print' => array('label' => 'Imprimir','url' => 'array("reporteNotaBorrador","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'options' => array("target" => "_blank")),
+//                    'delete' => array('label' => 'Eliminar'), 
+                    'confirmar' => array('url' => 'array("confirmar","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+                        'icon' => 'check',
+                        'click' => 'function(){
+                            SGridView.selectRow(this); 
+                            var href = $(this).attr("href");
+                            
+                            bootbox.confirm("¿Está seguro que desea confirmar la Nota Borrador?",
+                                function(confirmed){
+                                    if (confirmed){
+                                        $.ajax({
+                                            type: "post",
+                                            url: href,
+                                            success: function(data) {
+                                                if ($.trim(data)){
+                                                    bootbox.alert(data);
+                                                }
+                                                admNotaborrador.search();
+                                            }
+                                        });
+                                    }
+                                }
+                            ); 
+                        return false;}',
+                    ),
+                    'verNotaBorrador' => array(
+                        'label' => 'Ver',
+                        'icon' => 'eye-open',
+                        'click' =>'                                                        
+                        function(){
+                                SGridView.selectRow(this);
+                                admNotaborrador.verNotaBorrador();
+                                return false;
+                        }',
+                    ),
+                ),
+            ),
+        ),
+            )
+    )
+        )
+);
+

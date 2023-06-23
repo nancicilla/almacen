@@ -1,0 +1,230 @@
+<?php
+
+/*
+ * Estado.php
+ *
+ * Version 0.$Rev$
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date$:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ *
+ * This is the model class for table "estado".
+ *
+ * The followings are the available columns in table 'estado':
+ * @property integer $id
+ * @property string $nombre
+ *
+ * The followings are the available model relations:
+ * @property Inventario[] $inventarios
+ */
+
+class Estado extends CActiveRecord {
+
+    var $idEstadoIniciado = 1;
+    var $idEstadoCerrado = 2;
+    var $idEstadoFinalizado = 3;
+    var $idEstadoAnulado = 4;
+    var $idEstadoDespacho = 5; //Id de estado de nota despacho
+    var $idEstadoRealizado = 6;
+    var $idEstadoVigente = 7;
+    const ANULADO = 4;
+    const CERRADO = 2;
+    const VIGENTE = 7;
+    const EN_PROCESO = 25;
+    const FINALIZADO = 9;
+    const ESTADO_FINALIZADO = 3;
+    const ESTADO_ENTREGA = 26;
+    
+    // --------------------------- ESTADO PARA VENTA ---------------------------
+    var $idEspecial = 10;
+
+    /**
+     * Crea un ámbito por defecto que permite añadir condiciones al modelo
+     */
+    public function defaultScope() {
+        return array(
+            'condition' => $this->getTableAlias(false, false) .
+            '.eliminado = false',
+        );
+    }
+
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName() {
+        return 'configuracion.estado';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules() {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            array('nombre', 'length', 'max' => 20),
+            // The following rule is used by search().
+            // @todo Please remove those attributes that should not be searched.
+            array('id, nombre', 'safe', 'on' => 'search'),
+        );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations() {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+            'inventarios' => array(self::HAS_MANY, 'Inventario', 'idestado'),
+        );
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels() {
+        return array(
+            'id' => 'ID',
+            'nombre' => 'Nombre',
+        );
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function search() {
+        // @todo Please modify the following code to remove attributes that should not be searched.
+
+        $criteria = new CDbCriteria;
+
+        $criteria->compare('id', $this->id);
+        $criteria->compare('nombre', $this->nombre, true);
+        $criteria->compare('t.eliminado', 0);
+
+
+        return new CActiveDataProvider($this, array(
+            'criteria' => $criteria,
+        ));
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection() {
+        return Yii::app()->almacen;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Estado the static model class
+     */
+    public static function model($className = __CLASS__) {
+        return parent::model($className);
+    }
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+        $this->nombre = strtoupper($this->nombre);
+        return parent::beforeSave();
+    }
+
+    public function getEstados() {
+        return $this->findAll(array('order' => 'nombre'));
+    }
+
+    public function esEstadoInicio($idEstado) {
+        if ($idEstado === $this->idEstadoIniciado) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function esEstadoCerrado($idEstado) {
+        if ($idEstado === $this->idEstadoCerrado) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function esEstadoFinalizado($idEstado) {
+        if ($idEstado === $this->idEstadoFinalizado) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function esEstadoAnulado($idEstado) {
+        if ($idEstado === $this->idEstadoAnulado) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /*
+     * 
+     * Obtiene el nombre de un estado del modulo de compra a partir de su id
+     * @param int $idEstadoCompra id de Estado en base de datos de compra
+     * @return string Nombre del estado.
+     * 
+     */
+
+    public function getEstadoCompra($idEstadoCompra) {
+        $command = Yii::app()->compra->createCommand("select nombre from configuracion.estado where id=" . $idEstadoCompra . " and eliminado=false;");
+        return $command->queryScalar();
+    }
+
+    /*
+     * 
+     * Obtiene una lista de todos los estados para las solicitudes
+     * @return array id's y Nombres de todos los estados de compra 
+     * para solicitud.
+     * 
+     */
+    public function getEstadosCompra() {
+        $idAnulada=4;
+        $idSolicitud=5;
+        $idCotizacion=6;
+        $idOrden=7;
+        return $user = Yii::app()->compra->createCommand()
+                ->select('e.id as id, e.nombre as nombre')
+                ->from('configuracion.estado e')
+                ->where('e.eliminado=false and id in ('.$idAnulada.','.$idSolicitud.','.$idCotizacion.','.$idOrden.');')
+                ->queryAll();
+    }
+
+}

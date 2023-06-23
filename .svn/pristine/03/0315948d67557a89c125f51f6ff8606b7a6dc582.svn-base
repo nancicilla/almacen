@@ -1,0 +1,548 @@
+var Traspasotpv = new Object();
+Traspasotpv.__proto__ = SystemWindow;
+//variables
+Traspasotpv.nameView = "Traspasotpv";
+Traspasotpv.url = "traspasotpv";
+
+Traspasotpv.init = function () {
+    var THIS = this;
+    $('#'+this.Id('descripcionenvio')).focus(function(){
+                    this.style.width='660px';
+                    this.style.height='40px';
+                    this.rows=2;
+                 });     
+    $('#'+this.Id('descripcionenvio')).blur(function(){
+                    if(THIS.trim(this.value)==''){this.style.width='100px';this.style.height='20px';this.value='';this.rows=1;}
+                    else {this.style.width='350px';this.style.height='40px';this.rows=1;}
+                 });  
+    if(this.get('descripcionenvio')!=''){
+                    var obj=this.ById('descripcionenvio');
+                    obj.style.width='660px';
+                    obj.style.height='40px';
+                    obj.rows=2;
+    }
+    if (this.action === 'create' || this.action === 'update'){
+        $('#' + this.Id("idalmacendestino")).live('change', function (e) {
+           Traspasotpv.filtrarAlmacenOrigen($(this).val());
+        });
+        $('#' + this.Id("idalmacenorigen")).live('change', function (e) {
+            
+            Traspasotpv.gridReset('gridTraspasoproducto');
+            Traspasotpv.gridSearchVars('gridTraspasoproducto', '&idalmacenorigen=' + $(this).val()+'&idalmacendestino='+ $('#' + Traspasotpv.Id("idalmacendestino")).val());
+        });
+        this.gridEventClickRow('gridTraspasoproducto', 'Traspasotpv.showDisponible();');
+        this.gridEventBlur('gridTraspasoproducto', 'Traspasotpv.hiddenDisponible();');
+        Traspasotpv.verificarGrid();
+    }
+    if (this.action === 'update')
+    {
+        Traspasotpv.gridSearchVars('gridTraspasoproducto', '&idalmacendestino=' + Traspasotpv.get('idalmacendestino') + '&idalmacenorigen=' + $('#' + Traspasotpv.Id("idalmacenorigen")).val());
+        var estado = $('#' + this.Id("idestado")).val();
+        if (estado == 18) {
+            Traspasotpv.set('estado', false);
+        } else {
+            if (estado == 27) {
+                Traspasotpv.set('estado', true);
+            } else {
+                this.buttonChange({id: 'save', display: 'none'});
+            }
+        }
+        this.gridEventClickRow('gridTraspasoproducto', 'Traspasotpv.showDisponible();');
+        this.gridEventBlur('gridTraspasoproducto', 'Traspasotpv.hiddenDisponible();');
+        Traspasotpv.verificarGrid();
+    }
+    if (this.action === 'registrarConfirmacion'){
+        this.gridEventClickRow('gridTraspasoproducto', 'Traspasotpv.showDisponible();');
+        this.gridEventBlur('gridTraspasoproducto', 'Traspasotpv.hiddenDisponible();');
+        Traspasotpv.gridSearchVars('gridTraspasoproducto', '&idalmacendestino=' + Traspasotpv.get('idalmacendestino') + '&idalmacenorigen=' + $('#' + Traspasotpv.Id("idalmacenorigen")).val());
+    }
+    if (this.action === 'recepcionSolicitud'){
+//        var estado = $('#' + this.Id("idestado")).val();
+//        if (estado==27){
+//            this.buttonChange({id: 'save', display: 'none'});
+//            this.buttonChange({id: 'cancel', display: 'none'});
+//        }else{
+//            this.buttonChange({id: 'save', label: 'Reservar'});
+//        }
+        this.gridEventClickRow('gridTraspasoproducto', 'Traspasotpv.showDisponible();');
+        this.gridEventBlur('gridTraspasoproducto', 'Traspasotpv.hiddenDisponible();');
+        this.nodespliega(this.Id('modoFactura'));
+        Traspasotpv.verificarGrid();
+    }
+    if (this.action === 'view'){
+        var estado = $('#' + this.Id("idestado")).val();
+        this.gridEventClickRow('gridTraspasoproducto', 'Traspasotpv.showDisponible();');
+        this.gridEventBlur('gridTraspasoproducto', 'Traspasotpv.hiddenDisponible();');
+        this.disabledForm();
+        if (estado==20){
+            this.sidespliega(this.Id('modoFactura'));
+        }else{
+            this.nodespliega(this.Id('modoFactura'));
+        }
+        
+    }
+    if (this.action === 'modificarSolicitud')
+    {
+        Traspasotpv.gridSearchVars('gridTraspasoproducto', '&idalmacendestino=' + Traspasotpv.get('idalmacendestino') + '&idalmacenorigen=' + $('#' + Traspasotpv.Id("idalmacenorigen")).val());
+//        var estado = $('#' + this.Id("idestado")).val();
+//        if (estado == 18) {
+//            Traspasotpv.set('estado', false);
+//        } else {
+//            if (estado == 27) {
+//                Traspasotpv.set('estado', true);
+//            } else {
+//                this.buttonChange({id: 'save', display: 'none'});
+//            }
+//        }
+        this.gridEventClickRow('gridTraspasoproducto', 'Traspasotpv.showDisponible();');
+        this.gridEventBlur('gridTraspasoproducto', 'Traspasotpv.hiddenDisponible();');
+        Traspasotpv.verificarGrid();
+    }
+};
+Traspasotpv.options = function () {
+    this.setActions('create', {
+        WindowTitle: 'Crear Traspaso',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {
+        WindowTitle: 'Modificar Traspaso',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('recepcionSolicitud', {        
+        WindowTitle: 'Recepcion Solicitud',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('modificarSolicitud', {        
+        WindowTitle: 'Editar Solicitud',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('view', {        
+        WindowTitle: 'Ver Solicitud',
+        initButtons: 'back',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('registrarConfirmacion', {
+        WindowTitle: 'Confirmación Traspaso',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Traspaso',
+        WindowWidth: 900,
+        WindowHeight: 520,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+};
+
+/**
+ * Function para filtrar almacenes destino en el dropdownlist al elegir un 
+ * determinado almacen origen
+ */
+Traspasotpv.filtrarAlmacenOrigen = function(idAlmacenDestino) {
+    var action = this.urlIni + this.url +'/filtrarAlmacenDestino?idAlmacenDestino='+idAlmacenDestino;
+    $.getJSON(action, function (listaJson) {
+        $('#' + Traspasotpv.Id("idalmacenorigen")).find('option').each(function () {
+           $(this).remove();
+        });
+        $('#' +  Traspasotpv.Id("idalmacenorigen")).append("<option value=''>");
+        $.each(listaJson, function (key, almacen) {
+            $('#' +  Traspasotpv.Id("idalmacenorigen")).append("<option value='" + almacen.id + "'>" + almacen.nombre + "</option>");
+        });
+    });
+};
+Traspasotpv.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    var grid = this.getSGridView('gridTraspasoproducto');
+    var cantidad = 0;
+    
+    if (!Traspasotpv.o[Traspasotpv.idWindow].editData) {
+        Traspasotpv.showMessageError('No hubo cambios! ');
+        return true;
+    }
+    
+    for (var f = 1; f <= grid.rows; f++)
+    {
+        if(grid.row(f).get('idproducto') > 0 && grid.row(f).get('cantidadenviada') == 0){
+            cantidad++;  
+        }
+    }
+    if (cantidad==0){
+        error = false;
+    }else{
+        error = true;
+        Traspasotpv.showMessageError('Existen productos con cantidad cero');
+    }
+    Traspasotpv.verificarGrid();
+    return error;
+};
+Traspasotpv.afterCreate = function () {
+    admTraspasotpv.search();
+    Traspasotpv.reload();
+};
+Traspasotpv.beforeUpdate = function () {
+    var error = false;//false es no existe error antes de actulizar formulario
+    var grid = this.getSGridView('gridTraspasoproducto');
+    var cantidad = 0;
+    
+    if (!Traspasotpv.o[Traspasotpv.idWindow].editData) {
+        Traspasotpv.showMessageError('No hubo cambios! ');
+        return true;
+    }
+    
+    for (var f = 1; f <= grid.rows; f++)
+    {
+        if(grid.row(f).get('cantidadenviada') == 0){
+            cantidad++;  
+        }
+    }
+    if (cantidad==0){
+        error = false;
+    }else{
+        error = true;
+        Traspasotpv.showMessageError('Existen productos con cantidad cero');
+    }
+    Traspasotpv.verificarGrid();
+    return error;
+};
+Traspasotpv.afterUpdate = function () {
+    Traspasotpv.closeWindow();
+};
+Traspasotpv.showDisponible = function () {
+    var divSaldoDisponible = this.ById('divSaldoDisponible');
+    var grid = this.getSGridView('gridTraspasoproducto');
+
+    var saldodisponible = grid.rowSelected().get('saldoDisponible');
+
+    if (grid.rowSelected().get('id') != '') {
+        divSaldoDisponible.innerHTML = parseFloat(saldodisponible).toFixed(8);
+        divSaldoDisponible.parentElement.style.visibility = 'visible';
+    } else {
+        divSaldoDisponible.innerHTML = '';
+        divSaldoDisponible.parentElement.style.visibility = 'hidden';
+    }
+};
+Traspasotpv.hiddenDisponible = function () {
+    var divSaldoDisponible = this.ById('divSaldoDisponible');
+    divSaldoDisponible.parentElement.style.visibility = 'hidden';
+};
+Traspasotpv.verificarGrid = function () {
+    var grid = this.getSGridView('gridTraspasoproducto');
+    var estado = this.action === 'create' ? "" : $('#' + this.Id("estadoanterior")).val();
+    var idestado =$('#' + this.Id("idestado")).val();
+    var noDisponible = 0;
+    var totalItem = 0;
+    for (var f = 1; f <= grid.rows; f++)
+    {
+        var cantidad = parseFloat(grid.row(f).get('cantidadenviada'));
+        var cantidadanterior = parseFloat(grid.row(f).get('anteriorenviada'));
+        var cantidadreserva = parseFloat(grid.row(f).get('cantidadsolicitada'));
+        var saldoDisponible = parseFloat(grid.row(f).get('saldoDisponible'));
+        var Disponiblereal = 0;
+        if (this.action === 'create') {
+            Disponiblereal = saldoDisponible;
+        }
+        if (this.action === 'modificarSolicitud') {
+            if (estado == 4) {
+                Disponiblereal = saldoDisponible;
+            } else {
+                if (cantidad==0){
+                    Disponiblereal = saldoDisponible + cantidadreserva;
+                }else{
+                    if (cantidadanterior != cantidad){
+                        Disponiblereal = saldoDisponible + cantidadanterior;
+                    }else{
+                        Disponiblereal = saldoDisponible + cantidad;
+                    }
+                }
+            }
+        }
+        if ( this.action === 'registrarConfirmacion') {
+            if (estado == 4) {
+                Disponiblereal = saldoDisponible;
+            } else {
+                if (cantidad==0){
+                    Disponiblereal = saldoDisponible + cantidadreserva;
+                }else{
+                        Disponiblereal = saldoDisponible + cantidad;
+                }
+            }
+        }
+        if (this.action === 'recepcionSolicitud' || this.action === 'view'){
+            Disponiblereal = saldoDisponible;
+        }
+        if (this.action === 'view'){
+            if (idestado==27){
+                Disponiblereal = saldoDisponible + cantidad;
+            }
+            if (idestado==20){
+                Disponiblereal = saldoDisponible + cantidad;
+            }
+        }
+//        alert(cantidad+'-'+Disponiblereal);
+        if (cantidad > Disponiblereal) {
+             grid.row(f).attributes('cantidadenviada', {'style': {'color': 'red', 'font-weight': 'bold'}});
+            noDisponible++;
+        }
+        if(grid.row(f).get('idproducto') > 0)
+        {
+            totalItem++;
+            $('#' + this.Id('spanTotalItems')).text(totalItem);
+        }
+    }
+    if (noDisponible > 0) {
+        $('#' + Traspasotpv.Id("disponible")).val(0);
+    } else {
+        $('#' + Traspasotpv.Id("disponible")).val(1);
+    }
+};
+Traspasotpv.setEstado = function () {
+    var estado = $('#' + this.Id("estado:checked")).val();
+    if (estado == 1) {
+        $('#' + Traspasotpv.Id("idestado")).val(4);
+        Traspasotpv.verificarGrid();
+        Traspasotpv.o[Traspasotpv.idWindow].editData = true;
+    } else {
+        $('#' + Traspasotpv.Id("idestado")).val(18);
+        Traspasotpv.verificarGrid();
+        Traspasotpv.o[Traspasotpv.idWindow].editData = true;
+    }
+};
+Traspasotpv.beforeRegistrarConfirmacion = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    var grid = this.getSGridView('gridTraspasoproducto');
+    var cantidad = 0;
+    
+    for (var f = 1; f <= grid.rows; f++)
+    {
+        if(grid.row(f).get('cantidadenviada') === ''){
+            cantidad++;
+        }
+    }
+    if (cantidad==0){
+        error = false;
+    }else{
+        error = true;
+        Traspasotpv.showMessageError('Existen productos sin cantidad');
+    }
+    Traspasotpv.verificarGrid();
+    var disponible = $('#' + Traspasotpv.Id("disponible")).val();
+    if (disponible==1){
+        error = false;
+    }else{
+        error = true;
+        Traspasotpv.showMessageError('Existen productos no disponibles');
+    }
+    return error;
+};
+Traspasotpv.registrarConfirmacion = function (id) {
+    this.action = 'registrarConfirmacion';
+    var options = {idKey: id};
+    this.open(this.getOptions(options));
+};
+Traspasotpv.afterRegistrarConfirmacion = function () {
+    Traspasotpv.closeWindow();
+    admTraspasotpv.search();
+};
+Traspasotpv.cantidadFocus = function (){
+    var grid = Traspasotpv.getSGridView('gridTraspasoproducto');
+    grid.rowSelected().ById('cantidadenviada').click();
+};
+Traspasotpv.BuscaCodigoBarra = function (input, event) {
+    var grid = this.getSGridView('gridTraspasoproducto');
+    var idalmacen = Traspasotpv.get('idalmacendestino');
+    var k = (document.all) ? event.keyCode : event.which;
+    if (idalmacen != '') {
+        if (k == 13) {
+            var data = {
+                codigobarra: input.value,
+                idalmacen: idalmacen
+            };
+            jQuery.ajax({
+                url: this.urlIni + 'traspasotpv/BuscacodigoBarra',
+                type: 'post',
+                data: data,
+                success: function (resultado) {
+                    if (resultado == 0) {
+                        grid.rowSelected().set('id', null);
+                        grid.rowSelected().set('idproducto', null);
+                        grid.rowSelected().set('codigo', null);
+                        grid.rowSelected().set('nombre', null);
+                        grid.rowSelected().set('idunidad', null);
+                        grid.rowSelected().set('saldoDisponible', null);
+                        grid.rowSelected().set('cantidadenviada', null);
+  
+                        Traspasotpv.showMessageError('No existe el Producto, Por favor verique el Código de Barra! ');
+                    } else {
+                        var arrayDatosProducto = JSON.parse(resultado);
+                        grid.rowSelected().set('cantidadenviada', null);
+                        grid.rowSelected().ById('cantidadenviada').click();
+                        grid.rowSelected().set('id', arrayDatosProducto.id);
+                        grid.rowSelected().set('idproducto', arrayDatosProducto.idproducto);
+                        grid.rowSelected().set('codigo', arrayDatosProducto.codigo);
+                        grid.rowSelected().set('nombre', arrayDatosProducto.nombre);
+                        grid.rowSelected().set('idunidad', arrayDatosProducto.unidad);
+                        grid.rowSelected().set('saldoDisponible', arrayDatosProducto.saldoDisponible);
+                    }
+                    return;
+                },
+                error: function (jqXHR, status) {
+                    SystemLoad.done();
+                    alert('error! ');
+                }
+            });
+        }
+    } else {
+        Traspasotpv.showMessageError('No existe Almacen seleccionado! ');
+    }
+};
+Traspasotpv.eliminarProducto = function () {
+    var grid = this.getSGridView('gridTraspasoproducto');
+    var ultimoestado = Traspasotpv.get('idestado');
+    var verifica = grid.rowSelected().get('solicitud');
+
+    if (verifica == -1) {
+        var fild = grid.rowSelected();
+        fild.delRow();
+        return;
+    }
+
+    if (ultimoestado == 4 && verifica == 1) {
+        var fild = grid.rowSelected();
+        fild.delRow();
+        return;
+    }
+
+    if (ultimoestado == 18 && verifica == 1) {
+        bootbox.alert("No puedes eliminar este item debe estar en estado borrador");
+        return;
+    }
+
+    if (ultimoestado == 9 && verifica == 1) {
+        bootbox.alert("La Solicitud esta finalizada no puede realizar esta acción");
+        return;
+    }
+
+    if (ultimoestado == 20 && verifica == 1) {
+        bootbox.alert("La Solicitud esta en Proceso no puede realizar esta acción");
+        return;
+    }
+};
+Traspasotpv.beforeRecepcionSolicitud = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    var grid = this.getSGridView('gridTraspasoproducto');
+    var cantidad = 0;
+
+    for (var f = 1; f <= grid.rows; f++)
+    {
+        if (grid.row(f).get('cantidadsolicitada') === '') {
+            cantidad++;
+        }
+    }
+    if (cantidad == 0) {
+        error = false;
+    } else {
+        error = true;
+        Traspasotpv.showMessageError('Existen productos sin cantidad');
+    }
+    Traspasotpv.verificarGrid();
+    var disponible = $('#' + Traspasotpv.Id("disponible")).val();
+    if (disponible == 0){
+        Traspasotpv.showMessageError('Existen productos NO disponibles');
+        error = true;
+    }
+    return error;
+};
+Traspasotpv.recepcionSolicitud = function (id) {
+    this.action = 'recepcionSolicitud';
+    var options = {idKey: id};
+    this.open(this.getOptions(options));
+};
+Traspasotpv.afterRecepcionSolicitud = function () {
+    Traspasotpv.closeWindow();
+    admTraspasotpv.search();
+};
+Traspasotpv.quitarReserva = function (id) {
+var idtraspaso = SGridView.getSelected('id');
+    bootbox.dialog({
+        message: "<form id='info' action=''>\
+    <div class='column'  style='width:100%;'> <label> Esta Seguro de QUITAR LA RESERVA al traspaso</label><br/>\
+    </div></form>",
+        buttons: {
+            btn1: {
+                label: 'Si',
+                className: 'btn-success',
+                callback: function () {
+                    $.post("almacen/traspasotpv/quitarReserva", {idtraspaso: idtraspaso})
+                            .done(function (data) {
+                                var myJsonString = JSON.parse(data);
+                                if (myJsonString.errorSaldo == 1) {
+                                    Traspasotpv.showMessageError('No Existe traspaso a quitar reserva! ');
+                                } else {
+                                    if (myJsonString.actualizo == 1) {
+                                        admTraspasotpv.showMessage('Se quito la RESERVA correctamente !!');
+                                        admTraspasotpv.search();
+                                    }
+                                }
+                            });
+                }
+            },
+            btn2: {
+                label: 'Cancelar',
+                className: 'btn-warning',
+                callback: function () {
+
+                }
+            }
+        }});
+};
+Traspasotpv.beforeModificarSolicitud = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    var grid = this.getSGridView('gridTraspasoproducto');
+    var cantidad = 0;
+
+    for (var f = 1; f <= grid.rows; f++)
+    {
+        if (grid.row(f).get('cantidadsolicitada') === '') {
+            cantidad++;
+        }
+    }
+    if (cantidad == 0) {
+        error = false;
+    } else {
+        error = true;
+        Traspasotpv.showMessageError('Existen productos sin cantidad');
+    }
+    Traspasotpv.verificarGrid();
+    var disponible = $('#' + Traspasotpv.Id("disponible")).val();
+    if (disponible == 0){
+        Traspasotpv.showMessageError('Existen productos NO disponibles');
+        error = true;
+    }
+    return error;
+};
+Traspasotpv.modificarSolicitud = function (id){
+    this.action = 'modificarSolicitud';
+    var options = {idKey: id};
+    this.open(this.getOptions(options));
+};
+Traspasotpv.afterModificarSolicitud = function () {
+    Traspasotpv.closeWindow();
+    admTraspasotpv.search();
+};

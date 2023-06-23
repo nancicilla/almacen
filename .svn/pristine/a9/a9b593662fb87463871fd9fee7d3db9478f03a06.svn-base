@@ -1,0 +1,72 @@
+<?php
+
+/* @var $this ProductoController */
+/* @var $model Producto */
+
+echo System::Search(array(
+    'title' => 'Asignación de Consumos',
+    'formSearch' => $this->renderPartial('_searchAsignacionsaldos', array('model' => $model,), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admAsignacionsaldos',
+        'dataProvider' => $model->asignacionSaldos(),
+        'eventAfterEdition' => 'admAsignacionsaldos.cambiarSaldos()',
+        'eventAfterEditionAutomatic'=>true,
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'codigo',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'nombre',
+                'width' => 30,
+            ),
+            array(
+                'name' => 'idunidad',
+                'value' => '$data->idunidad0->simbolo',
+                'width' => 5,
+            ),
+            array(
+                'width' => 15,
+                'name' => 'idalmacen',
+                'value' => '$data->idalmacen0->nombre',
+            ),
+            array(
+                'width' => 10,
+                'name' => 'stockminimo',
+                'align' => 'right',
+                'type' => 'number', // le da el formato de número decimal                     
+                'typeCol' => 'editable',
+                'background'=>'#F5D6CC'
+            ),
+            array(
+                'width' => 10,
+                'name' => 'stockmaximo',
+                'align' => 'right',
+                'type' => 'number', // le da el formato de número decimal
+                'typeCol' => 'editable',
+                'background'=>'#F5D6CC'
+            ),
+            array(
+                'width' => 10,
+                'name' => 'saldo',
+                'align' => 'right',
+                'type' => 'number', // le da el formato de número decimal
+            ),
+            array(
+                'width' => 10,
+                'name' => 'puntopedido',
+                'header'=> 'Tiempo duración<br>(meses)' ,
+                'value'=>'Producto::model()->verificaDuracionAsignacionConsumo($data)?"<div class=\'duracionAlerta\' >".(Producto::model()->getDuracionAsignacionConsumo($data))."</div>":round($data->saldo/$data->stockminimo,3)',
+                'split'=>false,
+                'align' => 'right',
+                //'type' => 'number', // le da el formato de número decimal           
+            ),
+            array(
+                'name' => 'id',
+                'typeCol' => 'hidden'
+            ),
+        ),
+            )
+)));

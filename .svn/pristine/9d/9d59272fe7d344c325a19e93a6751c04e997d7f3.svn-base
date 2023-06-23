@@ -1,0 +1,99 @@
+<?php
+
+/* @var $this OrdentrabajoController */
+/* @var $model Ordentrabajo */
+
+echo System::Search(array(
+    'title' => 'Administración de Ordentrabajos',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admOrdentrabajo',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+		array(
+                'header' => 'Nro.',
+		'name' => 'numero',
+		'width' => 7,
+                'style' => array('text-align' => 'center')
+		),
+                array(
+                'name'=>'fecha',
+                'type' => 'datetime', 
+                'width'=> 14,
+                ),
+		array(
+                'header' => 'Producto',
+		'name' => 'idproducto',
+		'width' => 27,
+		'value' => '"(".$data->idproducto0->codigo. ") " .$data->idproducto0->nombre',
+                ),
+		array(
+		'name' => 'descripcion',
+		'width' => 27,
+		),
+                array(
+                'header' => 'Estado',
+		'name' => 'idestado',
+		'width' => 9,
+                'split' => false,
+                'value' => '$data->idestado == Estado::EN_PROCESO?"<span style=\'color: white;\' class=\'label label-success\'>".$data->idestado0->nombre."</span>" : '
+                        . '($data->idestado == Estado::ESTADO_ENTREGA?"<span style=\'color: white\' class=\'label label-warning\'>".$data->idestado0->nombre."</span>" : "<span style=\'color: white\' class=\'label label-default\'>".$data->idestado0->nombre."</span>")',  
+                'style' => array('text-align' => 'center')
+		),
+		array(
+		'name' => 'usuario',
+		'width' => 8,
+		),
+                /*
+		array(
+		'name' => 'descripcionanulacion',
+		'width' => 30,
+		),
+		array(
+		'name' => 'usuarioanulacion',
+		'width' => 30,
+		),
+		*/
+		/*   
+                array(
+                'name'=>'fecha',
+                'type' => 'datetime', 
+                'width'=> 30,
+                ),    
+   
+                array(
+                'name'=>'fechaanulacion',
+                'type' => 'datetime', 
+                'width'=> 30,
+                ),    
+		*/
+                array('typeCol' => 'buttons',
+                    'width' => 8,
+                    'deleteConfirmation'=>'¿Seguro que desea eliminar este elemento?',
+                    'buttons' => 	array(
+                                    'Imprimir' => array(
+                                        'url' => 'array("reporteOrden","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+                                        'icon' => 'print', 'options' => array('target' => '_blank')),
+                                    'entrega' => array(
+                                        'label' => 'Registrar Entrega',
+                                        'icon' => 'circle-arrow-up',
+                                        'click' => '                                                        
+                                                    function(){                                                            
+                                                        SGridView.selectRow(this);
+                                                        admOrdentrabajo.registrarEntrega();
+                                                        return false;
+                                                    }',
+                                    ),
+                                    'update' => array(
+                                        'label' => 'Ver',
+                                        'icon' => 'icon-eye-open',
+                                        ),
+                                    //'delete' => array('label' => 'Eliminar'),
+                                    ),
+		),
+	),
+    ))
+));
+

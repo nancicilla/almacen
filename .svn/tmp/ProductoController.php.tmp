@@ -1,0 +1,373 @@
+<?php
+
+class ProductoController extends Controller
+{
+    /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+    
+    /* 
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+   
+    
+    public function filters()
+    {
+        return array_merge(
+            array(
+                'accessControl',
+                array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+            )
+        );
+    } 
+    
+    /* 
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+    private function _publicActionsList()
+    {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',          
+        );
+    }
+    
+    public function accessRules()
+    {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+
+	/**
+	 * Displays a particular model.
+	 * @param integer $id the ID of the model to be displayed
+	 */
+	public function actionView($id)
+	{
+		$this->render('view',array(
+			'model'=>$this->loadModel(SeguridadModule::dec($id)),
+		));
+	}
+
+	/**
+     * Creates a new model.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     */
+    public function actionCreate() {
+        $model = new Producto;
+        $modelProductoCaracteristica = new Productocaracteristica;
+        $modelProductoCaracteristicaImagen = new Productocaracteristica;
+        $productoCaracteristica = array();
+        $productoImagen=array();
+
+
+        // Uncomment the following line if AJAX validation is needed
+        // $this->performAjaxValidation($model);
+
+        if (isset($_POST['Producto'])) {            
+            $directorioTemporal = $_POST['Producto']['directorioTemporal'];
+            
+            $model->attributes = $_POST['Producto'];
+            if (isset($_POST['Productocaracteristica'])) {               
+                $productoCaracteristica = $_POST['Productocaracteristica'];
+            }
+            if (isset($_POST['Productoimagen'])) {                
+                $productoImagen = $_POST['Productoimagen'];
+            }
+            $model->validate();
+            if ($model->save()) {
+                if ($this->registrarCaracteristica($model->id, $modelProductoCaracteristica, $productoCaracteristica)) {
+                    if (Productocaracteristica::model()->registrarImagen($model->id, $modelProductoCaracteristicaImagen, $productoImagen,$directorioTemporal)) {
+                        $this->redirect(array('view', 'id' => SeguridadModule::enc($model->id)));
+                    }
+                }
+            }
+        }else{
+            $temporal = new temporal();
+            $directorioTemporal = $temporal->getAssetFolder().$temporal->getTempFolder(); 
+        }
+
+        $this->render('create', array(
+            'model' => $model,
+            'productoCaracteristica' => $productoCaracteristica,
+            'productoImagen'=>$productoImagen,
+            'directorioTemporal' => $directorioTemporal,
+        ));
+    }      
+/**
+    
+    /**
+	 * 
+	 * Recorre y almacena valores de un array que contenga las caracteristicas
+         * asignando a un producto específico
+         * @param integer idProducto Id del producto al que pertenece
+	 * @param model modelo Modelo en el que se almacenaran los datos
+         * @param array caracteristica Array con los valores
+	 */
+        public function registrarCaracteristica($idProducto, $modelo, $caracteristica) {
+        $retorno = true;
+        if ($idProducto != Null && isset($modelo) && isset($caracteristica)) {
+            $modelo->attributes = $caracteristica;
+            $modelo->idproducto = $idProducto;
+            $productoCaracteristica = $caracteristica;
+            $cantidad = count($caracteristica);
+            for ($i = 1; $i <= $cantidad; $i++) {
+                foreach ($productoCaracteristica[$i] as $atributo => $dato) {
+                    if ($atributo == 'idcaracteristica') {
+                        $modelo->idcaracteristica = $dato;                    
+                    }
+                    if ($atributo == 'valor') {
+                        if ($dato != Null)
+                            $modelo->valor = $dato;                          
+                        if ($modelo->save()) {
+                            $modelo = new Productocaracteristica;
+                            $modelo->attributes = $caracteristica;
+                            $modelo->idproducto=$idProducto;
+                        }else{
+                            $retorno=false;                            
+                        }
+                    }
+                }
+            }
+        } else {
+            $retorno = false;
+        }
+        return $retorno;
+    }
+
+    /**
+	 * Updates a particular model.
+	 * If update is successful, the browser will be redirected to the 'view' page.
+	 * @param integer $id the ID of the model to be updated
+	 */
+	public function actionUpdate($id) {
+        $productoCaracteristica = array();
+        $productoImagen = array();
+        $model = $this->loadModel(SeguridadModule::dec($id));
+        
+        $modelProductoCaracteristica = new Productocaracteristica;
+        $modelProductoImagen = new Productocaracteristica;
+           
+        if (isset($_POST['Productocaracteristica'])){
+            $productoCaracteristica=$_POST['Productocaracteristica'];
+        }else{
+            $productoCaracteristica = $modelProductoCaracteristica->informacionProducto(SeguridadModule::dec($id),Genero::model()->generoGeneral);
+        }
+        
+        if (isset($_POST['Productoimagen'])){
+            $productoImagen=$_POST['Productoimagen'];
+        }else{
+            $productoImagen = $modelProductoImagen->informacionProducto(SeguridadModule::dec($id),  Genero::model()->generoArchivo);
+        } 
+        
+// Uncomment the following line if AJAX validation is needed
+        // $this->performAjaxValidation($model);
+
+        if (isset($_POST['Producto'])) {
+            $model->attributes = $_POST['Producto'];
+            if ($model->save()) {
+                $modelProductoCaracteristica->deleteAll('idproducto = ' . $model->id);
+                if ($this->registrarCaracteristica($model->id, $modelProductoCaracteristica, $productoCaracteristica)) {
+                    $this->redirect(array('view', 'id' => SeguridadModule::enc($model->id)));
+                }
+            }
+        }
+
+        $this->render('update', array(
+            'model' => $model,
+            'productoCaracteristica' => $productoCaracteristica,
+            'productoImagen' => $productoImagen,
+        ));
+    }
+
+    /**
+	 * Deletes a particular model.
+	 * If deletion is successful, the browser will be redirected to the 'admin' page.
+	 * @param integer $id the ID of the model to be deleted
+	 */
+	public function actionDelete($id)
+	{
+		$this->loadModel(SeguridadModule::dec($id))->delete();
+
+		// if AJAX request (triggered by deletion via admin grid view), we should not redirect the browser
+		if(!isset($_GET['ajax']))
+			$this->redirect(isset($_POST['returnUrl']) ? $_POST['returnUrl'] : array('admin'));
+	}
+
+	/**
+	 * Lists all models.
+	 */
+	public function actionIndex()
+	{
+		$dataProvider=new CActiveDataProvider('Producto');
+		$this->render('index',array(
+			'dataProvider'=>$dataProvider,
+		));
+	}
+
+	/**
+	 * Manages all models.
+	 */
+	public function actionAdmin()
+	{
+		$model=new Producto('search');
+		$model->unsetAttributes();  // clear any default values
+		if(isset($_GET['Producto']))
+			$model->attributes=$_GET['Producto'];
+
+		$this->render('admin',array(
+			'model'=>$model,
+		));
+	}
+
+	/**
+	 * Returns the data model based on the primary key given in the GET variable.
+	 * If the data model is not found, an HTTP exception will be raised.
+	 * @param integer $id the ID of the model to be loaded
+	 * @return Producto the loaded model
+	 * @throws CHttpException
+	 */
+	public function loadModel($id)
+	{
+		$model=Producto::model()->findByPk($id);
+		if($model===null)
+			throw new CHttpException(404,'The requested page does not exist.');
+		return $model;
+	}
+
+	/**
+	 * Performs the AJAX validation.
+	 * @param Producto $model the model to be validated
+	 */
+	protected function performAjaxValidation($model)
+	{
+		if(isset($_POST['ajax']) && $_POST['ajax']==='producto-form')
+		{
+			echo CActiveForm::validate($model);
+			Yii::app()->end();
+		}
+	}
+        
+        /**
+	 * Permite utilizar un autocomplete para la busqueda de productos en la 
+         * interfaz de kardex y stock, tiene como parametros de entrada el id del 
+         * almacen al cual esta asociado el producto, y el termino que se busca
+	 */
+        public function actionAutocomplete () 
+        {
+            $idAlmacen = $_GET['idalmacen'];       
+            $request=trim($_GET['term']);
+            $requestMayuscula=  strtoupper($request);
+	    
+            if($request!=''){                
+                $criteria = new CDbCriteria;
+                $criteria->select = 't.*';
+                $criteria->condition = "t.nombre like :valorentrada or t.codigo like :valorentrada";
+                if ($idAlmacen!=NULL){
+                    $criteria->addCondition("idalmacen= :value2");
+                }                
+                $criteria->params = array(':valorentrada' => "%$requestMayuscula%",':value2'=> (int)$idAlmacen);
+                $criteria->order="nombre asC";
+	        $model=Producto::model()->findAll($criteria);                
+	        $data=array();
+	        
+                foreach($model as $get){
+	           $data[]=array(
+                    'label'=> $get->nombre.' ('.$get->codigo.')',
+                    'value'=>$get->nombre,
+                    'nombre'=>$get->nombre,
+                    'id'=>$get->id);
+	        }
+                
+	        $this->layout='empty';
+	        echo CJSON::encode($data);
+	    }          
+	} 
+         /**
+	 * Muestra los productos y su stock
+	 */
+	public function actionStock()
+	{
+            $model=new Producto('searchStock'); 
+            
+	    if (isset($_GET['Producto'])) {
+                $model->attributes = $_GET['Producto'];           
+
+                if(!$model->validate()){  
+                    $errors = '';    
+                    foreach($model->attributeNames() as $attr)
+                    {
+                        $errors .= $model->hasErrors($attr) ? $model->getError($attr).' ' : '';
+                    }
+                    Yii::app()->user->setFlash('error', $errors);          
+                }
+                else
+                {
+                    Yii::app()->session['productomodel'] = $model;
+                }              
+            }
+            else {
+                Yii::app()->session['productomodel'] = $model;
+            }
+            
+        $this->render('stock',
+                    array(
+			'model'=>$model,
+                    )
+            );
+	}
+        
+    /**
+     * Genera el reporte en formato pdf del stock de productos en base a la 
+     * vista del cgridview de la interfaz de stock, en caso de que el reporte
+     * no tenga paginas se muestra una excepción
+     */ 
+    public function actionReporteProductoStock()
+    {  
+        if (Yii::app()->session['productomodel'] != null) {
+            $re = new JasperReport('/reports/Almacen/productoStock', JasperReport::FORMAT_PDF, array(
+                'pIdProducto' => Yii::app()->session['productomodel']->id,
+                'pIdAlmacen'=>Yii::app()->session['productomodel']->idalmacen,
+                'pCodigo'=>Yii::app()->session['productomodel']->codigo,
+                'pNombre'=>Yii::app()->session['productomodel']->nombre,
+                'pUsuario'=>Yii::app()->user->getName(),   
+                'pStockMinimo'=>Yii::app()->session['productomodel']->stockminimo,
+                'pSaldo'=>Yii::app()->session['productomodel']->saldo,
+                'pFormatoNumero'=>Yii::app()->params['formatNumberAlm'],
+                'REPORT_LOCALE'=>Yii::app()->params['appLocale'],
+            ));
+            $re->exec();
+        
+            if ($re->getPages()>0 && Yii::app()->session['mostrarReporteProductoStock'] ){
+                echo $re->toPDF();
+            }
+            else
+                {
+                throw new CrugeException('El reporte no tiene páginas.',483);
+            }
+        }
+        else{
+            throw new CrugeException('El reporte no tiene páginas.',483);
+        } 
+    }
+}

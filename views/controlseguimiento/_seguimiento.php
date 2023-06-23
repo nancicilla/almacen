@@ -1,0 +1,31 @@
+<?php
+/* @var $this SeguimientoController */
+/* @var $model Seguimiento */
+/* @var $form CActiveForm */
+?>
+<div class="form">
+    <?php
+    $form = $this->beginWidget('CActiveForm', array(
+    ));
+    ?>
+    <div class="formWindow">
+        <div class="row">
+            <?php echo $form->labelEx($modelSeguimiento, 'Comunicación'); ?>
+            <?php echo $form->dropDownList($modelSeguimiento, 'idcomunicacion', CHtml::listData(Comunicacion::model()->findAll(), 'id', 'nombre'),array('empty' => '')); ?>
+            <?php echo $form->hiddenField($modelSeguimiento, 'idtabla'); ?>
+            <?php echo $form->hiddenField($modelSeguimiento, 'tabla'); ?>
+        </div>
+        <div class="row">
+            <div class="row">
+                <?php echo $form->labelEx($modelSeguimiento, 'descripcion'); ?>
+                <?php echo $form->textArea($modelSeguimiento, 'descripcion', array('rows' => 3, 'style' => 'text-transform: uppercase;')) ?>
+            </div>
+        </div>
+    </div>
+    <?php
+    echo System::Buttons(array(
+        'nameView' => 'Controlseguimiento',
+    ));
+    ?>
+    <?php $this->endWidget(); ?>
+</div>

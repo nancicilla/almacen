@@ -1,0 +1,14 @@
+<?php
+/* @var $this UnidadController */
+/* @var $model Unidad */
+
+
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Actualización de Unidad</h1>
+
+<?php $this->renderPartial('_form', array('model'=>$model)); ?>		</div>
+	</div>
+</div>

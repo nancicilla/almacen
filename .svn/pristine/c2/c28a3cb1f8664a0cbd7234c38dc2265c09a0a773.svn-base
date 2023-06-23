@@ -1,0 +1,111 @@
+<?php
+/* @var $this InventarioController */
+/* @var $model Inventario */
+
+Yii::app()->clientScript->registerScript('search', "
+$('.search-button').click(function(){
+	$('.search-form').toggle();
+	return false;
+});
+$('.search-form form').submit(function(){
+	$('#inventario-grid').yiiGridView('update', {
+		data: $(this).serialize()
+	});
+	return false;
+});
+");
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Administración de Inventarios</h1>
+
+<?php echo CHtml::link('Busqueda Avanzada','#',array('class'=>'search-button')); ?>
+<div class="search-form" style="display:none">
+<?php $this->renderPartial('_search',array(
+	'model'=>$model,
+)); ?>
+</div><!-- search-form -->
+
+<?php $this->widget('bootstrap.widgets.TbGridView', array(
+	'id'=>'inventario-grid',
+	'dataProvider'=>$model->search(),
+	'filter'=>$model,
+        'ajaxUpdate' =>true,
+        'afterAjaxUpdate' => 'reinstallDatePicker',
+	'columns'=>array(
+            'id',
+//                array(
+//                    'name'=>'almacen', 
+//                    'header'=>'Almacen',    
+//                    'value' => '$data->almacenproductoinventarios[0]->idalmacen0->idalmacen0->nombre', 
+//                    'filter'=>CHtml::listData(
+//                            Almacen::model()->findAll(
+//                                    array(
+//                                        'order'=>'codigo')
+//                                    ),
+//                                'id', 
+//                                'nombreCompleto')                    
+//                    ),
+//		'descripcion',
+//                array('name'=>'cerrado', 
+//                      'header'=>'Estado',        
+//                      'value'=>'($data->cerrado==1)?"finalizado":"pendiente"'
+//                    ),
+//                array(
+//                'name'=>'fechainicio',
+//                'type' => 'datetime',
+//                'filter' =>$this->widget('zii.widgets.jui.CJuiDatePicker', array(
+//                'model'=>$model, 
+//                'attribute'=>'fechainicio',
+//                'name' => 'inventario[fechainicio]',
+//                'value' => $model->fechainicio,
+//                'language' => 'es',
+//                // additional javascript options for the date picker plugin
+//                'options' => array(
+//                    'showAnim' => 'slideDown',
+//                    'showButtonPanel' => true,
+//                    'changeMonth' => true,
+//                    'changeYear' => true,
+//                    'dateFormat' => 'dd/mm/yy',
+//                    'maxDate' => 'today',
+//                ),
+//                'htmlOptions' => array(
+//                    'id' => 'inventario_fechainicio',
+//                    'size' => '10',
+//                ),
+//                    ), true)
+//                ),   
+		array(
+			'class'=>'bootstrap.widgets.TbButtonColumn',
+                                'deleteConfirmation'=>'¿Seguro que desea eliminar este elemento?',
+				'buttons' => 	array(
+						'view'=>array('url'=>'array("view","id"=>SeguridadModule::enc($data->getPrimaryKey()))'),
+                            			'update'=>array('url'=>'array("update","id"=>SeguridadModule::enc($data->getPrimaryKey()))'),
+						'delete'=>array('url'=>'array("delete","id"=>SeguridadModule::enc($data->getPrimaryKey()))')
+                            			),
+		),
+	),
+));
+
+Yii::app()->clientScript->registerScript('re-install-date-picker', "
+function reinstallDatePicker() {
+     //se deben usar los mismos parámetros que en el widget para ser recargado
+          $('#inventario_fechainicio').datepicker(jQuery.extend(
+            jQuery.datepicker.regional['es'],
+            {'changeYear':true,
+            'changeMonth':true,
+            'showButtonPanel':true,
+            'showAnim':'slideDown'}));
+          $('#inventario_fechafin').datepicker(jQuery.extend(
+            jQuery.datepicker.regional['es'],
+            {'changeYear':true,
+            'changeMonth':true,
+            'showButtonPanel':true,
+            'showAnim':'slideDown'}));
+     }
+");
+ ?>
+		</div>
+	</div>
+</div>

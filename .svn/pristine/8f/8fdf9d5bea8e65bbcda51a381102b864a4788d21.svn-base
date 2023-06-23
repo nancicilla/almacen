@@ -1,0 +1,26 @@
+<?php
+/* @var $this AlmacenController */
+/* @var $model Almacen */
+
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Ver Almacen</h1>
+
+<?php $this->widget('zii.widgets.CDetailView', array(
+	'data'=>$model,
+	'attributes'=>array(
+		'codigo',
+		'nombre',
+		'descripcion',
+		array(
+			 'name' => 'fecha',
+			 'value'=>Yii::app()->format->datetime(strtotime($model->fecha)),
+		),
+		'usuario',
+		'idalmacen0.nombre',
+	),
+)); ?>		</div>
+	</div>
+</div>

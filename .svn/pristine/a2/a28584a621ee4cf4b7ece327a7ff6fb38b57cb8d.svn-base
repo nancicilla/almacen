@@ -1,0 +1,268 @@
+<?php
+
+/*
+ * Productonotaborrador.php
+ *
+ * Version 0.$Rev: 244 $
+ *
+ * Creacion: 16/07/2015
+ *
+ * Ultima Actualizacion: $Date: 2015-03-17 10:26:19 -0400 (mar, 17 mar 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+
+ * This is the model class for table "productonotaborrador".
+ *
+ * The followings are the available columns in table 'productonotaborrador':
+ * @property string $glosa
+ * @property string $costo
+ * @property string $ingreso
+ * @property string $salida
+ * @property string $saldo
+ * @property string $fecha
+ * @property integer $idproducto
+ * @property integer $idnotaborrador
+ * @property string $calidad
+ * @property string $evaluacion
+ * @property boolean $eliminado
+ * @property string $usuario
+ *
+ * The followings are the available model relations:
+ * @property Notaborrador $idnotaborrador0
+ * @property Producto $idproducto0
+ */
+
+class Productonotaborrador extends CActiveRecord {
+
+    public $codigo;
+    public $nombre;
+    public $cantidad;
+
+    /**
+     * Crea un ámbito por defecto que permite añadir condiciones al modelo
+     */
+    public function defaultScope() {
+        return array(
+            'condition' => $this->getTableAlias(false, false) .
+            '.eliminado = false',
+        );
+    }
+
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName() {
+        return 'productonotaborrador';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules() {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            array('idproducto, idnotaborrador', 'required'),
+            array('idproducto, idnotaborrador', 'numerical', 'integerOnly' => true),
+            array('calidad', 'length', 'max' => 20),
+            array('usuario', 'length', 'max' => 30),
+            array('glosa, costo, cantidad,ingreso, salida, saldo, evaluacion, eliminado', 'safe'),
+            // The following rule is used by search().
+            // @todo Please remove those attributes that should not be searched.
+            array('glosa, costo, ingreso, salida, saldo, fecha, idproducto, idnotaborrador, calidad, evaluacion, eliminado, usuario', 'safe', 'on' => 'search'),
+        );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations() {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+            'idnotaborrador0' => array(self::BELONGS_TO, 'Notaborrador', 'idnotaborrador'),
+            'idproducto0' => array(self::BELONGS_TO, 'Producto', 'idproducto'),
+        );
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels() {
+        return array(
+            'glosa' => 'Glosa',
+            'costo' => 'Costo',
+            'ingreso' => 'Ingreso',
+            'salida' => 'Salida',
+            'saldo' => 'Saldo',
+            'fecha' => 'Fecha',
+            'idproducto' => 'Idproducto',
+            'idnotaborrador' => 'Idnotaborrador',
+            'calidad' => 'Calidad',
+            'evaluacion' => 'Evaluacion',
+            'eliminado' => 'Eliminado',
+            'usuario' => 'Usuario',
+            'codigo' => 'Código',
+            'nombre' => 'Producto',
+        );
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function search() {
+        // @todo Please modify the following code to remove attributes that should not be searched.
+
+        $criteria = new CDbCriteria;
+
+        $criteria->addSearchCondition('t.glosa', $this->glosa, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('t.costo', $this->costo, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('t.ingreso', $this->ingreso, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('t.salida', $this->salida, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('t.saldo', $this->saldo, true, 'AND', 'ILIKE');
+        if ($this->fecha != Null) {
+            $criteria->addCondition("t.fecha::date = '" . $this->fecha . "'");
+        }
+        $criteria->compare('t.idproducto', $this->idproducto);
+        $criteria->compare('t.idnotaborrador', $this->idnotaborrador);
+        $criteria->addSearchCondition('t.calidad', $this->calidad, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('t.evaluacion', $this->evaluacion, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('t.usuario', $this->usuario, true, 'AND', 'ILIKE');
+
+        return new CActiveDataProvider($this, array(
+            'pagination' => array(
+                'pageSize' => Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']),
+            ),
+            'criteria' => $criteria,
+        ));
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection() {
+        return Yii::app()->almacen;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Productonotaborrador the static model class
+     */
+    public static function model($className = __CLASS__) {
+        return parent::model($className);
+    }
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+        $this->glosa = strtoupper($this->glosa);
+        $this->fecha = new CDbExpression('NOW()');
+        $this->calidad = strtoupper($this->calidad);
+        $this->evaluacion = strtoupper($this->evaluacion);
+
+        if (isset(Yii::app()->session['var']))
+            $this->usuario = Yii::app()->session['var'];
+        else
+            $this->usuario = Yii::app()->user->getName();
+
+        return parent::beforeSave();
+    }
+
+    /**
+     * Función para registrar y/o actualizar productos de la preventa
+     * La función sigue la lógica de recorrer el array de productos
+     * para luego setear el valor y guardarlo en la base de datos.
+     * @param type $idnotaborrador id del registro de de la venta.
+     * @param type $productonotaborrador array con los valores de productos.
+     * @throws CrugeException
+     */
+    public function registrarProductoNotaTraspaso($idnotaborrador, $idnotaborradorDestino, $productonotaborrador, $glosa, $idalmacenDestino) {
+        $modelo = new Productonota();
+        $modeloDestino = new Productonotaborrador();
+        if ($idnotaborrador != Null && $idnotaborradorDestino != Null && isset($productonotaborrador)) {
+            foreach ($productonotaborrador as $fila) {
+                $modelo = new Productonota();
+                $modelo->attributes = $fila;
+                $modelo->idnota = $idnotaborrador;
+                $modelo->glosa = $glosa;
+                $modelo->ingreso = 0;
+                $modelo->salida = $modelo->cantidad;
+                $producto = Producto::model()->findByPk($modelo->idproducto);
+                $costo = $producto->costo;
+                $saldo = $producto->saldo;
+                $modelo->saldo = $saldo - $modelo->salida;
+                $modelo->ingresoimporte = 0;
+                $modelo->salidaimporte = $modelo->salida * $costo;
+                $modelo->saldoimporte = $saldo * $costo - $modelo->salidaimporte;
+                $modeloDestino = new Productonotaborrador();
+                $modeloDestino->attributes = $fila;
+                $modeloDestino->idnotaborrador = $idnotaborradorDestino;
+                $modeloDestino->glosa = $glosa;
+                $modeloDestino->ingreso = $modeloDestino->cantidad;
+                $modeloDestino->salida = 0;
+                $modeloDestino->idproducto = Producto::model()->getIdproductoDestino($modelo->idproducto, $idalmacenDestino);
+                if ($modelo->save() && $modeloDestino->save()) {
+                    $this->actualizarProductos($modelo->idproducto, $modelo->salida);
+                }
+            }
+        } else {
+            echo 'Error al registrar las notas borrador.';
+        }
+    }
+
+    /*
+     * actualiza la tabla producto en el campo reserva, dado el id del producto y la cantidad
+     */
+
+    public function actualizarProductos($idproducto, $cantidad) {
+        $modelProducto = Producto::model()->findByPk($idproducto);
+        $modelProducto->setScenario('traspaso');
+        $modelProducto->saldo = $modelProducto->saldo - $cantidad;
+        $modelProducto->save();
+    }
+
+    /*
+     * Devuelve los productos de nota borrador
+     */
+
+    public function obtenerProductoNotaBorrador($idnotaborrador) {
+        $criteria = new CDbCriteria;
+        $criteria->select = 't.*, p.codigo, p.nombre';
+        $criteria->join = ' inner join producto p on t.idproducto = p.id';
+        $criteria->addCondition("t.idnotaborrador = " . $idnotaborrador);
+
+        return new CActiveDataProvider($this, array(
+            'pagination' => array(
+                'pageSize' => Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']),
+            ),
+            'criteria' => $criteria,
+        ));
+    }
+
+}

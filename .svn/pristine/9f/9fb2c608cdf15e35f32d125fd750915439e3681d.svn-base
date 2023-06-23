@@ -1,0 +1,159 @@
+<?php
+/* @var $this NotaController */
+/* @var $model Nota */
+$pageSize = Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']);
+
+Yii::app()->clientScript->registerScript('search', "
+$('.search-button').click(function(){
+	$('.search-form').toggle();
+	return false;
+});
+$('.search-form form').submit(function(){
+	$('#nota-grid').yiiGridView('update', {
+		data: $(this).serialize()
+	});
+	return false;
+});
+");
+?>
+<div class="container">
+    <div class="offset-12">
+        <div id="content">
+            <h1>Administración de Notas</h1>
+
+            <?php echo CHtml::link('Busqueda Avanzada', '#', array('class' => 'search-button')); ?>
+            <div class="search-form" style="display:none">
+                <?php
+                $this->renderPartial('_search', array(
+                    'model' => $model,
+                ));
+                ?>
+            </div><!-- search-form -->
+            <div id="flash-msgs">
+                    <?php if (Yii::app()->user->hasFlash("error")): ?>
+                    <div class="flash-error">
+                    <?php echo Yii::app()->user->getFlash("error"); ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <form target="_blank" style="text-align: right; margin-bottom: 5px">
+                <?php
+                echo TbHtml::submitButton('Imprimir', array(
+                    'submit' => array('nota/reporteNotaLote'),
+                ));
+                ?>
+            </form>
+            <?php
+            $this->widget('yiiwheels.widgets.grid.WhGridView', array(
+                'fixedHeader' => true,
+                'responsiveTable' => true,
+                'id' => 'nota-grid',
+                'dataProvider' => $model->search(),
+                'filter' => $model,
+                'ajaxUpdate' => 'flash-msgs',
+                'afterAjaxUpdate' => 'reinstallDatePicker',
+                'columns' => array(
+                    array(
+                        'name' => 'numero',
+                        'htmlOptions' => array(
+                            'width' => '50'
+                        )),
+                    array(
+                        'name' => 'fecha',
+                        'type' => 'datetime',
+                        'filter' => $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                            'model' => $model,
+                            'attribute' => 'fecha',
+                            'name' => 'nota[fecha]',
+                            'value' => $model->fecha,
+                            'language' => 'es',
+                            // additional javascript options for the date picker plugin
+                            'options' => array(
+                                'showAnim' => 'slideDown',
+                                'showButtonPanel' => true,
+                                'changeMonth' => true,
+                                'changeYear' => true,
+                                'dateFormat' => 'dd-mm-yy',
+                                'maxDate' => 'today',
+                            ),
+                            'htmlOptions' => array(
+                                'id' => 'nota_fecha',
+                                'size' => '15'
+                            ),
+                                ), true)
+                    ),
+                    array(
+                        'name' => 'notaTipo',
+                        'header' => 'Tipo',
+                        'value' => '$data->idtipo0->nombre',
+                        'filter' => CHtml::listData(
+                                Tipo::model()->findAll(
+                                        array(
+                                            'order' => 'nombre')
+                                ), 'nombre', 'nombre')
+                    ),
+                    'glosa',
+                    array(
+                        'name' => 'usuario',
+                        'htmlOptions' => array(
+                            'width' => '80'
+                        )),
+                    array(
+                        'name' => 'idorigen',
+                        'header' => 'Origen',
+                        'value' => '$data->idorigen0->nombre',
+                        'filter' => CHtml::listData(
+                                Origen::model()->findAll(
+                                        array(
+                                            'order' => 'nombre')
+                                ), 'id', 'nombre'),
+                        'htmlOptions' => array('width' => '120px'),
+                    ),
+                    array(
+                        'class' => 'bootstrap.widgets.TbButtonColumn',
+                        'header' => CHtml::dropDownList('pageSize', $pageSize, array(Yii::app()->params['1PageSize'] => Yii::app()->params['1PageSize'],
+                            Yii::app()->params['2PageSize'] => Yii::app()->params['2PageSize'],
+                            Yii::app()->params['3PageSize'] => Yii::app()->params['3PageSize'],
+                            Yii::app()->params['4PageSize'] => Yii::app()->params['4PageSize'],
+                            Yii::app()->params['5PageSize'] => Yii::app()->params['5PageSize'],
+                                ), array(
+                            'style' => 'width:70px; margin: 0 auto;',
+                            'onchange' => "$.fn.yiiGridView.update('nota-grid',{ data:{pageSize: $(this).val() }})",
+                                )
+                        ),
+                        'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                        'template' => '{imprimir}{update}{delete}',
+                        'buttons' => array(
+                            'imprimir' => array('icon' => 'print',
+                                'url' => 'array("reporteNota","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'options' => array("target" => "_blank")),
+                            'update' => array('url' => 'array("update","id"=>SeguridadModule::enc($data->getPrimaryKey()))'),
+                            'delete' => array('url' => 'array("delete","id"=>SeguridadModule::enc($data->getPrimaryKey()))')
+                        ),
+                    ),
+                ),
+            ));
+
+            Yii::app()->clientScript->registerScript('re-install-date-picker', "
+function reinstallDatePicker() {
+     //se deben usar los mismos parámetros que en el widget para ser recargado
+          $('#nota_fecha').datepicker(jQuery.extend(
+            jQuery.datepicker.regional['es'],
+            {'changeYear':true,
+            'changeMonth':true,
+            'showButtonPanel':true,
+            'maxDate':'today',
+            'showAnim':'slideDown'}));
+     }
+");
+            ?>
+            <form target="_blank" style="text-align: right; ">
+            <?php
+            echo TbHtml::submitButton('Imprimir', array(
+                'submit' => array('nota/reporteNotaLote'),
+                    )
+            );
+            ?>
+            </form>
+        </div>
+    </div>
+</div>

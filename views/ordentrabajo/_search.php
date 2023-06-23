@@ -1,0 +1,138 @@
+<?php
+/* @var $this OrdentrabajoController */
+/* @var $model Ordentrabajo */
+/* @var $form CActiveForm */
+?>
+
+<div class="form">
+
+    <?php
+    $form = $this->beginWidget('CActiveForm', array(
+        'action' => Yii::app()->createUrl($this->route),
+        'method' => 'get',
+        'id' => 'admOrdentrabajo',
+    ));
+    ?>
+    <div class="row">
+        <?php echo $form->label($model, 'numero'); ?>
+        <?php echo $form->textField($model, 'numero'); ?>
+    </div>
+    
+    <div class="group" >
+        <?php echo $form->labelEx($model, 'Fecha'); ?>
+        <div class="row">
+            <?php echo $form->label($model, 'fechaInicio'); ?>
+            <?php
+            echo $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                'model' => $model,
+                'attribute' => 'fechaInicio',
+                'value' => $model->fechaInicio,
+                'language' => 'es',
+                // additional javascript options for the date picker plugin
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'showButtonPanel' => true,
+                    'changeMonth' => true,
+                    'changeYear' => true,
+                    'dateFormat' => 'dd-mm-yy',
+                    'maxDate' => 'today',
+                    'onClose' => 'js:function(selectedDate){admOrdentrabajo.validarFechaInicio(selectedDate);}',
+                ),
+            ), true)
+            ?>
+        
+            <?php echo $form->label($model, 'fechaFin'); ?>
+            <?php
+            echo $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                'model' => $model,
+                'attribute' => 'fechaFin',
+                'value' => $model->fechaFin,
+                'language' => 'es',
+                // additional javascript options for the date picker plugin
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'showButtonPanel' => true,
+                    'changeMonth' => true,
+                    'changeYear' => true,
+                    'dateFormat' => 'dd-mm-yy',
+                    'maxDate' => 'today',
+                    'onClose' => 'js:function(selectedDate){admOrdentrabajo.validarFechaFin(selectedDate);}'
+                ),
+            ), true)
+            ?>
+        </div>
+    </div>
+
+    <div class="row">
+        <?php echo $form->labelEx($model, 'Estado'); ?>
+        <?php echo $form->dropDownList($model, 'idestado', CHtml::listData(
+                        Estado::model()->findAll(
+                                array('order' => 'nombre','condition'=>'t.eliminado = false and t.id in ('.Estado::EN_PROCESO.','.Estado::ESTADO_ENTREGA.')')
+                                ),'id', 'nombre'),array('empty' => ''));
+        ?>
+    </div>
+    
+    <div class="row">
+        <?php echo $form->label($model, 'codigo'); ?>
+        <?php echo $form->textField($model, 'codigo'); ?>
+    </div>
+    
+    <div class="row">			
+        <?php echo $form->labelEx($model, 'idproducto'); ?>
+        <?php echo $form->hiddenField($model, 'idproducto'); ?>
+        <?php
+        $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+            'model' => $model,
+            'attribute' => 'producto',
+            'source' => $this->createUrl("ordentrabajo/AutocompleteProducto"),
+            'options' => array(
+                'showAnim' => 'slideDown',
+                'delay' => '0',
+                'select' => "js:function(event, ui) {                            
+                    admOrdentrabajo.setInformacionProductoSearch(ui.item.id, ui.item.value);
+                }",
+                'close' => "js:function(ui) {                            
+                    admOrdentrabajo.search();                           
+                }",
+            ),
+            'htmlOptions' => array('style' => 'width: 200px;'),
+        ))
+        ?>
+    </div>
+
+    <div class="row">
+        <?php echo $form->label($model, 'descripcion'); ?>
+        <?php echo $form->textField($model, 'descripcion'); ?>
+    </div>
+
+    <div class="row">
+        <?php echo $form->label($model, 'usuario'); ?>
+        <?php echo $form->textField($model, 'usuario', array('maxlength' => 30)); ?>
+    </div>
+    
+    <div class="row">			
+        <?php echo $form->labelEx($model, 'idingrediente'); ?>
+        <?php echo $form->hiddenField($model, 'idingrediente'); ?>
+        <?php
+        $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+            'model' => $model,
+            'attribute' => 'ingrediente',
+            'source' => $this->createUrl("ordentrabajo/AutocompleteIngrediente"),
+            'options' => array(
+                'showAnim' => 'slideDown',
+                'delay' => '0',
+                'select' => "js:function(event, ui) {
+                    admOrdentrabajo.setInformacionIngredienteSearch(ui.item.id, ui.item.value);
+                }",
+                'close' => "js:function(ei) {
+                    admOrdentrabajo.search();
+                }",
+            ),
+            'htmlOptions' => array('style' => 'width: 200px;'),
+        ))
+        ?>
+    </div>
+
+<?php $this->endWidget(); ?>
+
+</div><!-- search-form -->

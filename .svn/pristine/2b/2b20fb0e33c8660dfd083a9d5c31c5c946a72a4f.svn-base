@@ -1,0 +1,410 @@
+<?php /* @var $this Controller */ ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="language" content="en" />
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/screen.css" media="screen, projection" />
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/print.css" media="print" />
+        <!--[if lt IE 8]>
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/ie.css" media="screen, projection" />
+        <![endif]-->
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/main.css" />
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/form.css" />
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/almacen.css" />
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/venta.css" />
+        <title><?php echo CHtml::encode($this->pageTitle); ?></title>
+    </head>
+    <?php
+    Yii::app()->bootstrap->register();
+    System::init(array('module' => 'almacen',
+        'list' => array(
+            // los js de otros modulos siempre deben ir primeros
+            array('view' => 'solicitud', 'js' => 'Solicitud', 'module' => 'compra', 'globalName' => 'compraSolicitud'),
+            array('view' => 'orden', 'js' => 'Orden', 'module' => 'produccion', 'globalName' => 'produccionOrden'),
+            array('view' => 'almacen', 'js' => 'Almacen'),
+            array('view' => 'almacen', 'js' => 'admAlmacen'),
+            array('view' => 'producto', 'js' => 'Producto'),
+            array('view' => 'producto', 'js' => 'admProducto'),
+            array('view' => 'producto', 'js' => 'admStock'),
+            array('view' => 'producto', 'js' => 'admAsignacionsaldos'),
+            array('view' => 'producto', 'js' => 'admAsignacionCostos'),
+            array('view' => 'producto', 'js' => 'admAsignacionsaldosimp'),
+            array('view' => 'caracteristica', 'js' => 'Caracteristica'),
+            array('view' => 'caracteristica', 'js' => 'admCaracteristica'),
+            array('view' => 'familia', 'js' => 'Familia'),
+            array('view' => 'familia', 'js' => 'admFamilia'),
+            array('view' => 'clase', 'js' => 'Clase'),
+            array('view' => 'clase', 'js' => 'admClase'),
+            array('view' => 'unidad', 'js' => 'Unidad'),
+            array('view' => 'unidad', 'js' => 'admUnidad'),
+            array('view' => 'productonota', 'js' => 'admKardex'),
+            array('view' => 'productonota', 'js' => 'admKardexValorado'),
+            array('view' => 'causa', 'js' => 'Causa'),
+            array('view' => 'causa', 'js' => 'admCausa'),
+            array('view' => 'inventario', 'js' => 'Inventario'),
+            array('view' => 'inventario', 'js' => 'admInventario'),
+            array('view' => 'nota', 'js' => 'Nota'),
+            array('view' => 'nota', 'js' => 'NotaSinOrdencompra'),
+            array('view' => 'nota', 'js' => 'admNota'),
+            array('view' => 'notaborrador', 'js' => 'Notaborrador'),
+            array('view' => 'notaborrador', 'js' => 'admNotaBorrador'),
+            array('view' => 'chofer', 'js' => 'admChofer'),
+            array('view' => 'chofer', 'js' => 'Chofer'),
+            array('view' => 'comunicacion', 'js' => 'Comunicacion'),
+            array('view' => 'comunicacion', 'js' => 'admComunicacion'),
+            array('view' => 'controlseguimiento', 'js' => 'Controlseguimiento'),
+            array('view' => 'controlseguimiento', 'js' => 'admControlseguimiento'),
+            array('view' => 'solicitud', 'js' => 'admSolicitud'),
+            // ------------------------------- "Orden" -------------------------------
+            array('view' => 'orden', 'js' => 'admOrden'),
+            // ------------------------------- "Tipodocumento" -------------------------------
+            array('view' => 'tipodocumento', 'js' => 'Tipodocumento'),
+            array('view' => 'tipodocumento', 'js' => 'admTipodocumento'),
+            // ------------------------ Inventariar Producto -------------------
+            array('view' => 'producto', 'js' => 'admInventariar'),
+           //-------------------------- Pedido de Venta ------------------------
+            array('view' => 'pedidos', 'js' => 'admPedidos'),            
+            array('view' => 'venta', 'js' => 'admVentaEntregadespacho'), 
+            array('view' => 'pedido', 'js' => 'Pedido', 'module' => 'venta', 'globalName' => 'VentaPedido'),
+            array('view' => 'venta', 'js' => 'Venta', 'module' => 'venta', 'globalName' => 'VentaProceso'),
+            array('view' => 'cambio', 'js' => 'Cambio', 'module' => 'venta', 'globalName' => 'VentaCambio'),
+            array('view' => 'traspaso', 'js' => 'Traspaso', 'module' => 'venta', 'globalName' => 'VentaTraspaso'),
+            // ------------------------------- "Alertas" -------------------------
+            array('view' => 'alerta', 'js' => 'admAlerta'),
+            array('view' => 'alerta', 'js' => 'Alerta'),
+            
+            // ------------------------------- "traspasos agencia" -------------------------------
+            array('view' => 'traspaso', 'js' => 'admTraspaso'),
+            
+            array('view' => 'productonota', 'js' => 'Productonota'),
+            
+            array('view' => 'detallenota', 'js' => 'admDetallenota'),
+            array('view' => 'detallenota', 'js' => 'Detallenota'),
+        )
+    ));
+    ?> 
+    <body>
+        <script type="text/javascript">
+            var windowMessageDelay =<?= Yii::app()->params['windowMessageDelay']; ?>;
+        </script>
+        <?php
+        Yii::app()->getClientScript()->registerScriptFile(Yii::app()->baseUrl . '/protected/components/js/sw.js');
+        if (Yii::app()->user->isGuest != 1) {
+            require_once(Yii::app()->basePath . '/components/main.php');
+            ?> 
+            <div id="page">
+                <div style="height: 20px; padding: 5px;  background: #171717">
+                    <?php
+                    $this->widget('bootstrap.widgets.TbNavbar', array(
+                        'brandLabel' => '',
+                        'brandUrl' => Yii::app()->createUrl("almacen"),
+                        'color' => TbHtml::NAVBAR_COLOR_INVERSE,
+                        'display' => null, // default is static to top
+                        'items' => array(
+                            array(
+                                'class' => 'bootstrap.widgets.TbNav',
+                                'items' => array(
+                                    array('label' => 'Almacén',
+                                        'visible' => Yii::app()->user->checkAccess('controller_almacen_almacen'),
+                                        'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                            array('label' => 'Crear',
+                                                'url' => 'javascript:admAlmacen.create()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_almacen_create')
+                                            ),
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admAlmacen.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_almacen_admin')
+                                            ),
+                                            TbHtml::menuDivider(),
+                                            array('label' => 'Stock',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_producto_stock'),
+                                                'url' => 'javascript:admStock.actionAdmin()',
+                                            ),
+                                            TbHtml::menuDivider(),
+                                            array('label' => 'Libro Mayor',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_almacen_generarLibroMayor'),
+                                                'url' => 'javascript:Almacen.generarLibroMayor()',
+                                            ),
+                                            array('label' => 'Resumen Mayor',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_almacen_generarResumenMayor'),
+                                                'url' => 'javascript:Almacen.generarResumenMayor()',
+                                            ),
+                                            array('label' => 'Resumen Compras',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_almacen_generarResumenCompras'),
+                                                'url' => 'javascript:Almacen.generarResumenCompras()',
+                                            ),
+                                            array('label' => 'Movimientos Almacén',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_almacen_generarComprobanteContable'),
+                                                'url' => 'javascript:Almacen.generarComprobanteContable()',
+                                            ),
+                                            array('label' => 'Salidas Almacen',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_almacen_generarSalidasAlmacen'),
+                                                'url' => 'javascript:Almacen.generarSalidasAlmacen()',
+                                            )
+                                        )),
+                                    array('label' => 'Producto',
+                                        'visible' => Yii::app()->user->checkAccess('controller_almacen_producto'),
+                                        'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                            array('label' => 'Crear',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_producto_create'),
+                                                'url' => 'javascript:admProducto.create()'
+                                            ),
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admProducto.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_producto_admin')
+                                            ),
+                                            TbHtml::menuDivider(),
+                                            array('label' => 'Asignación de Consumos',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_producto_saldos'),
+                                                'url' => 'javascript:admAsignacionsaldos.actionAdmin()',
+                                            ),
+                                            array('label' => 'Asignación de Saldos Importe',
+                                                'visible' => Yii::app()->user->getName()=='admin',
+                                                'url' => 'javascript:admAsignacionsaldosimp.actionAdmin()',
+                                            ),
+                                            array('label' => 'Asignación de Costos',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_producto_asignacionCosto'),//Yii::app()->user->getName()=='admin',
+                                                'url' => 'javascript:admAsignacionCostos.actionAdmin()',
+                                            ),
+                                            TbHtml::menuDivider(),
+                                            array('label' => 'Familia',
+                                                'visible' => Yii::app()->user->checkAccess('controller_almacen_familia'),
+                                                'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                                    array('label' => 'Crear',
+                                                        'url' => 'javascript:admFamilia.create()',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_familia_create')),
+                                                    array('label' => 'Administrar',
+                                                        'url' => 'javascript:admFamilia.actionAdmin()',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_familia_admin'))
+                                                ),
+                                            ),
+                                            array('label' => 'Clase',
+                                                'visible' => Yii::app()->user->checkAccess('controller_almacen_clase'),
+                                                'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                                    array('label' => 'Crear',
+                                                        'url' => 'javascript:admClase.create()',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_clase_create')
+                                                    ),
+                                                    array('label' => 'Administrar',
+                                                        'url' => 'javascript:admClase.actionAdmin()',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_clase_admin')
+                                                    ),
+                                                )
+                                            ),
+                                            array('label' => 'Unidad',
+                                                'visible' => Yii::app()->user->checkAccess('controller_almacen_unidad'),
+                                                'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                                    array('label' => 'Crear',
+                                                        'url' => 'javascript:admUnidad.create()',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_unidad_create')
+                                                    ),
+                                                    array('label' => 'Administrar',
+                                                        'url' => 'javascript:admUnidad.actionAdmin()',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_unidad_admin')
+                                                    ),
+                                                )
+                                            ),
+                                            array('label' => 'Características',
+                                                'visible' => Yii::app()->user->checkAccess('controller_almacen_caracteristica'),
+                                                'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                                    array('label' => 'Crear General',
+                                                        'url' => 'javascript:admCaracteristica.create(\'idgenero=2\')',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_caracteristica_create')
+                                                    ),
+                                                    array('label' => 'Crear con Imagen',
+                                                        'url' => 'javascript:admCaracteristica.create(\'idgenero=1\')',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_caracteristica_create')
+                                                    ),
+                                                    array('label' => 'Administrar',
+                                                        'url' => 'javascript:admCaracteristica.actionAdmin()',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_caracteristica_admin')
+                                                    ),
+                                                    array('label' => 'Ordenar',
+                                                        'url' => 'javascript:admCaracteristica.personalizar()',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_caracteristica_personalizar')
+                                                    ),
+                                                )
+                                            ),
+                                            array('label' => 'Chofer',
+                                                'visible' => Yii::app()->user->checkAccess('controller_almacen_chofer'),
+                                                'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                                    array('label' => 'Crear',
+                                                        'url' => 'javascript:admChofer.create()',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_chofer_create')
+                                                    ),
+                                                    array('label' => 'Administrar',
+                                                        'url' => 'javascript:admChofer.actionAdmin()',
+                                                        'visible' => Yii::app()->user->checkAccess('action_almacen_chofer_admin')
+                                                    ),
+                                                )
+                                            ),
+                                            TbHtml::menuDivider(),
+                                            array('label' => 'Kardex',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_productonota_admin'),
+                                                'url' => 'javascript:Productonota.Kardex()',
+                                            ),
+                                            array('label' => 'Kardex Valorado',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_productonota_adminValorado'),
+                                                'url' => 'javascript:Productonota.KardexValorado()',
+                                            ),
+                                        )),
+                                    array('label' => 'Seguimiento',
+                                        'visible' => Yii::app()->user->checkAccess('controller_almacen_seguimiento'),
+                                        'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admControlseguimiento.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_controlseguimiento_admin')),
+                                            array('label' => 'Comunicación'),
+                                            array('label' => 'Crear',
+                                                'url' => 'javascript:admComunicacion.create()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_comunicacion_create')),
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admComunicacion.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_comunicacion_admin')),
+                                        )),
+                                    array('label' => 'Solicitud',
+                                        'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                            array('label' => 'Crear',
+                                                'url' => 'javascript:admSolicitud.solicitarCompra()',
+                                                'visible' => Yii::app()->user->checkAccess('action_compra_solicitud_create')),
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admSolicitud.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_compra_solicitud_admin')),
+                                        )),
+                                    array('label' => 'Orden',
+                                        'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admOrden.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_orden_admin')
+                                                ),                                            
+                                        )),
+                                    array('label' => 'Venta',
+                                        'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                            array('label' => 'PEDIDO'),
+                                            array('label' => 'Crear Pedido Traspaso',
+                                                'visible' => Yii::app()->user->checkAccess('action_venta_pedido_create'),
+                                                'url' => "javascript:admPedidos.create('tipo=TRASPASO')"),
+                                            array('label' => 'Administrar Pedidos',
+                                                'url' => 'javascript:admPedidos.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_pedido_admin')
+                                                ),
+                                            array('label' => 'TRASPASO'),
+                                            array('label' => 'Crear Traspaso',
+                                                'visible' => Yii::app()->user->checkAccess('action_venta_traspaso_create'),
+                                                'url' => 'javascript:admTraspaso.create()'),
+                                            array('label' => 'Crear Traspaso Devolución',
+                                                'visible' => Yii::app()->user->checkAccess('action_venta_traspaso_create'),
+                                                'url' => "javascript:admTraspaso.create('tipo=DEVOLUCION')"),
+                                            array('label' => 'Administrar Traspasos',
+                                                'url' => 'javascript:admTraspaso.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_traspaso_admin')), 
+                                        )),
+                                    array('label' => 'Procesos',
+                                        'visible' => Yii::app()->user->checkAccess('controller_almacen_inventario'),
+                                        'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                            array('label' => 'Inventario'),
+                                            array('label' => 'Crear',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_inventario_create'),
+                                                'url' => 'javascript:admInventario.create()'
+                                            ),
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admInventario.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_inventario_admin')
+                                            ),
+                                            array('label' => 'Seleccionar Productos',
+                                                'url' => 'javascript:admInventariar.actionAdmin()',
+//                                                'visible' => Yii::app()->user->checkAccess('action_almacen_inventario_admin')
+                                            ),
+                                            TbHtml::menuDivider(),                                            
+                                            array('label' => 'Traspaso',
+                                                'visible' => Yii::app()->user->getName()=='admin',
+                                                'url' => 'javascript:Notaborrador.registrarTraspaso()'
+                                            ),                                           
+                                        )),
+                                    array('label' => 'Notas',
+                                        'visible' => Yii::app()->user->checkAccess('controller_almacen_nota'),
+                                        'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                            array('label' => 'Nota'),
+                                            array('label' => 'Crear',
+                                                'url' => 'javascript:admNota.create()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_nota_create')
+                                            ),
+                                            array('label' => 'Crear Sin Orden de Compra.',
+                                                'url' => 'javascript:admNota.createSinOrdencompra()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_nota_createSinOrdencompra')
+                                            ),
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admNota.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_nota_admin')
+                                            ),
+                                            array('label' => 'Nota Borrador'),
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admNotaBorrador.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_notaborrador_admin')
+                                            ),
+                                        )),
+                                    array('class' => 'nav navbar-nav navbar-right', 'icon' => 'wrench white', 'items' => array(
+                                            // ------------------------------- "Tipo de documento" -------------------------------
+                                            array('label' => 'Tipo de Documento'),
+                                            array('label' => 'Crear',
+                                                'url' => 'javascript:admTipodocumento.create()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_tipodocumento_create')),
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admTipodocumento.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_tipodocumento_admin')),
+                                            // ------------------------------- "Causa" -------------------------------
+                                            array('label' => 'Causa'),
+                                            array('label' => 'Crear',
+                                                'url' => 'javascript:admCausa.create()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_causa_create')),
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admCausa.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_causa_admin')),
+                                            array('label' => 'Detalle Nota'),
+                                            array('label' => 'Crear',
+                                                'url' => 'javascript:admDetallenota.create()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_detallenota_create')),
+                                            array('label' => 'Administrar',
+                                                'url' => 'javascript:admDetallenota.actionAdmin()',
+                                                'visible' => Yii::app()->user->checkAccess('action_almacen_detallenota_admin')),
+                                        ))
+                                ),
+                            ),
+                        ),
+                    ));
+                    ?>
+                    <div id="mainmenu">
+                    </div><!-- mainmenu -->
+                    <?php if (isset($this->breadcrumbs)): ?>
+                        <?php
+                        $this->widget('zii.widgets.CBreadcrumbs', array(
+                            'links' => $this->breadcrumbs,
+                        ));
+                        ?><!-- breadcrumbs -->
+                    <?php endif ?>
+
+                    <?php $this->widget('Flashes'); ?>
+                    <div id="mainContainer" style="padding-top:3px; height: 200px">
+                        <?php echo $content; ?></div>
+
+                    <div class="clear"></div>
+                </div> 
+            </div><!-- page -->
+            <?php
+        }else {
+            echo $content;
+            if (Yii::app()->getController()->action->id == 'login') {
+                ?>
+                <body
+                    <div id='custom-background-login'>    
+                    </div>
+                </body>        
+                <?php
+            }
+        }
+        ?>
+        <?php echo System::panelExecution(); ?>    
+        <?php //echo System::alertExecution(); ?>   
+    </body>
+</html>

@@ -1,0 +1,200 @@
+<?php /* @var $this Controller */ ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="language" content="en" />
+
+        <!-- blueprint CSS framework -->
+
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/screen.css" media="screen, projection" />
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/print.css" media="print" />
+        <!--[if lt IE 8]>
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/ie.css" media="screen, projection" />
+        <![endif]-->
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/main.css" />
+        <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/form.css" />
+
+        <title><?php echo CHtml::encode($this->pageTitle); ?></title>
+    </head>
+    <?php Yii::app()->bootstrap->register(); ?> 
+    <body>
+        <?php
+        if (Yii::app()->user->isGuest != 1) {
+            require_once(Yii::app()->basePath . '/components/main.php');
+            ?> 
+            <div id="page">
+                <?php
+                $this->widget('bootstrap.widgets.TbNavbar', array(
+                    'brandLabel' => CHtml::encode(Yii::app()->name),
+                    'color' => TbHtml::NAVBAR_COLOR_INVERSE,
+                    'display' => null, // default is static to top
+                    'items' => array(
+                        array(
+                            'class' => 'bootstrap.widgets.TbNav',
+                            'items' => array(
+                                array('label' => 'Almacen',
+                                    'visible' => Yii::app()->user->checkAccess('controller_almacen_almacen'),
+                                    'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                        array('label' => 'Administrar',
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/almacen/admin'),
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_almacen_admin')),
+                                        array('label' => 'Crear',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_almacen_create'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/almacen/create')),
+                                        array('label' => 'Listar',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_almacen_index'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/almacen')),
+                                    )),
+                                array('label' => 'Familia',
+                                    'visible' => Yii::app()->user->checkAccess('controller_almacen_familia'),
+                                    'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                        array('label' => 'Administrar',
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/familia/admin'),
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_familia_admin')),
+                                        array('label' => 'Crear',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_familia_create'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/familia/create')),
+                                        array('label' => 'Listar',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_familia_index'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/familia')),
+                                    )),
+                                 array('label' => 'Clase',
+                                    'visible' => Yii::app()->user->checkAccess('controller_almacen_clase'),
+                                    'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                        array('label' => 'Administrar',
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/clase/admin'),
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_clase_admin')),
+                                        array('label' => 'Crear',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_clase_create'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/clase/create')),
+                                        array('label' => 'Listar',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_clase_index'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/clase')),
+                                    )),
+                                array('label' => 'Característica',
+                                    'visible' => Yii::app()->user->checkAccess('controller_almacen_caracteristica'),
+                                    'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                        array('label' => 'Administrar',
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/caracteristica/admin'),
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_caracteristica_admin')),
+                                        array('label' => 'Crear',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_caracteristica_create'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/caracteristica/create')),
+                                        array('label' => 'Listar',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_caracteristica_index'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/caracteristica')),
+                                    )),
+                                array('label' => 'Producto',
+                                    'visible' => Yii::app()->user->checkAccess('controller_almacen_producto'),
+                                    'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                        array('label' => 'Administrar',
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/producto/admin'),
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_producto_admin')),
+                                        array('label' => 'Crear',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_producto_create'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/producto/create')),
+                                        array('label' => 'Listar',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_producto_index'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/producto')),
+                                        array('label' => 'Kardex',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_productonota_admin'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/productonota/admin')),
+                                        array('label' => 'Stock',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_producto_stock'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/producto/stock')),
+
+                                    )),
+                                array('label' => 'Nota',
+                                    'visible' => Yii::app()->user->checkAccess('controller_almacen_nota'),
+                                    'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                        array('label' => 'Administrar',
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/nota/admin'),
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_nota_admin')),
+                                )),
+                                array('label' => 'Nota Borrador',
+                                    'visible' => Yii::app()->user->checkAccess('controller_almacen_notaborrador'),
+                                    'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                        array('label' => 'Administrar',
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/notaborrador/admin'),
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_notaborrador_admin')),
+                                )),
+                                array('label' => 'Unidad',
+                                    'visible' => Yii::app()->user->checkAccess('controller_almacen_unidad'),
+                                    'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                        array('label' => 'Administrar',
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/unidad/admin'),
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_unidad_admin')),
+                                        array('label' => 'Crear',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_unidad_create'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/unidad/create')),
+                                        array('label' => 'Listar',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_unidad_index'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/unidad')),
+                                    )),
+                                array('label' => 'Inventario',
+                                    'visible' => Yii::app()->user->checkAccess('controller_almacen_inventario'),
+                                    'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                        array('label' => 'Administrar',
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/inventario/admin'),
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_inventario_admin')),
+                                        array('label' => 'Crear',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_inventario_create'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/inventario/create')),
+//                                        array('label' => 'Listar',
+//                                            'visible' => Yii::app()->user->checkAccess('action_almacen_almacen_index'),
+//                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/almacen')),
+                                    )),
+                                array('label' => 'Causa',
+                                    'visible' => Yii::app()->user->checkAccess('controller_almacen_causa'),
+                                    'class' => 'nav navbar-nav navbar-right', 'items' => array(
+                                        array('label' => 'Administrar',
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/causa/admin'),
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_causa_admin')),
+                                        array('label' => 'Crear',
+                                            'visible' => Yii::app()->user->checkAccess('action_almacen_causa_create'),
+                                            'url' => Yii::app()->createUrl(Yii::app()->controller->module->id . '/causa/create')),
+                                    )),
+                            ),
+                        ),
+                    ),
+                ));
+                ?>
+                <div id="mainmenu">
+                </div><!-- mainmenu -->
+                <?php if (isset($this->breadcrumbs)): ?>
+                    <?php
+                    $this->widget('zii.widgets.CBreadcrumbs', array(
+                        'links' => $this->breadcrumbs,
+                    ));
+                    ?><!-- breadcrumbs -->
+                <?php endif ?>
+
+                <?php $this->widget('Flashes'); ?>
+                    
+                <?php echo $content; ?>
+
+                <div class="clear"></div>
+
+                <div id="footer">
+                    Copyright &copy; <?php echo date('Y'); ?> por SOLUR SRL.<br/>
+                    Todos los derechos reservados.<br/>
+                    <?php echo Yii::powered(); ?> 
+                </div><!-- footer -->
+            </div><!-- page -->
+            <?php
+        }else {
+            echo $content;
+            if (Yii::app()->getController()->action->id == 'login') {
+                ?>
+                <body
+                    <div id='custom-background-login'>    
+                    </div>
+                </body>        
+            <?php
+            }
+        }
+        ?>
+    </body>
+</html>

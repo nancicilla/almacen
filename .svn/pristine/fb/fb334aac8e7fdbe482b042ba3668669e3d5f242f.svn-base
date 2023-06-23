@@ -1,0 +1,104 @@
+<div class="row">
+    <?php
+    if ($model->idestado== Estadotpv::RESERVA){
+        $addRow = true;
+    }else{
+        $addRow = false;
+    }
+    echo SGridView::widget('TGridView', array(
+        'id' => 'gridTraspasoproducto',
+        'dataProvider' => $gridSolicitudProducto,
+        'buttonAdd' => true,
+        'ableAddRow'=>$addRow,
+        'buttonText' => '+',
+        'height' => 210,
+        'eventAfterEdition' => 'Traspasotpv.verificarGrid();',
+        'eventAfterEditionAutomatic' => true,
+        'columns' => array(
+            array(
+                'name' => 'id',
+                'typeCol' => 'hidden'
+            ),
+            array(
+                'name' => 'idproducto',
+                'key' => true,
+                'value' => '($data->idproducto == null) ? "" : $data->idproducto',
+                'typeCol' => 'hidden'
+            ),
+            array(
+                'name' => 'codigobarra',
+                'typeCol' => 'editable',
+                'width' => 13,
+                'header' => 'Código de barra',
+                'onKeyUp' => 'Traspasotpv.BuscaCodigoBarra(this,event);show(k);return false;',
+                'background' => Yii::app()->params['mainColor']['almacen']['light'],
+            ),
+            array(
+                'name' => 'codigo',
+                'typeCol' => 'editable',
+                'width' => 13,
+                'header' => 'Código',
+                'searchUrl' => 'producto/BuscarProductoCodigo',
+                'searchHeight' => 160,
+                'searchWidth' => 600,
+                'nextFocus' => '[row]cantidadenviada',
+                'searchCopyCol' => 'idproducto,codigobarra,nombre,idunidad,saldoDisponible,precio',
+                'background' => Yii::app()->params['mainColor']['almacen']['light'],
+            ),
+            array(
+                'header' => 'Nombre',
+                'name' => 'nombre',
+                'searchUrl' => 'producto/BuscarProductoNombre',
+                'searchHeight' => 150,
+                'searchWidth' => 600,
+                'width' => 48,
+                'nextFocus' => '[row]cantidadenviada',
+                'background' => Yii::app()->params['mainColor']['almacen']['light'],
+                'searchCopyCol' => 'idproducto,codigobarra,codigo,idunidad,saldoDisponible,precio',
+            ),
+            array(
+                'header' => 'Udd',
+                'name' => 'idunidad',
+                'width' => 7,
+                'value' => '($data->idunidad == null) ? "" : $data->idunidad',
+                'typeCol' => 'uneditable',
+                'align' => 'center',
+            ),
+            array(
+                'name' => 'saldoDisponible',
+                'header' => 'Disponible',
+                'value' => '$data->saldo - $data->reserva',
+                'type' => 'number(10, 8)',
+                'typeCol' => 'hidden',
+                'align' => 'right',
+            ),
+            array(
+                'header' => 'Cantidad Enviada',
+                'name' => 'cantidadenviada',
+                'width' => 8,
+                'align' => 'right',
+                'type' => 'number(10,8)',
+                'value' => '($data->cantidadenviada == null) ? "" : $data->cantidadenviada',
+                'background' => Yii::app()->params['mainColor']['almacen']['light'],
+                'footer' => array('idfooter' => 'totalCantidadPedido', 'function' => 'sum'),
+            ),
+            array(
+                'header' => 'Precio Venta',
+                'name' => 'precio',
+                'width' => 8,
+                'align' => 'right',
+                'type' => 'number(12,4)',
+                'footer' => array('idfooter' => 'totalPrecioVenta', 'function' => 'sum'),
+            ),
+            array(
+                'typeCol' => 'buttons',
+                'width' => 3,
+                'buttons' => array('delete')
+            )
+        )
+    ));
+    ?>
+</div>
+<h5>Cant. Items
+    <span class="badge" id="<?= System::Id('spanTotalItems') ?>" style="font-size: 18px; font-weight: bold; background: <?= Yii::app()->params['mainColor']['tpv']['light'] ?>; color: black;">0</span> 
+</h5>

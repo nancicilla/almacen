@@ -1,0 +1,122 @@
+var Nota = new Object();
+Nota.__proto__ = SystemWindow;
+//variables
+Nota.nameView = "Nota";
+Nota.url = "nota";
+Nota.init = function () {  
+    Nota.filtrarCausa($('#' + this.Id("idtipo")).val());
+    try {  
+        $('#' + this.Id("idtipo")).live('change', function (e)
+        {
+            Nota.filtrarCausa($(this).val());
+        });
+    } catch (err) {
+        alert('Error al cargar admNota.init()');
+    }
+    this.gridSearchVars('Productonota','&idalmacn='+$('#' + this.Id("idalmacen")).val());
+    $('#' + this.Id("idalmacen")).live('change', function (e)
+        {
+            Nota.gridReset('Productonota');
+            Nota.gridSearchVars('Productonota','&idalmacn='+$(this).val());
+        });
+}
+
+Nota.options = function () {
+    this.setActions('create', {
+        WindowTitle: 'Crear Nota',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {        
+        WindowTitle: 'Modificar Nota',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('despachar', {        
+        WindowTitle: 'Despachar Nota',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Nota',
+        WindowWidth: 725,
+        WindowHeight: 425,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+
+Nota.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    return error;
+}
+Nota.afterCreate = function () {
+    Nota.reload();
+    this.print();
+}
+
+Nota.beforeUpdate = function () {
+    var error = false;//false es no existe error antes de actulizar formulario
+    return error;
+}
+Nota.afterUpdate = function () {
+    Nota.closeWindow();
+}
+
+Nota.beforeDelete = function () {
+    var error = false;//false es no existe error antes de eliminar formulario
+    return error;
+}
+
+Nota.despacho = function(options){
+    this.action='despachar';
+       var updateFunction=(options['updateFunction']!=null)?options['updateFunction']:'';
+       var idKey=(options['idKey']!=null)?options['idKey']:'';       
+       var options=this.options();
+       options['WindowTitle']=(this.layer[this.action]!=null && this.layer[this.action]['WindowTitle']!=null)?this.layer[this.action]['WindowTitle']:this.action;
+       options['WindowWidth']= 260,
+       options['WindowHeight']= 305,
+       options.url=this.url+'/despachar';
+       options.varSend='id='+idKey;
+       options.idKey=idKey;
+       options.updateFunction=updateFunction;
+       this.open(options);    
+}
+
+Nota.afterDespachar = function (){
+    Nota.closeWindow();
+}
+
+
+/**
+ * Function para filtrar causas en el dropdownlist al elegir un determinado tipo
+ * de nota
+ */
+Nota.filtrarCausa = function(idtipo) {
+    var action = 'almacen/causa/filtrarCausa?idtipo='+idtipo;
+    $.getJSON(action, function (listaJson) {
+        $('#Nota1_idcausa').find('option').each(function () {
+            $(this).remove();
+        });
+        $.each(listaJson, function (key, causa) {
+            $('#Nota1_idcausa').append("<option value='" + causa.id + "'>" + causa.nombre + "</option>");
+        });
+    });
+};
+
+Nota.print = function () {
+    var url = 'ReporteNota?id='+this.idKey();
+    this.openUrl(url);
+};
+
+

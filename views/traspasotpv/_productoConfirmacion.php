@@ -1,0 +1,129 @@
+<div class="row">
+    <?php
+    if ($model->idestado== Estadotpv::RESERVA){
+        $addRow = false;
+    }else{
+        $addRow = false;
+    }
+    echo SGridView::widget('TGridView', array(
+        'id' => 'gridTraspasoproducto',
+        'dataProvider' => $gridSolicitudProducto,
+        'buttonAdd' => $addRow,
+        'ableAddRow'=>$addRow,
+        'buttonText' => '+',
+        'height' => 210,
+        'eventAfterEdition' => 'Traspasotpv.verificarGrid();',
+        'eventAfterEditionAutomatic' => true,
+        'columns' => array(
+            array(
+                'name' => 'id',
+                'typeCol' => 'hidden'
+            ),
+            array(
+                'name' => 'idproducto',
+                'key' => true,
+                'value' => '($data->idproducto == null) ? "" : $data->idproducto',
+                'typeCol' => 'hidden'
+            ),
+            array(
+                'name' => 'codigobarra',
+                'typeCol' => 'uneditable',
+                'width' => 13,
+                'header' => 'Código de barra',
+                'value' => '($data->coduniversal == null) ? "" : $data->coduniversal',
+            ),
+            array(
+                'name' => 'codigo',
+                'typeCol' => 'editable',
+                'width' => 13,
+                'header' => 'Código',
+                'searchUrl' => 'producto/BuscarProductoCodigo(solicitud==-1)',
+                'searchHeight' => 160,
+                'searchWidth' => 600,
+                'nextFocus' => '[row]cantidadenviada',
+                'searchCopyCol' => 'idproducto,codigobarra,nombre,idunidad,saldoDisponible,cantidadsolicitada=0',
+                'value' => '($data->codigo == null) ? "" : $data->codigo',
+            ),
+            array(
+                'header' => 'Item',
+                'name' => 'nombre',
+                'width' => 36,
+                'typeCol' => 'editable',
+                'searchUrl' => 'producto/BuscarProductoNombre(solicitud==-1)',
+                'searchHeight' => 150,
+                'searchWidth' => 600,
+                'nextFocus' => '[row]cantidadenviada',
+                'background' => Yii::app()->params['mainColor']['almacen']['light'],
+                'searchCopyCol' => 'idproducto,codigobarra,codigo,idunidad,saldoDisponible',
+                'value' => '($data->nombre == null) ? "" : $data->nombre',
+            ),
+            array(
+                'header' => 'Udd',
+                'name' => 'idunidad',
+                'width' => 7,
+                'value' => '($data->idunidad == null) ? "" : $data->idunidad',
+                'typeCol' => 'uneditable',
+                'align' => 'center',
+            ),
+            array(
+                'name' => 'saldoDisponible',
+                'header' => 'Disponible',
+                'value' => '$data->saldo - $data->reserva',
+                'type' => 'number(10, 8)',
+                'typeCol' => 'hidden',
+                'align' => 'right',
+            ),
+            array(
+                'name' => 'cantidadsolicitada',
+                'header' => 'Cantidad Solicitada',
+                'type' => 'number(12, 4)',
+                'width' => 10,
+                'align' => 'right',
+                'typeCol' => 'uneditable',
+                'value' => '($data->cantidadsolicitada == null) ? "" : $data->cantidadsolicitada',
+            ),
+            array(
+                'name' => 'cantidadenviada',
+                'header' => 'Cantidad Enviada',
+                'type' => 'number(12, 4)',
+                'width' => 10,
+                'align' => 'right',
+                'typeCol' => 'editable(conforme==0)',
+                'value' => '($data->cantidadenviada == null) ? "":$data->cantidadenviada',
+                'background' => Yii::app()->params['mainColor']['almacen']['light'],
+            ),
+            array(
+                'header' => 'Verificado',
+                'name' => 'conforme',
+                'value'=>'$data->conforme',
+//                'typeCol' => 'checkbox',
+                'typeCol' => 'hidden',
+                'style' => array('text-align '=> 'center'),
+                'width' => 8,
+                'click' => 'function(){
+                            SGridView.selectRow(this);
+                            Traspasotpv.cantidadFocus();}'
+            ),
+            array(
+                'name' => 'solicitud',
+                'value'=>'$data->solicitud',
+                'typeCol' => 'hidden',
+                'valueDefault'=>'-1',
+            ),
+            array(
+                'name' => 'permitirdecimal',
+                'value' => '$data->permitirdecimal?1:0',
+                'typeCol' => 'hidden'
+            ),
+            array(
+                'typeCol' => 'buttons',
+                'width' => 3,
+                'buttons' => array('')
+            )
+        )
+    ));
+    ?>
+</div>
+<h5>Cant. Items
+    <span class="badge" id="<?= System::Id('spanTotalItems') ?>" style="font-size: 18px; font-weight: bold; background: <?= Yii::app()->params['mainColor']['tpv']['light'] ?>; color: black;">0</span> 
+</h5>

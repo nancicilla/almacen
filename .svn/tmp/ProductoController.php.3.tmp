@@ -1,0 +1,474 @@
+<?php
+
+class ProductoController extends Controller
+{
+    /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+    
+    /* 
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+   
+    
+    public function filters()
+    {
+        return array_merge(
+            array(
+                'accessControl',
+                array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+            )
+        );
+    } 
+    
+    /* 
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+    private function _publicActionsList()
+    {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',          
+        );
+    }
+    
+    public function accessRules()
+    {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+
+	/**
+	 * Displays a particular model.
+	 * @param integer $id the ID of the model to be displayed
+	 */
+	public function actionView($id)
+	{
+		$this->render('view',array(
+			'model'=>$this->loadModel(SeguridadModule::dec($id)),
+		));
+	}
+
+	/**
+     * Creates a new model.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     */
+    public function actionCreate() {
+        $model = new Producto;
+        $modelProductoCaracteristica = new Productocaracteristica;
+        $modelProductoCaracteristicaImagen = new Productocaracteristica;
+        $productoCaracteristica = array();
+        $productoImagen=array();    
+        
+
+        // Uncomment the following line if AJAX validation is needed
+        // $this->performAjaxValidation($model);
+
+        if (isset($_POST['Producto'])) {            
+            $directorioTemporal = $_POST['Producto']['directorioTemporal'];
+            
+            $model->attributes = $_POST['Producto'];
+            if (isset($_POST['Productocaracteristica'])) {               
+                $productoCaracteristica = $_POST['Productocaracteristica'];
+            }
+            if (isset($_POST['Productoimagen'])) {                
+                $productoImagen = $_POST['Productoimagen'];
+            }
+            $model->validate();
+            $model->stockmaximo=0;
+            $model->stockminimo=0;
+            $model->stockreposicion=0;
+            $model->puntopedido=0;
+            $model->saldo=0;
+            
+            if ($model->save()) {  
+                $redireccionar=true;
+                $refireccionar=Productocaracteristica::model()->registrarGeneral($model->id, $modelProductoCaracteristica, $productoCaracteristica);
+                $refireccionar=Productocaracteristica::model()->registrarImagen($model->id, $modelProductoCaracteristicaImagen, $productoImagen,$directorioTemporal);
+                $redireccionar=$model->registrarHijo($model->id);         
+                $redireccionar=Productocaracteristica::model()->copiarImagenHijo($model->id);
+            if ($redireccionar) {
+                    $this->redirect(array('view', 'id' => SeguridadModule::enc($model->id)));
+                }
+            }
+
+               
+        }else{
+            $temporal = new temporal();
+            $directorioTemporal = $temporal->getAssetFolder().$temporal->getTempFolder(); 
+        }
+
+        $this->render('create', array(
+            'model' => $model,
+            'productoCaracteristica' => $productoCaracteristica,
+            'productoImagen'=>$productoImagen,
+            'directorioTemporal' => $directorioTemporal,
+        ));
+    }      
+
+    /**
+	 * Updates a particular model.
+	 * If update is successful, the browser will be redirected to the 'view' page.
+	 * @param integer $id the ID of the model to be updated
+	 */
+	public function actionUpdate($id) {
+        $model = $this->loadModel(SeguridadModule::dec($id));
+        $modelProductoCaracteristica = new Productocaracteristica;
+        $modelProductoCaracteristicaImagen = new Productocaracteristica;
+        $productoCaracteristica = array();
+        $productoImagen = array();
+        
+         if (isset($_POST['Productocaracteristica'])){
+            $productoCaracteristica=$_POST['Productocaracteristica'];
+        }else{
+            $productoCaracteristica = $modelProductoCaracteristica->informacionProducto(SeguridadModule::dec($id),Genero::model()->generoGeneral);
+        }
+        
+        if (isset($_POST['Productoimagen'])){
+            $productoImagen=$_POST['Productoimagen'];
+        }else{
+            $productoImagen = $modelProductoCaracteristicaImagen->informacionProducto(SeguridadModule::dec($id),  Genero::model()->generoArchivo);
+        }
+
+        // Uncomment the following line if AJAX validation is needed
+        // $this->performAjaxValidation($model);
+
+        if (isset($_POST['Producto'])) {
+            $directorioTemporal = $_POST['Producto']['directorioTemporal'];
+
+            $model->attributes = $_POST['Producto'];
+            
+            $model->validate();            
+            if ($model->save()) {
+                Productocaracteristica::model()->deleteAll('idproducto ='.$model->id);
+                if (Productocaracteristica::model()->registrarGeneral($model->id, $modelProductoCaracteristica, $productoCaracteristica)) {
+                    if (Productocaracteristica::model()->registrarImagen($model->id, $modelProductoCaracteristicaImagen, $productoImagen, $directorioTemporal)) {
+                        $this->redirect(array('view', 'id' => SeguridadModule::enc($model->id)));
+                    }
+                }
+            }
+        } else {           
+            $temporal = new temporal();
+            $directorioTemporal = $temporal->getAssetFolder() . $temporal->getTempFolder();
+            Productocaracteristica::model()->prepararImagen(SeguridadModule::dec($id), $directorioTemporal);
+            $modeloFamilia = Familia::model()->informacionFamilia($model->idfamilia);
+            $modeloClase = Clase::model()->informacionClase($model->idclase);
+            $model->nombreFamilia = $modeloFamilia['nombre'];
+            $model->codigoFamilia = $modeloFamilia['codigo'];
+            $model->nombreCompletadoFamilia = $modeloFamilia['nombre'];
+
+            $model->nombreClase = $modeloClase['nombre'];
+            $model->codigoClase = $modeloClase['codigo'];
+            $model->nombreCompletadoClase = $modeloClase['nombre'];            
+        }
+
+        $this->render('create', array(
+            'model' => $model,
+            'productoCaracteristica' => $productoCaracteristica,
+            'productoImagen' => $productoImagen,
+            'directorioTemporal' => $directorioTemporal,
+        ));
+    }
+
+    /**
+	 * Deletes a particular model.
+	 * If deletion is successful, the browser will be redirected to the 'admin' page.
+	 * @param integer $id the ID of the model to be deleted
+	 */
+	public function actionDelete($id)
+	{
+		$aux=$this->loadModel(SeguridadModule::dec($id))->eliminarProducto();
+                if($aux!=='exito'){
+                    throw new CrugeException('<br>'.$aux, 482);
+                }
+                else
+                {
+                    
+                    
+                }
+
+		// if AJAX request (triggered by deletion via admin grid view), we should not redirect the browser
+		if(!isset($_GET['ajax']))
+			$this->redirect(isset($_POST['returnUrl']) ? $_POST['returnUrl'] : array('admin'));
+	}
+
+	/**
+	 * Lists all models.
+	 */
+	public function actionIndex()
+	{
+		$dataProvider=new CActiveDataProvider('Producto');
+		$this->render('index',array(
+			'dataProvider'=>$dataProvider,
+		));
+	}
+
+	/**
+	 * Manages all models.
+	 */
+	public function actionAdmin()
+	{
+		$model=new Producto('search');
+		$model->unsetAttributes();  // clear any default values
+                Yii::app()->user->setState('pageSize',Yii::app()->params['defaultPageSize']);
+
+                if (isset($_GET['pageSize'])) {
+                    Yii::app()->user->setState('pageSize',(int)$_GET['pageSize']);   
+                    unset($_GET['pageSize']);  
+                }
+		if(isset($_GET['Producto']))
+			$model->attributes=$_GET['Producto'];
+
+		$this->render('admin',array(
+			'model'=>$model,
+		));
+	}
+
+	/**
+	 * Returns the data model based on the primary key given in the GET variable.
+	 * If the data model is not found, an HTTP exception will be raised.
+	 * @param integer $id the ID of the model to be loaded
+	 * @return Producto the loaded model
+	 * @throws CHttpException
+	 */
+	public function loadModel($id)
+	{
+		$model=Producto::model()->findByPk($id);
+		if($model===null)
+			throw new CHttpException(404,'The requested page does not exist.');
+		return $model;
+	}
+ /**
+	 * Returns the data model based on the primary key given in the GET variable.
+	 * If the data model is not found, an HTTP exception will be raised.
+	 * @param integer $id the ID of the model to be loaded
+	 * @return Familia the loaded model
+	 * @throws CHttpException
+	 */
+	public function loadFamiliaModel($id)
+	{
+		$model=Familia::model()->findByPk($id);
+		if($model===null)
+			throw new CHttpException(404,'The requested page does not exist.');
+		return $model;
+	}
+	/**
+	 * Performs the AJAX validation.
+	 * @param Producto $model the model to be validated
+	 */
+	protected function performAjaxValidation($model)
+	{
+		if(isset($_POST['ajax']) && $_POST['ajax']==='producto-form')
+		{
+			echo CActiveForm::validate($model);
+			Yii::app()->end();
+		}
+	}
+        
+        /**
+	 * Permite utilizar un autocomplete para la busqueda de productos con
+         * el nombre de producto concatenado a su codigo, nombreCompletoProducto
+         * tiene como parametros de entrada el id del 
+         * almacen al cual esta asociado el producto, y el termino que se busca
+	 */
+        public function actionAutocomplete () 
+        {
+            $idAlmacen = $_GET['idalmacen'];       
+            $request=trim($_GET['term']);
+            $requestMayuscula=  strtoupper($request);
+	    
+            if($request!=''){                
+                $criteria = new CDbCriteria;
+                $criteria->select = 't.*';
+                $criteria->condition = "t.nombre like :valorentrada or t.codigo like :valorentrada";
+                    $criteria->addCondition("idalmacen= :value2");
+                $criteria->params = array(':valorentrada' => "%$requestMayuscula%",':value2'=> (int)$idAlmacen);
+                $criteria->order="nombre asC";
+	        $model=Producto::model()->findAll($criteria);                
+	        $data=array();
+	        
+                foreach($model as $get){
+	           $data[]=array(
+                    'label'=> $get->nombre.' ('.$get->codigo.')',
+                    'value'=>$get->nombre,
+                    'nombre'=>$get->nombre,
+                    'id'=>$get->id);
+	        }
+                
+	        $this->layout='empty';
+	        echo CJSON::encode($data);
+	    }          
+	} 
+         /**
+	 * Muestra los productos y su stock
+	 */
+	public function actionStock()
+	{
+            $model=new Producto('searchStock'); 
+            Yii::app()->user->setState('pageSize',Yii::app()->params['defaultPageSize']);
+                
+            if (isset($_GET['pageSize'])) {
+                Yii::app()->user->setState('pageSize',(int)$_GET['pageSize']);   
+                unset($_GET['pageSize']);  
+            }
+            
+	    if (isset($_GET['Producto'])) {
+                $model->attributes = $_GET['Producto'];      
+                
+                
+
+                if(!$model->validate()){  
+                    $errors = '';    
+                    foreach($model->attributeNames() as $attr)
+                    {
+                        $errors .= $model->hasErrors($attr) ? $model->getError($attr).' ' : '';
+                    }
+                    Yii::app()->user->setFlash('error', $errors);          
+                }                             
+            }            
+            
+        $this->render('stock',
+                    array(
+			'model'=>$model,
+                    )
+            );
+	}
+        
+    /**
+     * Genera el reporte en formato pdf del stock de productos en base a la 
+     * vista del cgridview de la interfaz de stock, en caso de que el reporte
+     * no tenga paginas se muestra una excepción
+     */ 
+    public function actionReporteProductoStock()
+    {  
+            $re = new JasperReport('/reports/Almacen/productoStock', JasperReport::FORMAT_PDF, array(
+                'pIds' => SWUtil::aRtoArrayReport(Yii::app()->session['productoreporteStock'], 'id'),
+                'pUsuario'=>Yii::app()->user->getName(),                   
+                'pFormatoNumero'=>Yii::app()->params['formatNumberAlm'],
+                'REPORT_LOCALE'=>Yii::app()->params['appLocale'],
+            ));
+            $re->exec();
+        
+            if ($re->getPages()>0 && Yii::app()->session['mostrarReporteProductoStock'] ){
+                echo $re->toPDF();
+            }
+            else
+                {
+                throw new CrugeException('El reporte no tiene páginas.',483);
+            }        
+    }
+    
+        /**
+	 * Permite utilizar un autocomplete para la busqueda de productos a 
+         * partir de su codigo, tiene como parametros de entrada el id del 
+         * almacen al cual esta asociado el producto, y el termino que se busca
+	 */
+        public function actionAutocompleteCodigo () 
+  
+        {
+            $idAlmacen = $_GET['idalmacen'];       
+            $request=trim($_GET['term']);     
+	    
+            if($request!=''){                
+                $criteria = new CDbCriteria;
+                $criteria->select = 't.*';
+                $criteria->condition = "t.codigo ilike :valorentrada";
+                if ($idAlmacen!=NULL){
+                    $criteria->addCondition("idalmacen=".(int)$idAlmacen );
+                }                
+                $criteria->params = array(':valorentrada' => "%$request%");
+                $criteria->order="codigo asC";
+	        $model=Producto::model()->findAll($criteria);                
+	        $data=array();
+	        
+                foreach($model as $get){
+	           $data[]=array(
+                    'label'=>$get->codigo,
+                    'value'=>$get->codigo,
+                    'nombre'=>$get->codigo,
+                    'id'=>$get->id);
+	        }
+                
+	        $this->layout='empty';
+	        echo CJSON::encode($data);
+	    }          
+	} 
+        
+         /**
+	 * Permite utilizar un autocomplete para la busqueda de productos a 
+         * partir del nombre, tiene como parametros de entrada el id del 
+         * almacen al cual esta asociado el producto, y el termino que se busca
+	 */
+        public function actionAutocompleteNombre () 
+  
+        {
+            $idAlmacen = $_GET['idalmacen'];       
+            $request=trim($_GET['term']);     
+	    
+            if($request!=''){                
+                $criteria = new CDbCriteria;
+                $criteria->select = 't.*';
+                $criteria->condition = "t.nombre ilike :valorentrada";
+                if ($idAlmacen!=NULL){
+                    $criteria->addCondition("idalmacen=".(int)$idAlmacen );
+                }                
+                $criteria->params = array(':valorentrada' => "%$request%");
+                $criteria->order="nombre asC";
+	        $model=Producto::model()->findAll($criteria);                
+	        $data=array();
+	        
+                foreach($model as $get){
+	           $data[]=array(
+                    'label'=>$get->nombre,
+                    'value'=>$get->nombre,
+                    'nombre'=>$get->nombre,
+                    'id'=>$get->id);
+	        }
+                
+	        $this->layout='empty';
+	        echo CJSON::encode($data);
+	    }          
+	}
+        
+    /**
+     * Genera el reporte en detalle del producto
+     */ 
+    public function actionReporteProductoDetalle($id)
+    {       
+            $re = new JasperReport('/reports/Almacen/productoDetalle', JasperReport::FORMAT_PDF, array(
+                'pId' => SeguridadModule::dec($id) ,
+                'pRuta'=>Yii::app()->basePath.'/modules/almacen/images/productocaracteristica/',
+                'pUsuario'=>Yii::app()->user->getName(),  
+                'REPORT_LOCALE'=>Yii::app()->params['appLocale'],
+            ));
+            $re->exec();
+        
+            if ($re->getPages()>0){
+                echo $re->toPDF();
+            }
+            else
+                {
+                throw new CrugeException('El reporte no tiene páginas.',483);
+            }
+        }           
+}

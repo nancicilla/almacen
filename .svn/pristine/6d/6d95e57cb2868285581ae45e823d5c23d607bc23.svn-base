@@ -1,0 +1,133 @@
+<?php
+
+/* @var $this OrdentrabajoController */
+/* @var $model Ordentrabajo */
+$now = date('d-m-Y');
+echo System::Search(array(
+    'title' => 'Administración de Ordenes de Trabajo',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admOrdentrabajo',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'header' => 'Nº',
+                'name' => 'numero',
+                'width' => 6,
+                'style' => array('text-align' => 'center')
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'datetime',
+                'width' => 14,
+            ),
+            array(
+                'header' => 'Producto',
+		'name' => 'idproducto',
+		'width' => 18,
+		'value' => '"(".$data->idproducto0->codigo. ") " .$data->idproducto0->nombre',
+                ),
+		array(
+		'name' => 'descripcion',
+		'width' => 15,
+		),
+                array(
+		'name' => 'cantidadproducir',
+		'width' => 8,
+		),
+                array(
+                'header' => 'Estado',
+                'name' => 'idestado',
+                'width' => 9,
+                'split' => false,
+                'value' => '$data->idestado == Estado::EN_PROCESO?"<span style=\'color: white;\' class=\'label label-success\'>".$data->idestado0->nombre."</span>" : '
+                . '($data->idestado == Estado::ESTADO_ENTREGA?"<span style=\'color: white\' class=\'label label-warning\'>".$data->idestado0->nombre."</span>" : "<span style=\'color: white\' class=\'label label-default\'>".$data->idestado0->nombre."</span>")',
+                'style' => array('text-align' => 'center')
+            ),
+            array(
+                'name' => 'responsable',
+                'width' => 8,
+            ),
+            array(
+                'name' => 'fechalimite',
+                'width' => 8,
+                'split' => false,
+                'value' => '$data->dias==1?"<span style=\'color: red;\' class=\'faltante\'>".$data->fechalimite."</span>" : "<span style=\'color: black\'>".$data->fechalimite."</span>"',
+            ),
+            array(
+                'name' => 'usuario',
+                'width' => 6,
+            ),
+            /*
+              array(
+              'name' => 'descripcionanulacion',
+              'width' => 30,
+              ),
+              array(
+              'name' => 'usuarioanulacion',
+              'width' => 30,
+              ),
+             */
+            /*
+              array(
+              'name'=>'fecha',
+              'type' => 'datetime',
+              'width'=> 30,
+              ),
+
+              array(
+              'name'=>'fechaanulacion',
+              'type' => 'datetime',
+              'width'=> 30,
+              ),
+             */
+            array('typeCol' => 'buttons',
+                'width' => 8,
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'buttons' => array(
+                    'Imprimir' => array(
+                        'url' => 'array("reporteOrden","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+                        'icon' => 'print', 'options' => array('target' => '_blank')),
+                    'devolucion' => array(
+                        'label' => 'Registrar Devolucion',
+                        'icon' => 'icon-share',
+                        'click' => '                                                        
+                                                function(){                                                            
+                                                        SGridView.selectRow(this);
+                                                        admOrdentrabajo.registrarDevolucion();
+                                                        return false;
+                                                    }',
+                    ),
+                    'entrega' => array(
+                        'label' => 'Registrar Entrega',
+                        'icon' => 'circle-arrow-up',
+                        'click' => '                                                        
+                                                    function(){                                                            
+                                                        SGridView.selectRow(this);
+                                                        admOrdentrabajo.registrarEntrega();
+                                                        return false;
+                                                    }',
+                                    ),
+                                    'update' => array(
+                                        'label' => 'Ver',
+                                        'icon' => 'icon-eye-open',
+                                        ),
+                                    //'delete' => array('label' => 'Eliminar'),
+                                    'anular' => array(
+                                        'label' => 'Anular',
+                                        'icon' => 'icon-trash',
+//                                        'visible' => '$data->ultimoestado == "PLANIFICADA" || $data->ultimoestado == "INICIADA" || $data->ultimoestado == "EN PROCESO" ',
+                                        'click' => 'function(){
+                                                                SGridView.selectRow(this);
+                                                                admOrdentrabajo.anularOrden();
+                                                                return false;
+                                                        }',
+                                        ),
+                                    ),
+		),
+	),
+    ))
+));
+

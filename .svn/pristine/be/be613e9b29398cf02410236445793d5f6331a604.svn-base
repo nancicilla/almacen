@@ -1,0 +1,67 @@
+<?php
+/* @var $this OrdentrabajoController */
+/* @var $model Ordentrabajo */
+/* @var $form CActiveForm */
+?>
+
+<div class="form">
+
+<?php $form=$this->beginWidget('CActiveForm', array(
+	'action'=>Yii::app()->createUrl($this->route),
+	'method'=>'get',
+        'id'=>'admOrdentrabajo',
+)); ?>
+	<div class="row">
+		<?php echo $form->label($model,'numero'); ?>
+		<?php echo $form->textField($model,'numero'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'idestado',array('label'=>'Estado')); ?>
+		<?php echo $form->textField($model,'idestado'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'idproducto',array('label'=>'Producto')); ?>
+		<?php echo $form->textField($model,'idproducto'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'descripcion'); ?>
+		<?php echo $form->textField($model,'descripcion'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'usuario'); ?>
+		<?php echo $form->textField($model,'usuario',array('maxlength'=>30)); ?>
+	</div>
+        <div class="row">
+		<?php echo $form->label($model, 'fecha'); ?>
+                <?php echo $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                'model'=>$model, 
+                'attribute'=>'fecha',
+                'name' => 'ordentrabajo[fecha]',
+                'value' => $model->fecha,
+                'language' => 'es',
+                // additional javascript options for the date picker plugin
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'showButtonPanel' => true,
+                    'changeMonth' => true,
+                    'changeYear' => true,
+                    'dateFormat' => 'dd-mm-yy',
+                    'maxDate' => 'today',
+                    'onClose' => 'js:function(selectedDate) {admOrdentrabajo.search()}'
+
+                ),
+                'htmlOptions' => array(
+                    'id' => 'Ordentrabajo_fecha',
+                ),
+                    ), true)  
+                    ?>
+
+                    </div>
+        
+<?php $this->endWidget(); ?>
+
+</div><!-- search-form -->

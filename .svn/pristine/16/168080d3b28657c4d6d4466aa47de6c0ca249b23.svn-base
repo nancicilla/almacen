@@ -1,0 +1,37 @@
+var admVistaordendevolucion = new Object();
+admVistaordendevolucion.__proto__ = SystemSearch;
+
+//declare var
+admVistaordendevolucion.nameView = "admVistaordendevolucion";
+admVistaordendevolucion.url = "vistaordendevolucion/admin";
+admVistaordendevolucion.idContainer = "";
+admVistaordendevolucion.eventRow = "THIS.update();";
+admVistaordendevolucion.nextView = "Vistaordendevolucion";
+//functions
+admVistaordendevolucion.init = function () {
+    try {
+         
+    } catch (err) {
+        alert('Error al cargar admVistaordendevolucion.init()');
+    }
+}
+
+admVistaordendevolucion.options = function () {
+    var afterFunction = '';
+    var updateFunction = 'THIS.search(Vistaordendevolucion.idKeySend());';
+    //para actualizar la lista si actualiza/borrar/crea un formulario
+    var idKey = SGridView.getSelected('id');
+    var varsSend = "";
+    var url = "";
+    var nameContainer = "";
+
+    var options = {
+        idKey: idKey,
+        afterFunction: afterFunction,
+        updateFunction: updateFunction,
+        varsSend: varsSend
+    };
+
+    return options;
+
+}   

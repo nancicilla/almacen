@@ -1,0 +1,67 @@
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+
+echo System::Search(array(
+    'title' => 'Administración de Productos',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model,), true),
+    'buttons' => array(
+        array('name' => 'print', 'icon' => 'print', 'widthLinks' => 100,
+            'links' => array(
+                array('icon' => 'print', 'url' => 'reporteProductoLote', 'title' => 'Detalle'),
+                array('icon' => 'print', 'url' => 'reporteProductoLista', 'title' => 'Lista'),
+            )
+        ),
+    ),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],    
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admProducto',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'codigo',
+                'width' => 15,
+            ),
+            array(
+                'name' => 'nombre',
+                'width' => 40,
+            ),
+            array(
+                'name' => 'idalmacen',
+                'width' => 15,
+                'header' => 'Almacén',
+                'value' => '$data->idalmacen0->nombre',
+            ),
+            array(
+                'name' => 'usuario',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'date',
+                'width' => 10,
+            ),
+            array('typeCol' => 'buttons',
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'width' => 10,
+                'buttons' => array(
+                    'imprimir' => array('icon' => 'print', 'url' => 'array("reporteProductoDetalle","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'options' => array("target" => "_blank")),
+//                    al descomentar provocara un error en los botones
+//                    'update' => array(
+//                        'url' => 'array("redireccion","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+//                        'options' => array('ajax' => array('type' => 'get', 'url' => 'js:$(this).attr("href")', 'success' => 'js:function(data) { '
+//                                . 'if (data.url==" "){'
+//                                . 'bootbox.alert(data.actualizable);'
+//                                . '}else{'
+//                                . 'window.location.href=data.url; '
+//                                . '}'
+//                                . '}')),),
+                    'delete' => array('label' => 'Eliminar'),
+                ),
+            ),
+        ),
+            )
+    )
+        )
+);

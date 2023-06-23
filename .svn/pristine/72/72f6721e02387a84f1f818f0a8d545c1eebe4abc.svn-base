@@ -1,0 +1,69 @@
+var admOrdentrabajo = new Object();
+admOrdentrabajo.__proto__ = SystemSearch;
+
+//declare var
+admOrdentrabajo.nameView = "admOrdentrabajo";
+admOrdentrabajo.url = "ordentrabajo/admin";
+admOrdentrabajo.idContainer = "";
+admOrdentrabajo.eventRow = "THIS.update();";
+admOrdentrabajo.nextView = "Ordentrabajo";
+//functions
+admOrdentrabajo.init = function () {
+    try {
+         
+    } catch (err) {
+        alert('Error al cargar admOrdentrabajo.init()');
+    }
+}
+
+admOrdentrabajo.options = function () {
+    var afterFunction = '';
+    var updateFunction = 'THIS.search(Ordentrabajo.idKeySend());';
+    //para actualizar la lista si actualiza/borrar/crea un formulario
+    var idKey = SGridView.getSelected('id');
+    var varsSend = "";
+    var url = "";
+    var nameContainer = "";
+
+    var options = {
+        idKey: idKey,
+        afterFunction: afterFunction,
+        updateFunction: updateFunction,
+        varsSend: varsSend
+    };
+
+    return options;
+
+}   
+admOrdentrabajo.registrarEntrega = function () {
+    gridOrdenAdmin=this;
+    jQuery.ajax({
+       type: "GET",
+       url: "almacen/ordentrabajo/VerificaEstadosOrden?idorden="+SGridView.getSelected('id'),  
+       contentType: "application/json; charset=utf-8",
+       dataType: "json",
+       success: function (data, status, jqXHR) {  
+           //&&!data.terminada.estado
+           
+            if(data.enproceso.estado ){
+                Ordentrabajo.registrarEntrega(gridOrdenAdmin.getOptions());
+                return;
+            }
+
+
+            if(data.entrega.estado) {
+                bootbox.alert("La orden está entregada, no se pueden registrar entregas.");
+                return;} 
+            
+              
+            if(!data.enproceso.estado || !data.entrega.estado) {
+                bootbox.alert("No se puede realizar la operación.");
+                return;}
+        },
+
+        error: function (jqXHR, iniciada) {           
+              // error handler
+          }
+
+      });
+}

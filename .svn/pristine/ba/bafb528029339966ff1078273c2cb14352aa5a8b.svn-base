@@ -1,0 +1,28 @@
+<?php
+/* @var $this AlmacenproductonotaController */
+/* @var $model Almacenproductonota */
+
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Ver Almacenproductonota</h1>
+
+<?php $this->widget('zii.widgets.CDetailView', array(
+	'data'=>$model,
+	'attributes'=>array(
+		'glosa',
+		'costo',
+		'precio',
+		'ingreso',
+		'salida',
+		'saldo',
+		'eliminado',
+		'usuario',
+		'idalmacen',
+		'idproducto',
+		'idnota',
+	),
+)); ?>		</div>
+	</div>
+</div>

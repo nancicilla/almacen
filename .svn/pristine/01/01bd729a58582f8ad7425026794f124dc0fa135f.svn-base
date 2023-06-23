@@ -1,0 +1,436 @@
+<?php
+
+/*
+ * AlmacenController.php
+ *
+ * Version 0.$Rev$
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date$:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+
+class AlmacenController extends Controller {
+    /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+
+    /*
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+
+    public function filters() {
+        return array_merge(
+                array(
+                    'accessControl',
+                    array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+                )
+        );
+    }
+
+    /*
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+
+    private function _publicActionsList() {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',
+        );
+    }
+
+    public function accessRules() {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+
+    /**
+     * Deletes a particular model.
+     * If deletion is successful, the browser will be redirected to the 'admin' page.
+     * @param integer $id the ID of the model to be deleted
+     */
+    public function actionDelete($id) {
+        $this->loadModel(SeguridadModule::dec($id))->safeDelete();
+        self::actionAdmin();
+    }
+
+    /**
+     * Manages all models.
+     */
+    public function actionAdmin() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Almacen('search');
+        $model->unsetAttributes();  // clear any default values
+
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Almacen'])) {
+            $model->attributes = $_GET['Almacen'];
+            if (!$model->validate()) {
+                echo System::hasErrorSearch($model);
+                return;
+            }
+        }
+        $this->renderPartial('admin', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return Almacen the loaded model
+     * @throws CHttpException
+     */
+    public function loadModel($id) {
+        $model = Almacen::model()->findByPk($id);
+        if ($model === null)
+            throw new CHttpException(404, 'The requested page does not exist.');
+        return $model;
+    }
+
+    /**
+     * Performs the AJAX validation.
+     * @param Almacen $model the model to be validated
+     */
+    protected function performAjaxValidation($model) {
+        if (isset($_POST['ajax']) && $_POST['ajax'] === 'almacen-form') {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+    }
+
+    /**
+     * Creates a new model.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     */
+    public function actionCreate() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Almacen;
+
+        if (isset($_POST['Almacen'])) {
+            $model->attributes = $_POST['Almacen'];
+            if ($model->save()) {
+                if ($model->idalmacen !== null) {
+                    $model->heredarProductoAlmacenPadre($model->id);
+                }
+                echo System::dataReturn('Creación exitosa!', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('create', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Updates a particular model.
+     * If update is successful, the browser will be redirected to the 'view' page.
+     * @param integer $id the ID of the model to be updated
+     */
+    public function actionUpdate($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = $this->loadModel(SeguridadModule::dec($id));
+
+        if (isset($_POST['Almacen'])) {
+            $model->attributes = $_POST['Almacen'];
+            if ($model->save()) {
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+        $this->renderPartial('update', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Devuelve la lista de caracteristicas padre
+     */
+    public function actionAlmacenPadre() {
+        $resp = Almacen::model()->findAll(array('order' => 'nombre', 'condition' => "idalmacen ISNULL"));
+        header("Content-type: application/json");
+        echo CJSON::encode($resp);
+    }
+
+    /**
+     * Genera el reporte de libro mayor de almacenes 
+     * en caso de que el reporte no tenga paginas se muestra una excepción
+     */
+    public function actionReporteLibroMayor() {
+
+        if (isset($_GET['Almacen']) && $_GET['Almacen']['idproducto'] !== '-1') {
+            $fechaInicio = $_GET['Almacen']['fechaInicio'];
+            $fechaFin = $_GET['Almacen']['fechaFin'];
+            $idAlmacens = $_GET['Almacen']['id'];
+            if ($idAlmacens === '') {
+                $idAlmacens = SWUtil::aRtoArrayReport(Almacen::model()->findAll(array('order' => 'nombre')), 'id');
+            } else {
+                $idAlmacens = '{' . SeguridadModule::dec($idAlmacens) . '}';
+            }
+            if ($fechaInicio === '') {
+                $fechaInicio = Gestion::getFechaInicioGestion();
+            }
+            if ($fechaFin === '') {
+                if (strtotime(date("d-m-Y")) > strtotime(Gestion::getFechaFinGestion())) {
+                    $fechaFin = Gestion::getFechaFinGestion();
+                } else {
+                    $fechaFin = date('Y-m-d');
+                }
+            }
+            $re = new JasperReport('/reports/Almacen/libroMayorAlmacen', JasperReport::FORMAT_PDF, array(
+                'pIdAlmacen' => $idAlmacens,
+                'pIdProducto' => $_GET['Almacen']['idproducto'],
+                'pUsuario' => Yii::app()->user->getName(),
+                'pFechaInicio' => Yii::app()->format->date(strtotime($fechaInicio)),
+                'pFechaFin' => Yii::app()->format->date(strtotime($fechaFin)),
+            ));
+
+            $re->exec();
+
+            if ($re->getPages() > 0) {
+                echo $re->toPDF();
+            } else {
+                throw new CrugeException('El reporte no tiene páginas.', 483);
+            }
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+    
+    /**
+     * Genera el reporte de salidas de almacen 
+     * en caso de que el reporte no tenga paginas se muestra una excepción
+     */
+    public function actionReporteSalidasAlmacen() {
+        if (isset($_GET['Almacen']) && $_GET['Almacen']['idproducto'] !== '-1') {
+            $fechaInicio = $_GET['Almacen']['fechaInicio'];
+            $fechaFin = $_GET['Almacen']['fechaFin'];
+            $idAlmacens = $_GET['Almacen']['id'];
+            if ($idAlmacens === '') {
+                $idAlmacens = SWUtil::aRtoArrayReport(Almacen::model()->findAll(array('order' => 'nombre')), 'id');
+            } else {
+                $idAlmacens = '{' . SeguridadModule::dec($idAlmacens) . '}';
+            }
+            if ($fechaInicio === '') {
+                $fechaInicio = Gestion::getFechaInicioGestion();
+            }
+            if ($fechaFin === '') {
+                if (strtotime(date("d-m-Y")) > strtotime(Gestion::getFechaFinGestion())) {
+                    $fechaFin = Gestion::getFechaFinGestion();
+                } else {
+                    $fechaFin = date('Y-m-d');
+                }
+            }
+            $re = new JasperReport('/reports/Almacen/reporteSalidasAlmacen', JasperReport::FORMAT_PDF, array(
+                'pIdAlmacen' => $idAlmacens,
+                'pIdProducto' => $_GET['Almacen']['idproducto'],
+                'pUsuario' => Yii::app()->user->getName(),
+                'pFechaInicio' => Yii::app()->format->date(strtotime($fechaInicio)),
+                'pFechaFin' => Yii::app()->format->date(strtotime($fechaFin)),
+            ));
+
+            $re->exec();
+
+            if ($re->getPages() > 0) {
+                echo $re->toPDF();
+            } else {
+                throw new CrugeException('El reporte no tiene páginasasdfadf.', 483);
+            }
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+
+    /**
+     * Despliega la ventana de generacion de libro mayor de almacen.
+     */
+    public function actionGenerarLibroMayor() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Almacen;
+
+        $this->renderPartial('libroMayor', array(
+            'model' => $model,
+                ), false, true);
+    }
+    
+    public function actionGenerarSalidasAlmacen() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+        $model = new Almacen;
+        $this->renderPartial('salidasAlmacen', array(
+            'model' => $model,
+        ), false, true);
+    }
+
+    /**
+     * Despliega la ventana de generacion de resumen mayor de almacen.
+     */
+    public function actionGenerarResumenMayor() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Almacen;
+
+        $this->renderPartial('resumenMayor', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Genera el reporte de resumen mayor de almacenes 
+     * en caso de que el reporte no tenga paginas se muestra una excepción
+     */
+    public function actionReporteResumenMayor() {
+
+        if (isset($_GET['Almacen'])) {
+            $fechaInicio = $_GET['Almacen']['fechaInicio'];
+            $fechaFin = $_GET['Almacen']['fechaFin'];
+
+            if ($fechaInicio === '') {
+                $fechaInicio = Gestion::getFechaInicioGestion();
+            }
+            if ($fechaFin === '') {
+                if (strtotime(date("d-m-Y")) > strtotime(Gestion::getFechaFinGestion())) {
+                    $fechaFin = Gestion::getFechaFinGestion();
+                } else {
+                    $fechaFin = date('Y-m-d');
+                }
+            }
+            $re = new JasperReport('/reports/Almacen/resumenMayorAlmacenes', JasperReport::FORMAT_PDF, array(
+                'pUsuario' => Yii::app()->user->getName(),
+                'pFormatoNumero' => Yii::app()->params['formatNumberContabilidad'],
+                'pFechaInicio' => Yii::app()->format->date(strtotime($fechaInicio)),
+                'pFechaFin' => Yii::app()->format->date(strtotime($fechaFin)),
+            ));
+
+            $re->exec();
+
+            if ($re->getPages() > 0) {
+                echo $re->toPDF();
+            } else {
+                throw new CrugeException('El repodrte no tiene páginas.', 483);
+            }
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+
+    /**
+     * Devuelve la lista de almacenes destino disponibles
+     */
+    public function actionFiltrarAlmacenDestino($idAlmacenOrigen) {
+        $sql = 'select * from almacen where idalmacen=' . $idAlmacenOrigen . ' '
+                . 'and eliminado=false '
+                . 'union select * from almacen where idalmacen=' 
+                . $idAlmacenOrigen . ' and eliminado=false 
+                union select * from almacen where idalmacen=
+                    (select idalmacen from almacen where id=' . $idAlmacenOrigen . ') 
+                        and eliminado=false and id<>' . $idAlmacenOrigen . '
+                    union select * from almacen where id=(select idalmacen 
+                    from almacen where id=' . $idAlmacenOrigen . ') and eliminado=false';
+        $resultado = Almacen::model()->findAllBySql($sql);
+        header("Content-type: application/json");
+        echo CJSON::encode($resultado);
+    }
+    
+    /**
+     * Despliega la ventana de generacion de resumen de compras
+     */
+    public function actionGenerarResumenCompras() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Almacen;
+
+        $this->renderPartial('resumenCompras', array(
+            'model' => $model,
+                ), false, true);
+    }
+    
+    /**
+     * Genera el reporte de resumen de compras
+     * en caso de que el reporte no tenga paginas se muestra una excepción
+     */
+    public function actionReporteResumenCompras() {
+
+        if (isset($_GET['Almacen'])) {
+            
+            $fechaInicio = $_GET['Almacen']['fechaInicio'];
+            $fechaFin = $_GET['Almacen']['fechaFin'];
+            $idAlmacens = $_GET['Almacen']['id'];
+            if ($idAlmacens !== '') {            
+                $idAlmacens = SeguridadModule::dec($idAlmacens);
+            }
+            if ($fechaInicio === '') {
+                $fechaInicio = Gestion::getFechaInicioGestion();
+            }
+            if ($fechaFin === '') {
+                if (strtotime(date("d-m-Y")) > strtotime(Gestion::getFechaFinGestion())) {
+                    $fechaFin = Gestion::getFechaFinGestion();
+                } else {
+                    $fechaFin = date('Y-m-d');
+                }
+            }
+            $re = new JasperReport('/reports/Almacen/resumenCompras', JasperReport::FORMAT_PDF, array(
+                'pIdAlmacen' => $idAlmacens,
+                'pUsuario' => Yii::app()->user->getName(),
+                'pFormatoNumero' => Yii::app()->params['formatNumberContabilidad'],
+                'pFechaInicio' => Yii::app()->format->date(strtotime($fechaInicio)),
+                'pFechaFin' => Yii::app()->format->date(strtotime($fechaFin)),
+            ));
+
+            $re->exec();
+
+            if ($re->getPages() > 0) {
+                echo $re->toPDF();
+            } else {
+                throw new CrugeException('El reporte no tiene páginas.', 483);
+            }
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+}

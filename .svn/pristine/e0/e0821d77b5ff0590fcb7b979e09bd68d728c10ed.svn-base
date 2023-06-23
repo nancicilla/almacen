@@ -1,0 +1,189 @@
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+/* @var $form CActiveForm */
+?>
+<div class="form">
+
+    <?php
+    $form = $this->beginWidget('CActiveForm', array(
+        'focus' => array($model, 'codigoAlmacen')));
+    ?>
+    <?php Yii::app()->clientScript->registerCoreScript('jquery'); ?>
+
+    <div class="formWindow">
+        <div class="row">
+            <div class="column">
+                <?php echo $form->labelEx($model, 'codigoAlmacen'); ?>
+                <?php
+                echo $form->dropDownList(
+                        $model, 'codigoAlmacen', CHtml::listData(Almacen::model()->findAll(
+                                        array('order' => 'codigo',
+                                            'condition' => 'idalmacen is null')), 'codigo', 'nombreCompleto'), array('style' => 'width:200px',
+                    'onChange' => "Producto.generarCodigo();",
+                    'disabled' => $model->scenario == 'update' ? true : false)
+                );
+                ?>       
+            </div>
+            <div class="column">
+                <?php //echo $form->hiddenField($model, 'id'); ?>
+                
+                <?php echo $form->labelEx($model, 'nombreFamilia'); ?>
+                <?php echo $form->hiddenField($model, 'idfamilia'); ?>
+                <?php echo $form->hiddenField($model, 'codigoFamilia'); ?>
+                <?php echo $form->hiddenField($model, 'nombreCompletadoFamilia'); ?>
+                <?php
+                $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+                    'model' => $model,
+                    'attribute' => 'nombreFamilia',
+                    'source' => $this->createUrl("familia/autocomplete"),
+                    'options' => array(//      
+                        'showAnim' => 'slideDown',
+                        'delay' => '0',
+                        'autoFocus' => 'true',
+                        'focus' => "js:function(event, ui) {
+                            Producto.setInformacionFamilia(ui.item.id,ui.item.codigo,ui.item.nombre);
+                            Producto.generarCodigo(); 
+                            Producto.generarNombre();
+                        }",
+                        'select' => "js:function(event, ui) {
+                            Producto.setInformacionFamilia(ui.item.id,ui.item.codigo,ui.item.nombre);
+                            Producto.generarCodigo(); 
+                            Producto.generarNombre();
+                                        }"
+                    ),
+                    'htmlOptions' => array(
+                        'style' => 'height:20px;width:200px;'),
+                ));
+                ?>
+            </div>
+            <div class="column">
+                <?php echo $form->labelEx($model, 'nombreClase'); ?>
+                <?php echo $form->hiddenField($model, 'idclase'); ?>
+                <?php echo $form->hiddenField($model, 'codigoClase'); ?>
+                <?php echo $form->hiddenField($model, 'nombreCompletadoClase'); ?>
+                <?php
+                $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+                    'model' => $model,
+                    'attribute' => 'nombreClase',
+                    'source' => $this->createUrl("clase/autocomplete"),
+                    'options' => array(
+                        'prompt' => 'introduzca',
+                        'showAnim' => 'slideDown',
+                        'delay' => '0',
+                        'autoFocus' => 'true',
+                        'focus' => "js:function(event, ui) {
+                            Producto.setInformacionClase(ui.item.id,ui.item.codigo,ui.item.nombre);
+                            Producto.generarCodigo(); 
+                            Producto.generarNombre();
+                        }",
+                        'select' => "js:function(event, ui) {
+                            Producto.setInformacionClase(ui.item.id,ui.item.codigo,ui.item.nombre);
+                            Producto.generarCodigo(); 
+                            Producto.generarNombre();
+                                        }"
+                    ),
+                    'htmlOptions' => array(
+                        'style' => 'height:20px;width:200px;'),
+                ));
+                ?>
+            </div>	
+            <div class="column" style="border: 1px solid #D04526; border-right: none; margin-right: 0px; padding-left: 3px;">
+                <?php echo $form->labelEx($model, 'valor'); ?>
+                <?php echo $form->textField($model, 'valor', array('maxlength' => '3', 'style' => 'text-transform: uppercase; width:80px;', 'onkeyup' => 'Producto.generarCodigo(); Producto.generarNombre();')); ?>
+            </div>
+            <div class="column" style="border: 1px solid #D04526; border-left: none; margin-left: 0px; padding-right: 3px; padding-bottom: 2px;">
+                <?php echo $form->labelEx($model, 'idunidadpresentacion'); ?>	
+
+                <?php
+                echo $form->dropDownList(
+                        $model, 'idunidadpresentacion', CHtml::listData(Unidad::model()->findAll(array('order' => 'simbolo')), 'id', 'simbolo'), array('onChange' => "Producto.generarCodigo(); Producto.generarNombre();", 'style' => 'width:70px;', 'empty' => '')
+                );
+                ?>
+                <?php echo $form->error($model, 'idunidadpresentacion'); ?>
+            </div>
+            <div class="column">
+                <?php echo $form->labelEx($model, 'idunidad'); ?>	
+
+                <?php
+                echo $form->dropDownList(
+                        $model, 'idunidad', CHtml::listData(Unidad::model()->findAll(array('order' => 'simbolo')), 'id', 'simbolo'), array('onChange' => "Producto.generarCodigo(); Producto.generarNombre();", 'style' => 'width:70px;', 'empty' => '')
+                );
+                ?>
+                <?php echo $form->error($model, 'idunidad'); ?>
+            </div>
+            <div class="column">
+                <?php
+                echo $form->labelEx($model, 'idestadofichatecnica');
+                echo $form->dropDownList(
+                    $model, 'idestadofichatecnica', 
+                    CHtml::listData(Estadofichatecnica::model()->findAll(array('order' => 'id')), 'id', 'nombre'),
+                    array('style' => 'width: 140px;')
+                );
+                ?>
+            </div>
+        </div>
+        <div class="row">
+            <div class="column">
+                <?php echo $form->labelEx($model, 'codigo'); ?>
+                <?php echo $form->textField($model, 'codigo', array('maxlength' => 12, 'style' => 'text-transform: uppercase;width:100px;', 'readonly' => 'true')); ?>
+            </div>
+            <div class="column">
+                <?php echo $form->labelEx($model, 'nombre'); ?>
+                <?php echo $form->textField($model, 'nombre', array('maxlength' => 100, 'style' => 'width:435px;', 'readonly' => 'true')); ?>
+            </div>           
+            <?php echo $form->hiddenField($model, 'existeImagen'); ?>
+            <div class="column">
+                <?php echo $form->labelEx($model, 'nombresenasag'); ?>
+                <?php echo $form->textField($model, 'nombresenasag', array('maxlength' => 100, 'style' => 'text-transform: uppercase;width:200px;')); ?>
+            </div>
+            <div class="column">
+                <?php echo $form->labelEx($model, 'coduniversal'); ?>
+                <?php echo $form->textField($model, 'coduniversal', array('class' => 'numeric', 'maxlength' => 13, 'style' => 'width:100px;')); ?>
+            </div>
+            <div class="column">
+                <?php echo $form->labelEx($model, 'ultimoppp'); ?>
+                <?php echo $form->textField($model, 'ultimoppp',array('disabled' => !$model->isNewRecord,'class' => 'numeric', 'maxlength' => 13, 'style' => 'width:100px;')); ?>
+            </div>
+        </div>
+    
+        <?php
+        echo System::widgetTabs(array(
+            'nameView' => 'Producto',
+            'height' => 305,
+            'tabs' => array(
+                'Características' => array('id' => 'caracteristicas',
+                    'content' => $this->renderPartial('_caracteristicas', array('productoCaracteristica' => $productoCaracteristica, 'model' => $model, 'form' => $form), true),
+                    'titleWidth' => 110,
+                    'active' => true,
+                ),
+                'Imágenes' => array('id' => 'imagenes',
+                    'content' => $this->renderPartial('_imagen', array('productoImagen' => $productoImagen), true),
+                    'titleWidth' => 80,
+                ),
+                ' Sustitutos ' => array('id' => 'suplementarios',
+                    'content' => $this->renderPartial('_suplementario', array('productoComplementario' => $productoComplementario), true),
+                    'titleWidth' => 120,
+                ),
+            ),
+        ));
+        ?> 
+    </div>       
+    <?php
+    echo System::Buttons(array(
+        'nameView' => 'Producto',
+        'orderButtons' => 'printProducto,save,cancel',
+        'buttons' => array(
+            'printProducto' => array(
+                'click' => 'Producto.printProducto()',
+                'label' => 'Imprimir',
+                'icon' => 'print',
+                'width' => 75,
+            ),
+        )
+    ));
+    $this->endWidget();
+    ?>
+</div>
+
+

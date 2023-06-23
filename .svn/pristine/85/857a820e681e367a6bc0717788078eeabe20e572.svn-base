@@ -1,0 +1,85 @@
+<?php
+/* @var $this InventarioController */
+/* @var $model Inventario */
+/* @var $form CActiveForm */
+?>
+
+<div class="wide form">
+
+<?php $form=$this->beginWidget('CActiveForm', array(
+	'action'=>Yii::app()->createUrl($this->route),
+	'method'=>'get',
+)); ?>
+	<div class="row">
+		<?php echo $form->label($model,'descripcion'); ?>
+		<?php echo $form->textArea($model,'descripcion',array('rows'=>6, 'cols'=>50)); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'cerrado'); ?>
+		<?php echo $form->checkBox($model,'cerrado'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'usuario'); ?>
+		<?php echo $form->textField($model,'usuario',array('size'=>30,'maxlength'=>30)); ?>
+	</div>
+
+        <div class="row">
+		<?php echo $form->label($model, 'fechainicio'); ?>
+                <?php echo $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                'model'=>$model, 
+                'attribute'=>'fechainicio',
+                'name' => 'inventario[fechainicio]',
+                'value' => $model->fechainicio,
+                'language' => 'es',
+                // additional javascript options for the date picker plugin
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'showButtonPanel' => true,
+                    'changeMonth' => true,
+                    'changeYear' => true,
+                    'dateFormat' => 'dd/mm/yy',
+                    'maxDate' => 'today',
+                ),
+                'htmlOptions' => array(
+                    'id' => '_search_inventario_fechainicio',
+                    'size' => '10',
+                ),
+                    ), true)  
+                    ?>
+
+                    </div>
+        <div class="row">
+		<?php echo $form->label($model, 'fechafin'); ?>
+                <?php echo $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                'model'=>$model, 
+                'attribute'=>'fechafin',
+                'name' => 'inventario[fechafin]',
+                'value' => $model->fechafin,
+                'language' => 'es',
+                // additional javascript options for the date picker plugin
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'showButtonPanel' => true,
+                    'changeMonth' => true,
+                    'changeYear' => true,
+                    'dateFormat' => 'dd/mm/yy',
+                    'maxDate' => 'today',
+                ),
+                'htmlOptions' => array(
+                    'id' => '_search_inventario_fechafin',
+                    'size' => '10',
+                ),
+                    ), true)  
+                    ?>
+
+                    </div>
+   
+	<div class="row buttons">
+		<?php echo TbHtml::submitButton('Buscar'); ?>
+	</div>
+
+<?php $this->endWidget(); ?>
+
+</div><!-- search-form -->

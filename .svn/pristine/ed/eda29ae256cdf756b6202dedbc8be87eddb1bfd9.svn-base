@@ -1,0 +1,126 @@
+var TraspasoEntreAlmacenes = new Object();
+TraspasoEntreAlmacenes.__proto__ = SystemWindow;
+//variables
+TraspasoEntreAlmacenes.nameView = "TraspasoEntreAlmacenes";
+TraspasoEntreAlmacenes.url = "nota";
+TraspasoEntreAlmacenes.init = function () {
+    try {
+        /*if (this.action !== 'verNota')
+        {
+            
+        }*/
+        if (this.action == 'traspasoEntreAlmacenes') {
+            this.gridSearchVars('ProductosTraspasoOrigen', '&idalmacen=' + $('#' + this.Id("idalmacenorigen")).val());
+            this.gridSearchVars('ProductosTraspasoDestino', '&idalmacen=' + $('#' + this.Id("idalmacendestino")).val());
+            $('#' + this.Id("idalmacenorigen")).live('change', function (e)
+            {
+                TraspasoEntreAlmacenes.gridReset('ProductosTraspasoOrigen');
+                TraspasoEntreAlmacenes.gridSearchVars('ProductosTraspasoOrigen', '&idalmacen=' + $(this).val());
+            });
+            $('#' + this.Id("idalmacendestino")).live('change', function (e)
+            {
+                TraspasoEntreAlmacenes.gridReset('ProductosTraspasoDestino');
+                TraspasoEntreAlmacenes.gridSearchVars('ProductosTraspasoDestino', '&idalmacen=' + $(this).val());
+            });
+
+            //this.gridEventClickRow('Productonota', 'Nota.showDisponible();');
+            //this.gridEventBlur('Productonota', 'Nota.hiddenDisponible();');
+        }
+    } catch (err) {
+        alert('Error al cargar TraspasoEntreAlmacenes.init()');
+    }
+}
+
+TraspasoEntreAlmacenes.options = function () {
+   
+    this.setActions('traspasoEntreAlmacenes', {
+        layerHeight: 400,
+        WindowWidth: 1000,
+        WindowHeight: 410,
+        WindowTitle: 'Traspaso Entre Almacenes',
+        initButtons: 'save',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'WT',
+        WindowWidth: 1000,
+        WindowHeight: 360,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+/*
+TraspasoEntreAlmacenes.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    return error;
+}*/
+
+TraspasoEntreAlmacenes.afterTraspasoEntreAlmacenes = function () {   
+    TraspasoEntreAlmacenes.closeWindow();
+}
+
+/*
+TraspasoEntreAlmacenes.despacho = function (options) {
+   
+}
+
+TraspasoEntreAlmacenes.print = function () {
+    
+};
+*/
+
+TraspasoEntreAlmacenes.traspaso = function(){
+    //alert(':-)');
+    this.action = 'traspasoEntreAlmacenes';
+    var options = this.getOptions();
+    //options.url = this.url + '/traspasoEntreAlmacenes';
+    this.open(options);
+}
+/**
+ * Solo verificamos el grid de Productos Origen
+ */
+TraspasoEntreAlmacenes.verificarGridInsumos = function () {
+    var grid = this.getSGridView('ProductosTraspasoOrigen');
+
+    var ingresoSalida;
+    
+    for (var f = 1; f <= grid.rows; f++)
+    {
+        var disponible = grid.row(f).get('disponible');
+        var cantidad = grid.row(f).get('cantidad');
+        var disponibleTotal = TraspasoEntreAlmacenes.cantidadTotalProductoNota(grid.row(f).get('idproducto'));
+
+        if (disponibleTotal > disponible)
+            grid.row(f).attributes('cantidad', {validate: false, tooltip: 'Excede la cantidad disponible'});
+        else
+            grid.row(f).attributes('cantidad', {validate: true, tooltip: ''});
+
+        if (cantidad == 0)
+            grid.row(f).attributes('cantidad', {validate: false, tooltip: 'La cantidad debe ser mayor a CERO!'});
+    }
+    
+}
+
+/**
+ * Suma la cantidad propducto de la nota, para el caluclo de la disponibilidad del mismo, Solo del Grid de Origen
+ * @returns float
+ */
+TraspasoEntreAlmacenes.cantidadTotalProductoNota = function (idproducto) {
+    var grid = TraspasoEntreAlmacenes.getSGridView('ProductosTraspasoOrigen');
+    var cantidatotal = 0;
+    for (var f = 1; f <= grid.rows; f++)
+    {
+        if (grid.row(f).get('idproductoorigen') == idproducto) {
+            cantidatotal += grid.row(f).get('cantidad');
+        }
+    }
+    return cantidatotal;
+}

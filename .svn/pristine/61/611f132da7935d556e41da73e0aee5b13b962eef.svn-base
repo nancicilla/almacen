@@ -1,0 +1,244 @@
+<?php
+/*
+ * VentaController.php
+ *
+ * Version 0.$Rev: 244 $
+ *
+ * Creacion: 11/02/2016
+ *
+ * Ultima Actualizacion: $Date: 2015-03-17 10:26:19 -0400 (Tue, 17 Mar 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+class VentaController extends Controller
+{
+	 /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+    
+    /* 
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+   
+    public function filters()
+    {
+        return array_merge(
+            array(
+                'accessControl',
+                array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+            )
+        );
+    } 
+    
+    /* 
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+    private function _publicActionsList()
+    {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',          
+        );
+    }
+    
+    public function accessRules()
+    {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+
+    /**
+     * Creates a new model.
+     */
+    public function actionCreate()
+    {
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        
+        $model=new Ventaentregadespacho;
+
+        if(isset($_POST['Ventaentregadespacho'])){
+                $model->attributes=$_POST['Ventaentregadespacho'];
+                if($model->save()){                       
+                    echo System::dataReturn('Creación exitosa!', array('id' => SeguridadModule::enc($model->id)));
+                    return;
+                } else {
+                    echo System::hasErrors('Error al crear! ', $model);
+                return;
+                }
+        }
+
+        $this->renderPartial('create',array(
+            'model'=>$model,
+        ), false, true);
+    }
+
+    /**
+     * Updates a particular model.
+     * @param integer $id the ID of the model to be updated
+     */
+    public function actionUpdate($id)
+    {
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        
+        $model=$this->loadModel(SeguridadModule::dec($id));
+
+        if(isset($_POST['Ventaentregadespacho']))
+        {
+            $model->attributes=$_POST['Ventaentregadespacho'];
+            if($model->save()){
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Error al modificar! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('update',array(
+            'model'=>$model,
+        ), false, true);
+    }
+
+    /**
+     * Deletes safely a particular model.
+     * If deletion is successful, the browser will be redirected to the 'admin' page.
+     * @param integer $id the ID of the model to be deleted
+     */
+    public function actionDelete($id)
+    {
+            $this->loadModel(SeguridadModule::dec($id))->safeDelete();
+            self::actionAdmin();
+    }
+
+    /**
+     * Manages all models.
+     */
+    public function actionAdmin()
+    {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model=new Ventaentregadespacho('search');
+        $model->unsetAttributes();  // clear any default values
+        
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }           
+
+        if(isset($_GET['Ventaentregadespacho'])){
+                $model->attributes=$_GET['Ventaentregadespacho'];
+                if (!$model->validate()) {
+                    echo System::hasErrorSearch($model);
+                    return;
+                }
+        }        
+
+        $this->renderPartial('admin',array(
+            'model'=>$model,
+        ), false, true);
+    }
+    
+    /**
+     * Manages all models.
+     */
+    public function actionAdminVentaEntregadespacho()
+    {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model=new Ventaentregadespacho('search');
+        $model->unsetAttributes();  // clear any default values
+        
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }           
+
+        if(isset($_GET['Ventaentregadespacho'])){
+                $model->attributes=$_GET['Ventaentregadespacho'];
+                if (!$model->validate()) {
+                    echo System::hasErrorSearch($model);
+                    return;
+                }
+        }        
+        $model->despachohabilitado=true;
+        $this->renderPartial('adminVentaEntregadespacho',array(
+            'model'=>$model,
+        ), false, true);
+    }
+    /**
+     * Valida si la venta ya se despacho / entrego
+     * @param type $id
+     * @return type
+     */
+    public function actionVerificarEntregaEnvio($id){  
+        
+        echo System::messageConfirm('');
+                return;
+                $model = $this->loadModel(SeguridadModule::dec($id));
+                
+                if($model->entregado==true || $model->enviado==true){
+                    if($model->enviado==true)echo System::messageError('La venta esta registrado como ENVIADO ');
+                    if($model->entregado==true)echo System::messageError('La venta tiene registrado como  ENTREGADO ');
+                    self::actionAdminVentaEntregadespacho();  
+                    return;
+                }
+                echo System::messageConfirm('');
+                return;
+    }
+
+	/**
+	 * Returns the data model based on the primary key given in the GET variable.
+	 * If the data model is not found, an HTTP exception will be raised.
+	 * @param integer $id the ID of the model to be loaded
+	 * @return Ventaentregadespacho the loaded model
+	 * @throws CHttpException
+	 */
+	public function loadModel($id)
+	{
+		$model=Ventaentregadespacho::model()->findByPk($id);
+		if($model===null)
+			throw new CHttpException(404,'The requested page does not exist.');
+		return $model;
+	}
+
+	/**
+	 * Performs the AJAX validation.
+	 * @param Ventaentregadespacho $model the model to be validated
+	 */
+	protected function performAjaxValidation($model)
+	{
+		if(isset($_POST['ajax']) && $_POST['ajax']==='ventaentregadespacho-form')
+		{
+			echo CActiveForm::validate($model);
+			Yii::app()->end();
+		}
+	}
+}

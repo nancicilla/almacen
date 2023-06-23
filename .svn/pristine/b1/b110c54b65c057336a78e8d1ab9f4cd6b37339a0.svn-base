@@ -1,0 +1,1592 @@
+<?php
+/*
+ * ProductoController.php
+ *
+ * Version 0.$Rev$
+ *
+ * Creacion: 17/03/2015elk
+ *e
+ * Ultima Actualizacion: $Date$:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+
+class ProductoController extends Controller {
+    /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+
+    /**
+     *
+     * @var string  Ruta del subdirectorio dentro de assets donde creará la 
+     * carpeta temporal
+     */
+    private $SUB_DIRECTORY = '/producto/images/';
+
+    /**
+     *
+     * @var string  nombre del directorio donde se subiran los archivos      
+     */
+    private $UPLOAD_DIRECTORY = '/uploads';
+
+    /**
+     *
+     * @var string  nombre del utilizado para subir archivos     
+     */
+    public $UPLOAD_FILE = '/upload.php';
+
+    /**
+     *
+     * @var string  nombre del utilizado para eliminar archivos subidos     
+     */
+    public $DELETE_FILE = '/delete.php';
+
+    /**
+     *
+     * @var string  nombre del archivo imagen utilizado cuando no cuente con ninguna imagen    
+     */
+    public $NO_PHOTO_FILE = '/no_photo_small.png';
+
+    /*
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+    public function filters() {
+        return array_merge(
+                array(
+                    'accessControl',
+                    array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+                )
+        );
+    }
+
+    /*
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+    private function _publicActionsList() {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            'ActualizarSaldosimportesProductosAlmacen',
+        );
+    }
+
+    public function accessRules() {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+
+    /**
+     * Creates a new model.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     */
+    public function actionCreate()
+    {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+        $model = new Producto;
+        $no_photo = $this->NO_PHOTO_FILE;
+        $productoComplementario = array();        
+        $productoCaracteristica = Caracteristica::model()->obtieneCaracteristica(1);
+        $productoImagen = array();
+
+        if (isset($_POST['Producto']))
+        {
+            $postProducto = $_POST['Producto'];
+            $model->attributes = $postProducto;
+
+            if (isset($_POST['Productocaracteristica'])) {
+                $productoCaracteristica = $_POST['Productocaracteristica'];
+            }
+            if (isset($_POST['Productoimagen'])) {
+                $productoImagen = $_POST['Productoimagen'];
+            }
+            if (isset($_POST['productoComplementario'])) {
+                $productoComplementario = $_POST['productoComplementario'];
+            }
+
+            $model->validate();
+            $model->stockmaximo = 0;
+            $model->stockminimo = 0;
+            $model->stockreposicion = 0;
+            $model->puntopedido = 0;
+            $model->saldo = 0;
+            $model->costo = 0;
+            $model->reserva = 0;
+            $producto = Almacen::model()->find('codigo = ' . $_POST['Producto']['codigoAlmacen']);
+            
+            //INICIA historial cambios
+            $arraycambios=array();
+            $fechacambio = date('Y-m-d H:i:s');
+            $usuariocambio = Yii::app()->user->getName();
+            if($model->historialcambios!=null)
+            { 
+                $arraycambios=CJSON::decode($model->historialcambios,true);
+                $_POST['Producto']['fechacambio']=$fechacambio;
+                $_POST['Producto']['usuario']=$usuariocambio;
+                array_push($arraycambios,$_POST['Producto'] );}
+            else{
+                $_POST['Producto']['fechacambio']=$fechacambio;
+                $_POST['Producto']['usuario']=$usuariocambio;
+                array_push($arraycambios, $_POST['Producto']);
+            }                
+            $model->historialcambios=CJSON::encode($arraycambios);
+            //FIN historial cambios
+
+            if ($model->save()) 
+            {
+                Productocaracteristica::model()->registrarGeneral($model->id, $productoCaracteristica, $postProducto['codigoAlmacen']);
+                Productocaracteristica::model()->registrarImagen($model->id, $productoImagen, Yii::app()->session['directorioTemporal']);
+                Productoproducto::model()->registrarComplementario($model->id, $productoComplementario);
+                $model->registrarHijo($model->id);
+                echo System::dataReturn('Creación exitosa!', array('id' => SeguridadModule::enc($model->id)));
+                $model->emptyAttributes();
+                $productoCaracteristica = array();
+                $productoImagen = array();
+                $no_photo = $this->NO_PHOTO_FILE;
+                $productoComplementario = array();
+
+                $this->directorioTemporal();
+
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos!', $model);
+                return;
+            }
+        } else {
+            $this->directorioTemporal();
+        }
+
+        $this->renderPartial('create', array(
+            'model' => $model,
+            'productoCaracteristica' => $productoCaracteristica,
+            'productoImagen' => $productoImagen,
+            'productoComplementario' => $productoComplementario,
+                ), false, true);
+    }
+
+    /**
+     * Updates a particular model.
+     * If update is successful, the browser will be redirected to the 'view' page.
+     * @param integer $id the ID of the model to be updated
+     */
+    public function actionUpdate($id)
+    {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+        $existeImagen = 'false';
+        $auxiliar = $this->loadModel(SeguridadModule::dec($id))->isActualizable();
+        if ($auxiliar != 'exito') {
+            echo System::conditionOpen(false, $auxiliar);
+            return;
+        } else {
+            $model = $this->loadModel(SeguridadModule::dec($id));
+            $model->existeRelacionProduccion = false;
+
+            $ordenProducto = new SoapClient('http://127.0.0.1/coreT/produccion/wSProducto/existeRelacionProductoEnProduccion');
+            $respuesta = $ordenProducto->existeRelacionProducto(SeguridadModule::dec($id));
+
+            switch ($respuesta) {
+                case 1:
+                    $model->existeRelacionProduccion = false;
+                    break;
+
+                default:
+                    $model->existeRelacionProduccion = true;
+                    break;
+            }
+            /*
+             * Si es 0 quiere decir que tiene alguna relacion
+             * Si es 1 entonces no existe ninguna relacion 
+             * Si es -1 entonces ocurrio algún error
+             */
+
+            $productoCaracteristica = array();
+            $productoImagen = array();
+            $productoComplementario = array();
+
+            if (isset($_POST['Productocaracteristica'])) {
+                $productoCaracteristica = $_POST['Productocaracteristica'];
+            } else {
+                $productoCaracteristica = Informacionproducto::model()->cargarCaracteristicaGeneral(SeguridadModule::dec($id));
+            }
+
+            if (isset($_POST['Productoimagen'])) {
+                $productoImagen = $_POST['Productoimagen'];
+            } else {
+                if (isset($_POST['Producto'])) {
+                    $productoImagen = array();
+                } else {
+                    $productoImagen = Productocaracteristica::model()->cargarCaracteristicaImagen(SeguridadModule::dec($id));
+                    if (count($productoImagen) > 0) {
+                        $existeImagen = 'true';
+                    }
+                }
+            }
+
+            if (isset($_POST['productoComplementario'])) {
+                $productoComplementario = $_POST['productoComplementario'];
+            } else {
+                $productoComplementario = Productoproducto::model()->productoComplementario(SeguridadModule::dec($id));
+            }
+
+            if (isset($_POST['Producto']))
+            {
+                $model->attributes = $_POST['Producto'];
+                
+                //INICIA historial cambios
+                $arraycambios=array();
+                $fechacambio = date('Y-m-d H:i:s');
+                $usuariocambio = Yii::app()->user->getName();
+                if($model->historialcambios!=null)
+                { 
+                    $arraycambios=CJSON::decode($model->historialcambios,true);
+                    $_POST['Producto']['fechacambio']=$fechacambio;
+                    $_POST['Producto']['usuario']=$usuariocambio;
+                    array_push($arraycambios,$_POST['Producto'] );}
+                else{
+                    $_POST['Producto']['fechacambio']=$fechacambio;
+                    $_POST['Producto']['usuario']=$usuariocambio;
+                    array_push($arraycambios, $_POST['Producto']);
+                }                
+                $model->historialcambios=CJSON::encode($arraycambios);
+                //FIN historial cambios
+                    
+                $model->validate();
+                if ($model->save()) {
+                    Productoproducto::model()->deleteAll('idproducto =' . $model->id);
+                    
+                    if(isset($_POST['Productocaracteristica']))
+                        Productocaracteristica::model()->registrarActualizaGeneral($model->id, $productoCaracteristica, $model->idalmacen);
+                    Productocaracteristica::model()->registrarImagen($model->id, $productoImagen, Yii::app()->session['directorioTemporal']);
+
+                    if (isset($_POST['productoComplementario']))
+                        Productoproducto::model()->registrarComplementario($model->id, $productoComplementario);
+
+                    $model->actualizarHijo($model->id);
+
+                    $model->emptyAttributes();
+                    $productoCaracteristica = array();
+                    $productoImagen = array();
+                    $no_photo = $this->NO_PHOTO_FILE;
+                    $productoComplementario = array();
+                    $this->directorioTemporal();
+                    if (isset($_POST['Productoimagen'])) {
+                        $productoImagen = $_POST['Productoimagen'];
+                    }
+                
+                    echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                    return;
+                } else {
+                    echo System::hasErrors('Revise los datos!', $model);
+                    return;
+                }
+            } else {
+                unset(Yii::app()->session['directorioTemporal']);
+                $temporal = new Temporal(AlmacenModule::getAssetFolder(), $this->SUB_DIRECTORY, $this->UPLOAD_DIRECTORY, $this->UPLOAD_FILE, $this->DELETE_FILE, $this->NO_PHOTO_FILE);
+                Yii::app()->session['directorioTemporal'] = $temporal->getTempFolderUrl();
+                Productocaracteristica::model()->prepararImagen(SeguridadModule::dec($id), Yii::app()->session['directorioTemporal']);
+                $modeloFamilia = Familia::model()->informacionFamilia($model->idfamilia);
+                $modeloClase = Clase::model()->informacionClase($model->idclase);
+                $model->nombreFamilia = $modeloFamilia['nombre'];
+                $model->codigoFamilia = $modeloFamilia['codigo'];
+                $model->nombreCompletadoFamilia = $modeloFamilia['nombre'];
+
+                $model->nombreClase = $modeloClase['nombre'];
+                $model->codigoClase = $modeloClase['codigo'];
+                $model->nombreCompletadoClase = $modeloClase['nombre'];
+                $almacen = Almacen::model()->findByPK($model->idalmacen);
+                $model->codigoAlmacen = $almacen->codigo;
+            }
+            $model->existeImagen = $existeImagen;
+            
+            $this->renderPartial('update', array(
+                'model' => $model,
+                'productoCaracteristica' => $productoCaracteristica,
+                'productoImagen' => $productoImagen,
+                'productoComplementario' => $productoComplementario,
+                    ), false, true);
+        }
+    }
+
+    /**
+     * Verifica si un cliente esta bloqueado, Si el cliente ya esta bloqueado retorna la lista de clientes actualizada
+     * @param type $id Identificador de cliente
+     */
+    public function actionEliminar($id) {
+        if (!$id) {
+            /* $respuestaArray=array("estado"=>-1,"descripcion"=>"No se envió el id del producto al controlador");
+              echo CJSON::encode($respuestaArray);
+              return; */
+            echo System::messageError('No se envió el id del producto al controlador.');
+            //self::actionAdmin();  
+            return;
+        }
+
+        $ordenProducto = new SoapClient('http://127.0.0.1/coreT/produccion/wSProducto/existeRelacionProductoEnProduccion');
+                
+        $respuesta = $ordenProducto->existeRelacionProducto(SeguridadModule::dec($id));//array error:boolean; existe:existe relacion? ; mensaje
+        if(!$respuesta['error']){
+            if($respuesta['existe']){
+                echo System::messageError($respuesta['mensaje']);
+            }else{
+                $modelProducto = Producto::model()->findByPk(SeguridadModule::dec($id));
+                if ($modelProducto->safeDelete()) {
+                    echo System::messageConfirm('El producto se eliminó corrrectamente.');
+                    self::actionAdmin();
+                    return;
+                } else {
+                    echo System::messageError('Error al eliminar el producto. Modulo Almacen');
+                }
+            }
+        
+        }
+        else{
+            echo System::messageError($respuesta['mensaje']);    
+        }
+        
+       
+    }
+
+    /**
+     * Deletes a particular model.
+     * If deletion is successful, the browser will be redirected to the 'admin' page.
+     * @param integer $id the ID of the model to be deleted
+     */
+    public function actionDelete($id) {
+        $this->loadModel(SeguridadModule::dec($id))->safeDelete();
+        self::actionAdmin();
+    }
+
+    /**
+     * Manages all models.
+     */
+    public function actionAdmin() {
+        
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Producto('search');
+        $model->unsetAttributes();  // clear any default values
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Producto'])) {
+            $model->attributes = $_GET['Producto'];
+            if (!$model->validate()) {
+                echo System::hasErrorSearch($model);
+                return;
+            }
+        }
+
+        $this->renderPartial('admin', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return Producto the loaded model
+     * @throws CHttpException
+     */
+    public function loadModel($id) {
+        $model = Producto::model()->findByPk($id);
+        if ($model === null)
+            throw new CHttpException(404, 'The requested page does not exist.');
+        return $model;
+    }
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return Familia the loaded model
+     * @throws CHttpException
+     */
+    public function loadFamiliaModel($id) {
+        $model = Familia::model()->findByPk($id);
+        if ($model === null)
+            throw new CHttpException(404, 'The requested page does not exist.');
+        return $model;
+    }
+
+    /**
+     * Performs the AJAX validation.
+     * @param Producto $model the model to be validated
+     */
+    protected function performAjaxValidation($model) {
+        if (isset($_POST['ajax']) && $_POST['ajax'] === 'producto-form') {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+    }
+
+    /**
+     * Permite utilizar un autocomplete para la busqueda de productos con
+     * el nombre de producto concatenado a su codigo, nombreCompletoProducto
+     * tiene como parametros de entrada el id del 
+     * almacen al cual esta asociado el producto, y el termino que se busca
+     */
+    public function actionAutocomplete() {
+        $idAlmacen = $_GET['idalmacen'];
+        $request = trim($_GET['term']);
+        $requestMayuscula = strtoupper($request);
+
+        if ($request != '') {
+            $criteria = new CDbCriteria;
+            $criteria->select = 't.*';
+            $criteria->condition = "t.eliminado=false and (t.nombre like :valorentrada or t.codigo like :valorentrada)";
+            $criteria->addCondition("idalmacen= :value2");
+            $criteria->params = array(':valorentrada' => "%$requestMayuscula%", ':value2' => (int) $idAlmacen);
+            $criteria->order = "nombre asC";
+            $criteria->limit = 10;
+            $model = Producto::model()->findAll($criteria);
+            $data = array();
+
+            foreach ($model as $get) {
+                $data[] = array(
+                    'label' => $get->codigo . ' (' . $get->nombre . ')',
+                    'value' => $get->codigo . ' (' . $get->nombre . ')',
+                    'nombre' => $get->codigo . ' (' . $get->nombre . ')',
+                    'id' => $get->id);
+            }
+
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+
+    /**
+     * Muestra los productos y su stock
+     */
+    public function actionStock() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Producto('searchStock');
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Producto'])) {
+            $model->attributes = $_GET['Producto'];
+            if (!$model->validate()) {
+                echo System::hasErrorSearch($model);
+                return;
+            }
+        }
+
+        $this->renderPartial('stock', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Genera el reporte en formato pdf del stock de productos en base a la 
+     * vista del cgridview de la interfaz de stock, en caso de que el reporte
+     * no tenga paginas se muestra una excepción
+     */
+    public function actionReporteProductoStock() {
+        $re = new JasperReport('/reports/Almacen/productoStock', JasperReport::FORMAT_PDF, array(
+            'pIds' => SWUtil::aRtoArrayReport(Producto::model()->findAll(Yii::app()->session['productoreporteStock']), 'id'),
+            'pUsuario' => Yii::app()->user->getName(),
+            'pFormatoNumero' => Yii::app()->params['formatNumberAlm'],
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+        $re->exec();
+
+        if ($re->getPages() > 0 && Yii::app()->session['mostrarReporteProductoStock']) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+    
+    public function actionStockProd() {
+        $re = new JasperReport('/reports/Almacen/stockProducto', JasperReport::FORMAT_PDF, array(    
+            'pUsuario' => Yii::app()->user->getName(),
+            'pFormatoNumero' => Yii::app()->params['formatNumberAlm'],
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+        $re->exec();
+
+        if ($re->getPages() > 0 && Yii::app()->session['stockProducto']) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+    /**
+     * Permite utilizar un autocomplete para la busqueda de productos a 
+     * partir de su codigo, tiene como parametros de entrada el id del 
+     * almacen al cual esta asociado el producto, y el termino que se busca
+     */
+    public function actionAutocompleteCodigo() {
+        $idAlmacen = $_GET['idalmacen'];
+        $request = trim($_GET['term']);
+
+        if ($request != '') {
+            $criteria = new CDbCriteria;
+            $criteria->select = 't.*';
+            $criteria->condition = "t.codigo ilike :valorentrada and t.eliminado=false";
+            if ($idAlmacen != NULL) {
+                $criteria->addCondition("idalmacen=" . (int) $idAlmacen);
+            }
+            $criteria->params = array(':valorentrada' => "%$request%");
+            $criteria->order = "codigo asc";
+            $criteria->limit = 15;
+            $model = Producto::model()->findAll($criteria);
+            $data = array();
+
+            foreach ($model as $get) {
+                $data[] = array(
+                    'label' => $get->codigo,
+                    'value' => $get->codigo,
+                    'nombre' => $get->codigo,
+                    'id' => $get->id);
+            }
+
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+
+    /**
+     * Permite utilizar un autocomplete para la busqueda de productos a 
+     * partir del nombre, tiene como parametros de entrada el id del 
+     * almacen al cual esta asociado el producto, y el termino que se busca
+     */
+    public function actionAutocompleteNombre() {
+        $idAlmacen = $_GET['idalmacen'];
+        $request = trim($_GET['term']);
+
+        if ($request != '') {
+            $criteria = new CDbCriteria;
+            $criteria->select = 't.*';
+            $criteria->condition = "t.nombre ilike :valorentrada and t.eliminado=false";
+            if ($idAlmacen != NULL) {
+                $criteria->addCondition("idalmacen=" . (int) $idAlmacen);
+            }
+            $criteria->params = array(':valorentrada' => "%$request%");
+            $criteria->order = "nombre asC";
+            $criteria->limit = 15;
+            $model = Producto::model()->findAll($criteria);
+            $data = array();
+
+            foreach ($model as $get) {
+                $data[] = array(
+                    'label' => $get->nombre,
+                    'value' => $get->nombre,
+                    'nombre' => $get->nombre,
+                    'id' => $get->id);
+            }
+
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+
+    /**
+     * Genera el reporte en detalle del producto
+     */
+    public function actionReporteProductoDetalle($id) {
+        $re = new JasperReport('/reports/Almacen/productoDetalle', JasperReport::FORMAT_PDF, array(
+            'pId' => SeguridadModule::dec($id),
+            'pRuta' => 'ftp://' . Yii::app()->ftp->host . '/' . Yii::app()->ftp->folder . '/' . Productocaracteristica::model()->tableName() . '/',
+            'pUsuario' => Yii::app()->user->getName(),
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+        $re->exec();
+
+        if ($re->getPages() > 0) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+
+    /**
+     * Crea un directorio temporal
+     */
+    public function directorioTemporal() {
+        unset(Yii::app()->session['directorioTemporal']);
+        $temporal = new Temporal(AlmacenModule::getAssetFolder(), $this->SUB_DIRECTORY, $this->UPLOAD_DIRECTORY, $this->UPLOAD_FILE, $this->DELETE_FILE, $this->NO_PHOTO_FILE);
+        Yii::app()->session['directorioTemporal'] = $temporal->getTempFolderUrl();
+    }
+
+    /**
+     * Genera el reporte en formato pdf de los productos en lote
+     */
+    public function actionReporteProductoLote() {
+        $re = new JasperReport('/reports/Almacen/productoLote', JasperReport::FORMAT_PDF, array(
+            'pIds' => SWUtil::aRtoArrayReport(Producto::model()->findAll(Yii::app()->session['reporteProductoLote']), 'id'),
+            'pUsuario' => Yii::app()->user->getName(),
+            'pRuta' => 'ftp://' . Yii::app()->ftp->host . '/' . Yii::app()->ftp->folder . '/' . Productocaracteristica::model()->tableName() . '/',
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+
+        $re->exec();
+
+        if ($re->getPages() > 0) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+
+    /**
+     * Genera el reporte en formato pdf el listado de productos del gridview
+     */
+    public function actionReporteProductoLista() {
+        $re = new JasperReport('/reports/Almacen/productoLista', JasperReport::FORMAT_PDF, array(
+            'pIds' => SWUtil::aRtoArrayReport(Producto::model()->findAll(Yii::app()->session['reporteProductoLote']), 'id'),
+            'pUsuario' => Yii::app()->user->getName(),
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+
+        $re->exec();
+
+        if ($re->getPages() > 0) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+
+    /**
+     * Validar si es caracteristica padre, debe seleccionar un hijo
+     *  OBLIGATORIAMENTE
+     */
+    /*public function actionValidarSubCaracteristica() {
+        $productoCaracteristica = isset($_POST['Productocaracteristica']) ? $_POST['Productocaracteristica'] : array();
+        $tabla = array();
+        foreach ($productoCaracteristica as $fila) {
+            if (Caracteristica::model()->tieneHijo($fila['idcaracteristica']) && ($fila['nombresubcaracteristica'] == '')) {
+                $fila['validate'] = false;
+            } else {
+                $fila['validate'] = true;
+            }
+            $tabla[] = $fila;
+        }
+        echo SGridView::validate($tabla, array());
+    }*/
+
+    /**
+     * Validar si no es caracteristica padre debe introducir 
+     * un valor OBLIGATORIAMENTE
+     */
+    /*public function actionValidarValor() {
+        $productoCaracteristica = isset($_POST['Productocaracteristica']) ? $_POST['Productocaracteristica'] : array();
+        $tabla = array();
+        foreach ($productoCaracteristica as $fila) {
+            if (Caracteristica::model()->tieneHijo($fila['idcaracteristica'])) {
+                $fila['validate'] = true;
+            } else if ($fila['valor'] == "") {
+                $fila['validate'] = false;
+            } else {
+                $fila['validate'] = true;
+            }
+            $tabla[] = $fila;
+        }
+        echo SGridView::validate($tabla, array());
+    }*/
+
+    /**
+     * Filtrar productos por nombre
+     */
+    public function actionSearchProductoNombre() {
+        $producto = new Producto();
+        $productoExcluido = null;
+        $idprod = '';
+        $idalm = '';
+        if (isset($_POST['productoComplementario'])) {
+            $productoExcluido = $this->getIdProducto($_POST['productoComplementario']);
+        }
+        if ($_POST['noidproducto'] !== '') {
+            $idprod = SeguridadModule::dec($_POST['noidproducto']);
+        }
+        $arrayParametros = array(
+            'nombre' => $_POST['nombre'],
+            'productoExcluido' => $productoExcluido,
+            'idprod' => $idprod, 
+            'idalm' => $idalm
+        );
+                
+        echo SGridView::widget('TGridViewList', array(
+            'dataProvider' => $producto->searchProductoNombre($arrayParametros),
+            'columns' => array(array('name' => 'id', 'typeCol' => 'hidden'),
+                array('name' => 'codigo', 'width' => 10),
+                array('name' => 'nombre', 'width' => 50),
+                array('name' => 'almacen', 'value' => '$data->idalmacen0->nombre', 'width' => 10),
+            ),
+        ));
+    }
+
+    /**
+     * Filtrar productos por codigo
+     */
+    public function actionSearchProductoCodigo() {
+        $producto = new Producto();
+        $productoExcluido = null;
+        $idprod = '';
+        $idalm = '';
+        if (isset($_POST['productoComplementario'])) {
+            $productoExcluido = $this->getIdProducto($_POST['productoComplementario']);
+        }
+        if ($_POST['noidproducto'] !== '') {
+            $idprod = SeguridadModule::dec($_POST['noidproducto']);
+        }
+        echo SGridView::widget('TGridViewList', array(
+            'dataProvider' => $producto->searchProductoCodigo($_POST['codigo'], $productoExcluido, $idprod, $idalm),
+            'columns' => array(array('name' => 'id', 'typeCol' => 'hidden'),
+                array('name' => 'codigo', 'width' => 10),
+                array('name' => 'nombre', 'width' => 50),
+                array('name' => 'almacen', 'value' => '$data->idalmacen0->nombre', 'width' => 10),
+            ),
+        ));
+    }
+
+    /**
+     * Validar si es caracteristica padre, debe seleccionar un hijo
+     *  OBLIGATORIAMENTE
+     */
+    public function actionValidarCantidad() {
+        $productoNota = isset($_POST['Productonota']) ? $_POST['Productonota'] : array();
+        $tabla = array();
+        foreach ($productoNota as $fila) {
+            if (Producto::model()->findByPK($fila['idproducto'])->saldo >= $fila['cantidad']) {
+                $fila['validate'] = true;
+            } else {
+                $fila['validate'] = false;
+            }
+            $tabla[] = $fila;
+        }
+        echo SGridView::validate($tabla, array());
+    }
+
+    /**
+     * Obtiene un array simple con los id de productos que contiene el modelo 
+     * productoproducto
+     * @param Productoproducto $Productoproducto
+     * @return Array
+     */
+    public function getIdProducto($Productoproducto) {
+        $idProducto = null;
+        for ($i = 1; $i < count($Productoproducto) + 1; $i++) {
+            $idProducto[] = ($Productoproducto[$i]['idcomplementario']);
+        }
+        return $idProducto;
+    }
+
+    /**
+     * Funcion que carga la pantalla de asignacion de saldos y punto de pedido
+     */
+    public function actionAsignacionSaldos() {
+        $model = new Producto('search');
+        $model->unsetAttributes();  // clear any default values
+
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Producto']))
+            $model->attributes = $_GET['Producto'];
+
+        $this->renderPartial('asignacionSaldos', array(
+            'model' => $model,
+                ), false, true);
+    }
+    
+    /**
+     * Funcion que carga la pantalla de asignacion de saldo y saldo importe
+     */
+    public function actionAsignacionSaldoImporte() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+        $model = new Producto('search');
+        $model->unsetAttributes();  // clear any default values
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Producto']))
+            $model->attributes = $_GET['Producto'];
+
+        $this->renderPartial('asignacionSaldoImporte', array(
+            'model' => $model,
+        ), false, true);
+    }
+
+    /**
+     * Funcion que actualiza los saldos y puntos de pedido del producto
+     */
+    public function actionActualizarSaldos() {
+        if (isset($_POST['id'])) {
+            $model = Producto::model()->findByPk($_POST['id']);
+            $model->setScenario('actualizarSaldos');
+            $model->stockminimo = str_replace(",", "", $_POST['stockminimo']);
+            $model->stockmaximo = str_replace(",", "", $_POST['stockmaximo']);
+            if ($_POST['puntopedido'] !== '') {
+                $model->puntopedido = str_replace(",", "", $_POST['puntopedido']);
+            } else {
+                $model->puntopedido = null;
+            }
+            if ($model->save()) {
+                self::actionAdmin();
+            } else {
+                echo System::messageError('No se actualizó correctamente!');
+                return;
+            }
+        }
+    }
+    
+    /**
+     * Funcion que actualiza los saldos y puntos de pedido del producto
+     */
+    public function actionActualizarSaldoImporte() {
+        if (isset($_POST['id'])) {
+            $model = Producto::model()->findByPk($_POST['id']);
+            $model->setScenario('actualizarSaldoimporte');
+            $model->saldo = str_replace(",", "", $_POST['saldo']);
+            $model->saldoimporte = str_replace(",", "", $_POST['saldoimporte']);
+            if ($model->save()) {
+                self::actionAdmin();
+            } else {
+                echo System::messageError('No se actualizó correctamente!');
+                return;
+            }
+        }
+    }
+
+    /**
+     * Permite utilizar un autocomplete para la busqueda de productos para la
+     * ventana del libro de almacenes, el nombre de producto concatenado a su
+     * codigo, nombreCompletoProducto tiene como parametros de entrada el id del 
+     * almacen al cual esta asociado el producto, y el termino que se busca
+     */
+    public function actionAutocompleteLibroMayor() {
+        $idAlmacen = $_GET['idalmacen'];
+        $request = trim($_GET['term']);
+        $requestMayuscula = strtoupper($request);
+
+        if ($request != '') {
+            $criteria = new CDbCriteria;
+            $criteria->select = 't.*';
+            $criteria->condition = "t.eliminado=false and (t.nombre like :valorentrada or t.codigo like :valorentrada)";
+            if ($idAlmacen !== '') {
+                $criteria->addCondition("idalmacen= " . SeguridadModule::dec($idAlmacen));
+            }
+            $criteria->params = array(':valorentrada' => "%$requestMayuscula%");
+            $criteria->order = "nombre asC";
+            $criteria->limit = 10;
+            $model = Producto::model()->findAll($criteria);
+            $data = array();
+
+            foreach ($model as $get) {
+                $data[] = array(
+                    'label' => $get->codigo . ' (' . $get->nombre . ')',
+                    'value' => $get->codigo . ' (' . $get->nombre . ')',
+                    'nombre' => $get->codigo . ' (' . $get->nombre . ')',
+                    'id' => $get->id);
+            }
+
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+
+    /**
+     * Funcion que carga la pantalla para seleccionar los productos para
+     * inventariar
+     */
+    public function actionInventariarProducto() {
+        $model = new Producto('inventariar');
+        $model->unsetAttributes();  // clear any default values
+
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Producto']))
+            $model->attributes = $_GET['Producto'];
+
+        $this->renderPartial('inventariar', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Función que cambia el estado de inventariar (true o false) 
+     * de la tabla producto 
+     * @param type $id    
+     */
+    public function actionInventariar() {
+        $model = $this->loadModel($_GET['idproducto']);
+        $model->setScenario('inventariar');
+        $model->inventariar = $_GET['bandera'];
+        if ($model->save()) {
+            echo System::messageConfirm('');
+            return;
+        } else {
+            echo System::messageConfirm('Error en el proceso');
+            return;
+        }
+    }
+    /**
+     * Funcion que carga la pantalla de asignacion costo
+     */
+    public function actionAsignacionCosto() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+        $model = new Producto('search');
+        $model->unsetAttributes();  // clear any default values
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Producto']))
+            $model->attributes = $_GET['Producto'];
+
+        $this->renderPartial('asignacioncosto', array(
+            'model' => $model,
+        ), false, true);
+    }
+    
+   /**
+     * Funcion que actualiza los costos del producto
+     */
+    public function actionActualizarCosto() {
+        if (isset($_POST['id'])) {
+            $model = Producto::model()->findByPk($_POST['id']);
+            $model->setScenario('actualizarCosto');
+            $model->ultimoppp = str_replace(",", "", $_POST['ultimoppp']);
+            if ($model->save()) {
+                echo $model->ultimoppp;
+            } else {
+                echo System::messageError('No se actualizó correctamente!');
+                return;
+            }
+        }
+    }
+    /**
+     * Reporte de los consumos de producto por meses sin tomar en cuenta las bajas
+     */
+    public function actionReporteConsumoPromedioMeses(){
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+        
+        $idProducto = $_GET['Producto']['id'];
+        
+        $fechaFin = $_GET['Producto']['fechaFin'];
+        $fechaInicio = $_GET['Producto']['fechaInicio'];
+        
+        if ($fechaInicio === '') {
+            $criteria=new CDbCriteria();            
+            $criteria->order = 't.id ASC';               
+            $ordenModel=  Orden::model()->find($criteria);
+            $fechaInicio = $ordenModel->id0->fecha;
+        }
+        
+        if ($fechaFin === '') {
+            $fechaFin = date('Y-m-d');                
+        }
+        
+        $re = new JasperReport('/reports/Almacen/informeConsumoPromedioMeses', JasperReport::FORMAT_PDF, array(
+            'pUsuario' => Yii::app()->user->getName(),
+            'idProducto'=>$idProducto,
+            'pFechaInicio' => Yii::app()->format->date(strtotime($fechaInicio)),
+            'pFechaFin' => Yii::app()->format->date(strtotime($fechaFin)),
+            'formatNumberProduccion' => Yii::app()->params['formatNumberProduccion'],
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+            ));
+
+        $re->exec();
+
+        if ($re->getPages() > 0) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+    
+    /**
+     * Abre la ventana para escojer las fechas para imprimr el reporte "Consumo Promedio productos"
+     */
+    public function actionReporteConsumoPromedioProductos(){
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+        
+        $productomodel=new Producto;
+        $this->renderPartial('reporteVentanaConsumoMeses',array(
+            'model' => $productomodel
+        ), false, true);
+    }
+    
+    /**
+     * Funcion de autocompletar un campo textfield de producto, para el reporte Consumo Promedio por meses
+     */
+    public function actionAutocompleteProductoReporteConsumos() {
+        $request = trim($_GET['term']);
+        $requestMayuscula = strtoupper($request);
+        if ($request != '') {
+            $criteria = new CDbCriteria();
+            $criteria->join = "INNER JOIN almacen al ON al.id = t.idalmacen";
+            $criteria->addCondition("al.id IN (1,2,6)");
+            $criteria->addCondition("al.idalmacen IS NULL");
+            $criteria->addCondition("UPPER(t.nombre) LIKE '%$requestMayuscula%'");
+            $criteria->limit=10;
+            $model = Producto::model()->findAll($criteria);
+
+            //$model = Producto::model()->findAll(array('condition' => "nombre like '%$requestMayuscula%'", 'order' => 'nombre'));
+            $data = array();
+            foreach ($model as $get) {
+                $formato = '%s';
+                $data[] = array(
+                    'label' => sprintf($formato, $get->nombre),
+                    'value' => $get->nombre,
+                    'id' => $get->id,
+                    'codigo' => $get->codigo);
+            }
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+    /**
+     * Funcion de autocompletar un campo textfield de producto, para el reporte Consumo Promedio por meses
+     */
+    public function actionAutocompleteProductoCodReporteConsumos() {
+        $request = trim($_GET['term']);
+        $requestMayuscula = strtoupper($request);
+        if ($request != '') {
+            $criteria = new CDbCriteria();
+            $criteria->join = "INNER JOIN almacen al ON al.id = t.idalmacen";
+            $criteria->addCondition("al.id IN (1,2,6)");
+            $criteria->addCondition("al.idalmacen IS NULL");
+            $criteria->addCondition("UPPER(t.codigo) LIKE '$requestMayuscula%'");
+            $criteria->limit=10;
+            $model = Producto::model()->findAll($criteria);
+
+            //$model = Producto::model()->findAll(array('condition' => "nombre like '%$requestMayuscula%'", 'order' => 'nombre'));
+            $data = array();
+            foreach ($model as $get) {
+                $formato = '%s';
+                $data[] = array(
+                    'label' => sprintf($formato, $get->codigo),
+                    'value' => $get->codigo,
+                    'id' => $get->id,
+                    'codigo' => $get->codigo,
+                    'nombre' => $get->nombre);
+            }
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+    
+    public function actionInventariarPorAlmacen() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+        $model = new Producto;
+        $model->scenario = 'inventariar';
+        $model->idalmacen = isset($_GET['idalmacen']) ? $_GET['idalmacen'] : 'null';
+        $productosinventariar = $model->inventariar();
+        $this->renderPartial('inventariarporalm', array(
+            'model' => $model,
+            'productosinventariar' => $productosinventariar
+        ), false, true);
+    }
+    
+    public function actionLoadProductosInventariarCodigo() {
+        $codigo = isset($_GET['codigo']) ? $_GET['codigo'] : null;
+        $idalmacen = isset($_GET['idalmacen']) ? $_GET['idalmacen'] : null;
+        if ($codigo == null)
+            $productosinventariar = array();
+        else
+            $productosinventariar = Producto::model()->obtenerProductos($codigo, 'codigo', $idalmacen);
+
+        $this->renderPartial('_productos', array(
+            'productosinventariar' => $productosinventariar,
+        ), false, true);
+    }
+    
+    public function actionLoadProductosInventariarNombre() {
+        $nombre = isset($_GET['nombre']) ? $_GET['nombre'] : null;
+        $idalmacen = isset($_GET['idalmacen']) ? $_GET['idalmacen'] : null;
+        if ($nombre == null)
+            $productosinventariar = array();
+        else
+            $productosinventariar = Producto::model()->obtenerProductos($nombre, 'nombre', $idalmacen);
+
+        $this->renderPartial('_productos', array(
+            'productosinventariar' => $productosinventariar,
+        ), false, true);
+    }    
+    
+    public function actionQuitarSeleccion() {
+        $idalmacen = isset($_GET['idalmacen']) ? $_GET['idalmacen'] : null;
+        if ($idalmacen == null) {
+            echo System::messageError('No se pudo quitar la selección de productos');
+            return;
+        } else {
+            Producto::model()->updateAll(
+                array(
+                    'inventariar' => false
+                ),
+                'idalmacen=:idalmacen and inventariar is true and eliminado=false',
+                array(':idalmacen' => $idalmacen)
+            );
+        }
+    }
+    
+    public function actionSeleccionarTodos() {
+        $idalmacen = isset($_GET['idalmacen']) ? $_GET['idalmacen'] : null;
+        if ($idalmacen == null) {
+            echo System::messageError('No se pudo seleccionar todos los productos');
+            return;
+        } else {
+            Producto::model()->updateAll(
+                array(
+                    'inventariar' => true
+                ), 'idalmacen=:idalmacen and inventariar is false and eliminado=false', array(':idalmacen' => $idalmacen)
+            );
+        }
+    }
+    
+    public function actionLoadCaracteristicas()
+    {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false,'bootbox.min.js' => false);
+        
+        $form = $this->beginWidget('CActiveForm', array(), false);
+        $idAlmacen = isset($_GET['idAlmacen']) ? $_GET['idAlmacen'] : null;
+
+        $productoCaracteristica = Caracteristica::model()->obtieneCaracteristica($idAlmacen);
+        $model = new Producto();
+        $model->scenario = 'insert';
+        
+        $this->renderPartial('_caracteristicasDetalle',array(
+            'form' => $form,
+            'productoCaracteristica' => $productoCaracteristica,
+            'model' => $model,
+        ), false, true);
+    }
+    
+    public function actionArbolMovimientoOrdenesProduccion(){
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false,'bootbox.min.js' => false);
+        header('Content-Type: application/json');
+        ini_set('memory_limit', '1024M');
+        set_time_limit(10000);
+        
+        $codprod=$_GET["codigoproductokdm"];
+        
+        $data = array(
+            array(
+                "key"=>0,
+                "keylist"=>0,
+                "txt"=>$codprod,
+                )
+        );//2CHOSMA001,2CHOLES001,2CHOAMG001,,2CHOSAB001,
+        //id de prodcuto
+        $idproducto = Producto::model()->getIdProducto($codprod,2);
+        //obtenemos la fecha de la primera entrega
+        $fechaInicio = Producto::model()->getFechaPrimerIngresoEncontrado("2016-07-01 07:00:02.0",$idproducto);
+        Producto::model()->getArbolPrincipal($fechaInicio,$data,0,$idproducto,1);
+                
+        echo CJSON::encode($data);
+    }
+    
+    public function actionRamificarArbolMovimientoOrdenesProduccion(){
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false,'bootbox.min.js' => false);
+        header('Content-Type: application/json');
+        ini_set('memory_limit', '1024M');
+        set_time_limit(10000);
+        $data = array(           
+        );
+        
+        $codprod=$_GET["codigoproductokdm"];
+        
+        //$idproductokdm = Producto::model()->getIdProducto($codprod,2);
+        
+        //id de prodcuto
+        $idproducto = $_POST['idproducto'];
+        //obtenemos la fecha de la primera entrega
+        
+        $fechaInicio = $_POST['fechacierre'];
+        
+        $key = $_POST['key'];
+        $keylist = $_POST['keylist'];
+        if(isset($_POST['costoconfirmado'])){
+            $sop=strpos($_POST['glosa'], ''.$codprod)!==false?true:false;
+            if($_POST['costoconfirmado']==true && $sop==false)
+            Producto::model()->getArbolRamificado($fechaInicio,$data,$keylist,$idproducto,1);
+        } 
+        echo CJSON::encode($data);
+    }
+    
+    public function actionActualizarKardexProducto(){
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false,'bootbox.min.js' => false);
+        
+        $producto = new Producto;
+        
+        $this->renderPartial('actualizarKardex',array(
+            'model' => $producto,
+        ), false, true);
+    }
+    /**
+     * Cambia el kardex de un movimiento en el almacen. Se envia datos del movimento por post
+     */
+    public function actionAjustarMovimientoAlmacen(){
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false,'bootbox.min.js' => false);
+        header('Content-Type: application/json');
+        ini_set('memory_limit', '1024M');
+        set_time_limit(10000);
+        $data = array();
+        
+        $nuevocosto = 0;
+        //id de prodcuto
+        if(isset($_POST['nuevocosto']))
+            $nuevocosto = $_POST['nuevocosto'];
+        
+        $respuestaAjusteKardex = Producto::model()->ajustaMovimientoKardexAlmacen($nuevocosto,$_POST['key'],$_POST['idproductonota'],$_POST['fechamovimiento']);
+        //if($_POST['sop']===true)
+        //    $respuestaAjusteOrdenProduccion = Producto::model()->ajustarCostoOrdenProduccion($_POST['idop']);//idop : idOrdenProduccion
+        
+        if($respuestaAjusteKardex["error"]===true){
+            $data=$respuestaAjusteKardex;
+        }else{
+            
+            $data=$respuestaAjusteKardex;
+        }
+        
+        //una de las variables que se retornará será el nuevo costo del producto
+        echo CJSON::encode($data);
+    }
+    /*
+    * Obtiene el costo inicial con el cualcual vamos a modificar el karkex
+    */
+    public function actionObtenerCostoInicialProducto(){
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false,'bootbox.min.js' => false);
+        header('Content-Type: application/json');
+        //id de prodcuto
+        $codprod=$_GET["codigoproductokdm"];
+        $idproducto = Producto::model()->getIdProducto($codprod,2);
+        $precio = array(
+            "2CHOSMA001"=>47.60,
+            "2CHOLES001"=>42.23,
+            "2CHOAMG001"=>44.37,
+            "2CHOSAB001"=>41.32);
+        echo json_encode(array('idproducto'=>$idproducto,'costo'=>$precio[$codprod]));
+    }
+	
+    public function actionIngresarnotaspormodificacionkd(){
+            $sqlnota1="INSERT INTO nota (numero, glosa, fecha, eliminado, usuario, idtipo, idorigen, idnotaborrador, total, idchofer, idestado, descripcion, fechaentrega, cantidadcaja, idtipodocumento, iddocumento, idcontracuenta, contabilizado, idalmacen, iddetallenota, sysnote) VALUES ( (SELECT MAX(numero)+1 FROM nota), 'SALIDA ESP. POR AJUSTE DE SISTEMA 20160824', '2016-07-01 08:00:00.0', false, 'admin', 2, 1, NULL, NULL, NULL, 7, NULL, NULL, NULL, 19, NULL, 24, false, 2, NULL, NULL);";
+            $sqlnota2="INSERT INTO nota (numero, glosa, fecha, eliminado, usuario, idtipo, idorigen, idnotaborrador, total, idchofer, idestado, descripcion, fechaentrega, cantidadcaja, idtipodocumento, iddocumento, idcontracuenta, contabilizado, idalmacen, iddetallenota, sysnote) VALUES ( (SELECT MAX(numero)+1 FROM nota), 'INGRESO POR AJUSTE DE SISTEMA 20160824', '2016-07-01 08:00:30.0', false, 'admin', 1, 2, NULL, 4204.41, NULL, 7, NULL, NULL, NULL, 5, NULL, 24, false, 2, NULL, NULL);";
+            $sqlnota3="INSERT INTO nota (numero, glosa, fecha, eliminado, usuario, idtipo, idorigen, idnotaborrador, total, idchofer, idestado, descripcion, fechaentrega, cantidadcaja, idtipodocumento, iddocumento, idcontracuenta, contabilizado, idalmacen, iddetallenota, sysnote) VALUES ( (SELECT MAX(numero)+1 FROM nota), 'INGRESO POR AJUSTE DE SISTEMA 20160824', '2016-07-01 08:00:30.0', false, 'admin', 1, 2, NULL, 2063.50, NULL, 7, NULL, NULL, NULL, 5, NULL, 24, false, 2, NULL, NULL);";
+            $sqlnota4="INSERT INTO nota (numero, glosa, fecha, eliminado, usuario, idtipo, idorigen, idnotaborrador, total, idchofer, idestado, descripcion, fechaentrega, cantidadcaja, idtipodocumento, iddocumento, idcontracuenta, contabilizado, idalmacen, iddetallenota, sysnote) VALUES ( (SELECT MAX(numero)+1 FROM nota), 'INGRESO POR AJUSTE DE SISTEMA 20160824', '2016-07-01 08:00:30.0', false, 'admin', 1, 2, NULL, 1148.29, NULL, 7, NULL, NULL, NULL, 5, NULL, 24, false, 2, NULL, NULL);";
+            $sqlnota5="INSERT INTO nota (numero, glosa, fecha, eliminado, usuario, idtipo, idorigen, idnotaborrador, total, idchofer, idestado, descripcion, fechaentrega, cantidadcaja, idtipodocumento, iddocumento, idcontracuenta, contabilizado, idalmacen, iddetallenota, sysnote) VALUES ( (SELECT MAX(numero)+1 FROM nota), 'INGRESO POR AJUSTE DE SISTEMA 20160824', '2016-07-01 08:00:30.0', false, 'admin', 1, 2, NULL, 1038.33, NULL, 7, NULL, NULL, NULL, 5, NULL, 24, false, 2, NULL, NULL);";
+
+            //nota salida 1
+            Yii::app()->almacen->createCommand($sqlnota1)->execute();
+            $lidnota = Yii::app()->almacen->getLastInsertID("nota_id_seq");
+            $sqlproductonota1="INSERT INTO productonota (glosa, costo, utilidad, ingreso, salida, saldo, fecha, eliminado, idproducto, idnota, calidad, evaluacion, usuario, ingresoimporte, salidaimporte, saldoimporte, sysnote, correccionsistema, cs_ingresosalida, cs_ingresosalida_importe) VALUES ('SALIDA ESP. - POR AJUSTE DE SISTEMA 20160824 - NOTA Nº 25015', NULL, NULL, 0.0000, 1148.2850, 0, '2016-07-01 08:00:00.0', false, 5664, $lidnota, NULL, NULL, 'admin', 0.00, 47019.29, 0, NULL, false, NULL, NULL);";
+            $sqlproductonota2="INSERT INTO productonota (glosa, costo, utilidad, ingreso, salida, saldo, fecha, eliminado, idproducto, idnota, calidad, evaluacion, usuario, ingresoimporte, salidaimporte, saldoimporte, sysnote, correccionsistema, cs_ingresosalida, cs_ingresosalida_importe) VALUES ('SALIDA ESP. - POR AJUSTE DE SISTEMA 20160824 - NOTA Nº 25015', NULL, NULL, 0.0000, 4204.4137, 0, '2016-07-01 08:00:00.0', false, 5661, $lidnota, NULL, NULL, 'admin', 0.00, 138052.22, 0, NULL, false, NULL, NULL);";
+            $sqlproductonota3="INSERT INTO productonota (glosa, costo, utilidad, ingreso, salida, saldo, fecha, eliminado, idproducto, idnota, calidad, evaluacion, usuario, ingresoimporte, salidaimporte, saldoimporte, sysnote, correccionsistema, cs_ingresosalida, cs_ingresosalida_importe) VALUES ('SALIDA ESP. - POR AJUSTE DE SISTEMA 20160824 - NOTA Nº 25015', NULL, NULL, 0.0000, 2063.5018, 0, '2016-07-01 08:00:00.0', false, 5663, $lidnota, NULL, NULL, 'admin', 0.00, 62412.08, 0, NULL, false, NULL, NULL);";
+            $sqlproductonota4="INSERT INTO productonota (glosa, costo, utilidad, ingreso, salida, saldo, fecha, eliminado, idproducto, idnota, calidad, evaluacion, usuario, ingresoimporte, salidaimporte, saldoimporte, sysnote, correccionsistema, cs_ingresosalida, cs_ingresosalida_importe) VALUES ('SALIDA ESP. - POR AJUSTE DE SISTEMA 20160824 - NOTA Nº 25015', NULL, NULL, 0.0000, 1038.3300, 0, '2016-07-01 08:00:00.0', false, 5658, $lidnota, NULL, NULL, 'admin', 0.00, 38439.46, 0, NULL, false, NULL, NULL);";
+
+            //nota ingreso 2
+            Yii::app()->almacen->createCommand($sqlnota2)->execute();
+            $lidnota = Yii::app()->almacen->getLastInsertID("nota_id_seq");
+            $sqlproductonota5="INSERT INTO productonota (glosa, costo, utilidad, ingreso, salida, saldo, fecha, eliminado, idproducto, idnota, calidad, evaluacion, usuario, ingresoimporte, salidaimporte, saldoimporte, sysnote, correccionsistema, cs_ingresosalida, cs_ingresosalida_importe) VALUES ('INGRESO POR AJUSTE DE SISTEMA 20160824 - NOTA Nº 25011', NULL, NULL, 4204.4137, 0.0000, 4204.4137, '2016-07-01 08:00:30.0', false, 5661, $lidnota, NULL, NULL, 'admin', 173726.37, 0.00, 214390.33, NULL, false, NULL, NULL);";
+
+            //nota ingreso 3
+            Yii::app()->almacen->createCommand($sqlnota3)->execute();
+            $lidnota = Yii::app()->almacen->getLastInsertID("nota_id_seq");
+            $sqlproductonota6="INSERT INTO productonota (glosa, costo, utilidad, ingreso, salida, saldo, fecha, eliminado, idproducto, idnota, calidad, evaluacion, usuario, ingresoimporte, salidaimporte, saldoimporte, sysnote, correccionsistema, cs_ingresosalida, cs_ingresosalida_importe) VALUES ('INGRESO POR AJUSTE DE SISTEMA 20160824 - NOTA Nº 25012', NULL, NULL, 2063.5018, 0.0000, 2063.5018, '2016-07-01 08:00:30.0', false, 5663, $lidnota, NULL, NULL, 'admin', 87141.68, 0.00, 148714.53, NULL, false, NULL, NULL);";
+
+            //nota ingreso 4
+            Yii::app()->almacen->createCommand($sqlnota4)->execute();
+            $lidnota = Yii::app()->almacen->getLastInsertID("nota_id_seq");
+            $sqlproductonota7="INSERT INTO productonota (glosa, costo, utilidad, ingreso, salida, saldo, fecha, eliminado, idproducto, idnota, calidad, evaluacion, usuario, ingresoimporte, salidaimporte, saldoimporte, sysnote, correccionsistema, cs_ingresosalida, cs_ingresosalida_importe) VALUES ('INGRESO POR AJUSTE DE SISTEMA 20160824 - NOTA Nº 25013', NULL, NULL, 1148.2850, 0.0000, 1148.2850, '2016-07-01 08:00:30.0', false, 5664, $lidnota, NULL, NULL, 'admin', 50949.41, 0.00, 78956.80, NULL, false, NULL, NULL);";
+
+            //nota ingreso 5
+            Yii::app()->almacen->createCommand($sqlnota5)->execute();
+            $lidnota = Yii::app()->almacen->getLastInsertID("nota_id_seq");
+            $sqlproductonota8="INSERT INTO productonota (glosa, costo, utilidad, ingreso, salida, saldo, fecha, eliminado, idproducto, idnota, calidad, evaluacion, usuario, ingresoimporte, salidaimporte, saldoimporte, sysnote, correccionsistema, cs_ingresosalida, cs_ingresosalida_importe) VALUES ('INGRESO POR AJUSTE DE SISTEMA 20160824 - NOTA Nº 25014', NULL, NULL, 1038.3300, 0.0000, 1038.3300, '2016-07-01 08:00:30.0', false, 5658, $lidnota, NULL, NULL, 'admin', 49424.51, 0.00, 82419.56, NULL, false, NULL, NULL);";
+
+            Yii::app()->almacen->createCommand($sqlproductonota1)->execute();
+            Yii::app()->almacen->createCommand($sqlproductonota2)->execute();
+            Yii::app()->almacen->createCommand($sqlproductonota3)->execute();
+            Yii::app()->almacen->createCommand($sqlproductonota4)->execute();
+            Yii::app()->almacen->createCommand($sqlproductonota5)->execute();
+            Yii::app()->almacen->createCommand($sqlproductonota6)->execute();
+            Yii::app()->almacen->createCommand($sqlproductonota7)->execute();
+            Yii::app()->almacen->createCommand($sqlproductonota8)->execute();
+    }
+    
+    public function actionActualizarSaldosimportesProductosAlmacen(){
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false,'bootbox.min.js' => false);
+        header('Content-Type: application/json');
+        $arrayidsProductos=array_unique($_POST["idsproductos"]);
+        
+        foreach ($arrayidsProductos as $value) {
+            $productoModel = Producto::model()->findByPk($value);
+            $productoModel->actualizarSaldosProductoMK();
+        }
+        echo CJSON::encode(array("mensaje"=>"terminó"));
+    }
+    
+    // ---------------------------- KARDEX DETALLADA ---------------------------
+    public function actionAdminDetallado() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Producto('search');
+        $model->unsetAttributes();  // clear any default values
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Producto'])) {
+            $model->attributes = $_GET['Producto'];
+            if (!$model->validate()) {
+                echo System::hasErrorSearch($model);
+                return;
+            }
+        }
+
+        $this->renderPartial('adminDetallado', array(
+            'model' => $model,
+                ), false, true);
+    }
+    
+    public function actionMovimientos($id)
+    {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+        
+        $idProducto = SeguridadModule::dec($id);
+        $model = $this->loadModel($idProducto);
+        $productonota = Productonota::model()->getProductoNotaDetallado($idProducto, '', '', '');
+
+        $this->renderPartial('_movimientoProducto', array(
+            'model' => $model,
+            'productonota' => $productonota,
+        ), false, true);
+    }
+    
+    public function actionLoadProductoNota()
+    {
+        $idproducto = isset($_GET['idproducto']) ? $_GET['idproducto'] : null;
+        $fechaInicio= isset($_GET['fechaInicio']) ? $_GET['fechaInicio'] : null;
+        $fechaFin = isset($_GET['fechaFin']) ? $_GET['fechaFin'] : null;
+        $movimiento = isset($_GET['movimiento']) ? $_GET['movimiento'] : null;
+
+        if($idproducto == null && $fechaInicio == null && $fechaFin == null)
+            $productonota = array();
+        else
+            $productonota = Productonota::model()->getProductoNotaDetallado($idproducto, $fechaInicio, $fechaFin, $movimiento);
+            
+        $this->renderPartial('_valoradoProductonotaDetallado',array(
+            'productonota' => $productonota,
+        ), false, true);
+    }
+    
+    public function actionCorregirMovimiento()
+    {
+        if(isset($_GET['idnota']))
+        {
+            $idnota = $_GET['idnota'];
+            $saldoCantidadCorrecto = $_GET['saldoCantidadCorrecto'];
+            $saldoImporteCorrecto = $_GET['saldoImporteCorrecto'];
+            $model = Productonota::model()->find('id = '.$idnota);
+            $resultado = 0;
+            
+            if($model != null)
+            {
+                if($model->saldo != $saldoCantidadCorrecto && $model->saldoimporte != $saldoImporteCorrecto)
+                    $resultado = Productonota::model()->updateAll(
+                        array(
+                            'saldo' => $saldoCantidadCorrecto,
+                            'saldoimporte' => $saldoImporteCorrecto
+                        ), 'id=:id', array(':id' => $idnota)
+                    );
+                else
+                {
+                    if($model->saldo != $saldoCantidadCorrecto)
+                        $resultado = Productonota::model()->updateAll(
+                            array(
+                                'saldo' => $saldoCantidadCorrecto,
+                            ), 'id=:id', array(':id' => $idnota)
+                        );
+                    if($model->saldoimporte != $saldoImporteCorrecto)
+                        $resultado = Productonota::model()->updateAll(
+                            array(
+                                'saldoimporte' => $saldoImporteCorrecto
+                            ), 'id=:id', array(':id' => $idnota)
+                        );
+                }
+                
+                $arrayResultado = Productonota::model()->movimientoProducto($model->idproducto);
+                $contadorSaldoCantidadError = $arrayResultado['contadorSaldoCantidadError'];
+                $contadorSaldoCantidadNegativos = $arrayResultado['contadorSaldoCantidadNegativos'];
+                $contadorSaldoImporteError = $arrayResultado['contadorSaldoImporteError'];
+                $contadorSaldoImporteNegativos = $arrayResultado['contadorSaldoImporteNegativos'];
+                echo $resultado.'*'.
+                     $contadorSaldoCantidadError.'*'.$contadorSaldoCantidadNegativos.'*'.
+                     $contadorSaldoImporteError.'*'.$contadorSaldoImporteNegativos;
+            }
+        }
+    }
+    
+    public function actionCorregirVariosMovimientos()
+    {
+        if(isset($_GET['idProducto']) && isset($_GET['idNota']))
+        {
+            $idProducto = $_GET['idProducto'];
+            $idNota = $_GET['idNota'];
+            $command = Yii::app()->almacen->createCommand("select reprocesa_oficial(".$idProducto.", ".$idNota.")");
+            $command->queryScalar();
+            
+            $arrayResultado = Productonota::model()->movimientoProducto($idProducto);
+            $contadorSaldoCantidadError = $arrayResultado['contadorSaldoCantidadError'];
+            $contadorSaldoImporteError = $arrayResultado['contadorSaldoImporteError'];
+            echo $contadorSaldoCantidadError.'*'.$contadorSaldoImporteError;
+        }
+    }
+    
+    public function actionCambiarMovimiento()
+    {
+        if(isset($_GET['idProducto']) && isset($_GET['idNota']))
+        {
+            $idProducto = $_GET['idProducto'];
+            $idNota = $_GET['idNota'];
+            $ingreso = $_GET['ingreso'];
+            $salida = $_GET['salida'];
+            $debe = $_GET['debe'];
+            $haber = $_GET['haber'];
+
+            $modelo = Productonota::model()
+                        ->find(
+                                'idproducto = '.$idProducto.' AND '.
+                                'idnota = '.$idNota
+                            );
+            $modelo->scenario = 'cambiarMovimiento';
+            $modelo->ingreso = $ingreso;
+            $modelo->salida = $salida;
+            $modelo->ingresoimporte = $debe;
+            $modelo->salidaimporte = $haber;
+            
+            if($modelo->save())
+            {
+                $command = Yii::app()->almacen->createCommand("select reprocesa_oficial(".$idProducto.", ".$idNota.")");
+                $command->queryScalar();
+                echo 1;
+            }
+            else
+                print_r($modelo->getErrors());
+            return;
+        }
+    }
+    
+    /**
+     * Función para realizar el autocomplete del producto
+     * por el parametro de código
+     */
+    public function actionAutocompletarCodigo() {
+        $productoExcluido = null;
+        if (isset($_GET['idalmacen']))
+            $idalmacen = $_GET['idalmacen'];
+        if (isset($_POST['codigo']))
+            $codigo = $_POST['codigo'];
+        
+        if (isset($_POST['productoInventario']))
+            $productoExcluido = $this->getIdProductoInventario($_POST['productoInventario']);
+
+        if ($codigo != Null) {
+            echo SGridView::widget('TGridViewList', array(
+                'dataProvider' => Producto::model()->buscarProductoCodigo($productoExcluido, $idalmacen, $codigo),
+                'columns' => array(array('name' => 'id', 'typeCol' => 'hidden'),
+                    array('name' => 'codigo', 'width' => 10),
+                    array('name' => 'nombre', 'width' => 50),
+                    array('name' => 'udd', 'value' => '$data->idunidad0->simbolo','typeCol' => 'hidden')
+                ),
+            ));
+        }
+    }
+    
+    /**
+     * Función para realizar el autocomplete del producto
+     * por el parametro de código
+     */
+    public function actionAutocompletarNombre() {
+        $productoExcluido = null;
+        if (isset($_GET['idalmacen']))
+            $idalmacen = $_GET['idalmacen'];
+        if (isset($_POST['nombre']))
+            $nombre = $_POST['nombre'];
+
+        if (isset($_POST['productoInventario']))
+            $productoExcluido = $this->getIdProductoInventario($_POST['productoInventario']);
+
+        if ($nombre != Null) {
+            echo SGridView::widget('TGridViewList', array(
+                'dataProvider' => Producto::model()->buscarProductoNombre($productoExcluido, $idalmacen, $nombre),
+                'columns' => array(array('name' => 'id', 'typeCol' => 'hidden'),
+                    array('name' => 'codigo', 'width' => 10),
+                    array('name' => 'nombre', 'width' => 50),
+                    array('name' => 'udd', 'value' => '$data->idunidad0->simbolo', 'typeCol' => 'hidden')
+                ),
+            ));
+        }
+    }
+
+    /**
+     * Obtiene un array simple con los id de productos que contiene el
+     * grid Pedidoproducto
+     * @param Pedidoproducto $pedidoproducto
+     * @return Array
+     */
+    public function getIdProductoInventario($pedidoproducto) {
+        $idProducto = null;
+        for ($i = 1; $i < count($pedidoproducto) + 1; $i++) {
+            $idProducto[] = ($pedidoproducto[$i]['id']);
+        }
+        return $idProducto;
+    }
+
+}

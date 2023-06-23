@@ -1,0 +1,18 @@
+<?php
+/* @var $this UnidadController */
+/* @var $dataProvider CActiveDataProvider */
+
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+
+<h1>Unidades</h1>
+
+<?php $this->widget('zii.widgets.CListView', array(
+	'dataProvider'=>$dataProvider,
+	'itemView'=>'_view',
+)); ?>
+		</div>
+	</div>
+</div>

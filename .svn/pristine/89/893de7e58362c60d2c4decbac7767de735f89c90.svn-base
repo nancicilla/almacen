@@ -1,0 +1,161 @@
+<?php
+/* @var $this NotaborradorController */
+/* @var $model Notaborrador */
+
+Yii::app()->clientScript->registerScript('search', "
+$('.search-button').click(function(){
+	$('.search-form').toggle();
+	return false;
+});
+$('.search-form form').submit(function(){
+	$('#notaborrador-grid').yiiGridView('update', {
+		data: $(this).serialize()
+	});
+	return false;
+});
+");
+$pageSize=Yii::app()->user->getState('pageSize',Yii::app()->params['defaultPageSize']);
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Administración de Notas Borrador</h1>
+
+<?php echo CHtml::link('Busqueda Avanzada','#',array('class'=>'search-button')); ?>
+<div class="search-form" style="display:none">
+<?php $this->renderPartial('_search',array(
+	'model'=>$model,
+)); ?>
+</div><!-- search-form -->
+
+<div id="flash-msgs">
+<?php if(Yii::app()->user->hasFlash("error")): ?>
+<div class="flash-error">
+<?php echo Yii::app()->user->getFlash("error"); ?>
+</div>
+<?php endif; ?>
+</div>
+<form target="_blank" style="text-align: right; margin-bottom: 5px">
+<?php
+    echo TbHtml::submitButton('Imprimir', array(
+                        'submit'=>array('notaborrador/reporteNotaBorradorLote'),
+                        ));
+?>
+</form>
+<?php $this->widget('bootstrap.widgets.TbGridView', array(
+	'id'=>'notaborrador-grid',
+	'dataProvider'=>$model->search(),
+	'filter'=>$model,
+        'ajaxUpdate' => 'flash-msgs',
+        'afterAjaxUpdate' => 'reinstallDatePicker',
+	'columns'=>array(
+		'glosa',
+		'usuario',
+            array(
+                'name' => 'idorigen',
+                'value' => '$data->idorigen0->nombre',  
+                'filter'=>CHtml::listData(
+                        Origen::model()->findAll(
+                                    array(
+                                        'order'=>'nombre')
+                                    ),
+                                'id', 
+                                'nombre'),
+            ),
+            array(
+                'name' => 'idtipo',
+                'value' => '$data->idtipo0->nombre',  
+                'filter'=>CHtml::listData(
+                        Tipo::model()->findAll(
+                                    array(
+                                        'order'=>'nombre')
+                                    ),
+                                'id', 
+                                'nombre'),               
+            ),
+                array(
+                'name'=>'fecha',
+                'type' => 'datetime',
+                'filter' =>$this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                'model'=>$model, 
+                'attribute'=>'fecha',
+                'name' => 'notaborrador[fecha]',
+                'value' => $model->fecha,
+                'language' => 'es',
+                // additional javascript options for the date picker plugin
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'showButtonPanel' => true,
+                    'changeMonth' => true,
+                    'changeYear' => true,
+                    'dateFormat' => 'dd-mm-yy',
+                    'maxDate' => 'today',
+                ),
+                'htmlOptions' => array(
+                    'id' => 'notaborrador_fecha',
+                    'size' => '10',
+                ),
+                    ), true)
+                ),    
+		array(
+			'class'=>'bootstrap.widgets.TbButtonColumn',
+                                'header'=>CHtml::dropDownList('pageSize',$pageSize,
+                                    array(Yii::app()->params['1PageSize']=>Yii::app()->params['1PageSize'],
+                                            Yii::app()->params['2PageSize']=>Yii::app()->params['2PageSize'],
+                                            Yii::app()->params['3PageSize']=>Yii::app()->params['3PageSize'],
+                                            Yii::app()->params['4PageSize']=>Yii::app()->params['4PageSize'],
+                                            Yii::app()->params['5PageSize']=>Yii::app()->params['5PageSize'],
+                                        ),
+                                    array(
+                                        'style' => 'width:70px; margin: 0 auto;',
+                                        'onchange'=>"$.fn.yiiGridView.update('notaborrador-grid',{ data:{pageSize: $(this).val() }})",
+                                    )
+                                ),
+                                'deleteConfirmation'=>'¿Seguro que desea eliminar este elemento?',
+                                'template'=>'{view}{update}{delete}{confirmar}',
+				'buttons' => 	array(
+						'view'=>array('icon'=>'print','url'=>'array("reporteNotaBorrador","id"=>SeguridadModule::enc($data->getPrimaryKey()))','options'=>array("target"=>"_blank")),
+                            			'update'=>array('url'=>'array("update","id"=>SeguridadModule::enc($data->getPrimaryKey()))'),
+						'delete'=>array('url'=>'array("delete","id"=>SeguridadModule::enc($data->getPrimaryKey()))'),
+                         			'confirmar'=>array('url'=>'array("confirmar","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+                                                                'icon'=>'check',
+                                                                'click'=>"function(){"
+                                                                . "var href = $(this).attr('href');
+                                                                bootbox.confirm('¿Está seguro que desea confirmar la nota borrador?', function(confirmed){"
+                                                                . "if (confirmed){"       
+                                                                . "$.fn.yiiGridView.update('notaborrador-grid', {
+                                                                type:'POST',
+                                                                 url: href,                                        
+                                                                 });           
+                                                                 }}); return false;}",),
+                            			),
+		),
+	),
+));
+
+Yii::app()->clientScript->registerScript('re-install-date-picker', "
+function reinstallDatePicker() {
+     //se deben usar los mismos parámetros que en el widget para ser recargado
+          $('#notaborrador_fecha').datepicker(jQuery.extend(
+            jQuery.datepicker.regional['es'],
+            {'changeYear':true,
+            'changeMonth':true,
+            'showButtonPanel':true,
+            'maxDate':'today',
+            'dateFormat' : 'dd-mm-yy',
+            'showAnim':'slideDown'}));
+     }
+");
+ ?>
+<form target="_blank" style="text-align: right; ">
+<?php 
+    echo TbHtml::submitButton('Imprimir',
+                    array(
+                        'submit'=>array('notaborrador/reporteNotaBorradorLote'),
+                        )
+        ); 
+?>
+</form>
+		</div>
+	</div>
+</div>

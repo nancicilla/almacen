@@ -1,0 +1,21 @@
+<div class="column" style="width: 795px;">
+<?php
+    echo "<div id='".System::Id('divDetallePago')."'>";
+    echo $this->renderPartial('_caracteristicasDetalle',
+            array(
+                'productoCaracteristica' => $productoCaracteristica,
+            ), true
+    );
+    echo "</div>";
+?>           
+</div>
+
+<div class="column" style="width: 240px;">
+    <label <?php echo 'id="'.System::Id('lblDatos').'"'; ?> >Descripción</label>
+    <?php
+        echo $form->textArea($model, 'nutricional', 
+        array(
+            'style' => 'width: 240px;', 'rows' => 12,
+        ));
+    ?>
+</div>

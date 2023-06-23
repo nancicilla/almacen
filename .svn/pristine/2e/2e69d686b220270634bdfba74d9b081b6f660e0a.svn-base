@@ -1,0 +1,71 @@
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+
+echo System::Search(array(
+    'title' => 'Stock de Productos',
+    'formSearch' => $this->renderPartial('_searchStock', array('model' => $model,), true),
+    'buttons' => array(
+        array('name' => 'print', 'icon' => 'print', 'widthLinks' => 100,
+            'links' => array(
+                array('icon' => 'print', 'url' => 'reporteProductoStock', 'title' => 'Stock'),
+            )
+        ),
+    ),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admStock',
+        'dataProvider' => $model->searchStock(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'codigo',
+                'width' => 8,
+            ),
+            array(
+                'name' => 'nombre',
+                'width' => 33,
+            ),
+            array(
+                'width' => 17,
+                'name' => 'idalmacen',
+                'header' => 'Almacen',
+                'value' => '$data->idalmacen0->nombre',
+            ),
+            array(
+                'width' => 10,
+                'name' => 'stockminimo',
+                'align' => 'right', 'type' => 'number', // le da el formato de número decimal
+            ),
+            array(
+                'width' => 10,
+                'name' => 'stockmaximo',
+                'align' => 'right', 'type' => 'number', // le da el formato de número decimal
+            ),
+            array(
+                'width' => 10,
+                'name' => 'puntopedido',
+                'align' => 'right',
+                'type' => 'number', // le da el formato de número decimal
+            ),
+            array(
+                'width' => 10,
+                'name' => 'saldo',
+                'align' => 'right', 'type' => 'number', // le da el formato de número decimal
+            ),
+            array('typeCol' => 'buttons',
+                'width' => 2,
+                'buttons' => array(                    
+                    'solicitar' => array(
+                        'click' => 'function() '
+                        . '{'
+                         .'SGridView.selectRow(this);
+                            admStock.registrarSolicitud();
+                            return false;}',
+                        'icon' => 'shopping-cart'),
+                ),
+            ),
+        ),
+            )
+)));
+?>

@@ -1,0 +1,193 @@
+<?php
+/*
+ * Productoinventario.php
+ *
+ * Version 0.$Rev$
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date$:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ *
+ * This is the model class for table "productoinventario".
+ *
+ * The followings are the available columns in table 'productoinventario':
+ * @property string $saldo
+ * @property string $fecha
+ * @property boolean $eliminado
+ * @property integer $idproducto
+ * @property integer $idinventario
+ *
+ * The followings are the available model relations:
+ * @property Producto $idproducto0
+ * @property Inventario $idinventario0
+ */
+class Productoinventario extends CActiveRecord {
+    
+    /**
+     * Crea un ámbito por defecto que permite añadir condiciones al modelo
+     */
+    public function defaultScope() {
+        return array(
+            'condition' => $this->getTableAlias(false, false) .
+            '.eliminado = false',
+        );
+    }
+
+    public function primaryKey() {
+        //IMPORTANTE! en este orden se obtienen los ids en $keyvalue de 
+        //la extension.
+        return array('idproducto', 'idinventario');
+    }
+
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName() {
+        return 'productoinventario';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules() {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            array('fecha', 'required','on' => array('insert', 'update')),
+            array('idproducto, idinventario', 'numerical', 'integerOnly' => true),
+            array('saldo, eliminado', 'safe'),
+            // The following rule is used by search().
+            // @todo Please remove those attributes that should not be searched.
+            array('saldo, fecha, eliminado, idproducto, idinventario', 'safe', 'on' => 'search'),
+        );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations() {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+            'idproducto0' => array(self::BELONGS_TO, 'Producto', 'idproducto'),
+            'idinventario0' => array(self::BELONGS_TO, 'Inventario', 'idinventario'),
+        );
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels() {
+        return array(
+            'saldo' => 'Saldo',
+            'fecha' => 'Fecha',
+            'eliminado' => 'Eliminado',
+            'idproducto' => 'Idproducto',
+            'idinventario' => 'Idinventario',
+        );
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function search() {
+        // @todo Please modify the following code to remove attributes that should not be searched.
+
+        $criteria = new CDbCriteria;
+
+        $criteria->compare('saldo', $this->saldo, true);
+        if ($this->fecha != Null) {
+            $criteria->addCondition("fecha::date = '" . $this->fecha . "'");
+        }
+        $criteria->compare('t.eliminado',0);
+        $criteria->compare('idproducto', $this->idproducto);
+        $criteria->compare('idinventario', $this->idinventario);
+
+        return new CActiveDataProvider($this, array(
+            'criteria' => $criteria,
+        ));
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection() {
+        return Yii::app()->almacen;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Productoinventario the static model class
+     */
+    public static function model($className = __CLASS__) {
+        return parent::model($className);
+    }
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+        $this->fecha = new CDbExpression('NOW()');
+        return parent::beforeSave();
+    }
+
+    /**
+     * Actualizar el saldo para un producto de determinado inventario
+     * @param int $pidproducto id del producto
+     * @param int $pidinventario id del inventario
+     * @param int $psaldo saldo del producto	 
+     */
+    public function actualizarSaldo($pidproducto, $pidinventario, $psaldo) {
+        $command = Yii::app()->almacen->createCommand
+                ("select productoinventario_actualizar_saldo(:pidproducto,:pidinventario,:psaldo)");
+        $command->bindValue(":pidinventario", $pidinventario, PDO::PARAM_INT);
+        $command->bindValue(":pidproducto", $pidproducto, PDO::PARAM_INT);
+        $command->bindValue(":psaldo", $psaldo, PDO::PARAM_STR);
+        $command->execute();
+    }
+
+    /**
+     * Obtiene todos los productos de un inventairo
+     * @param int $pidinventario id del inventario	 
+     */
+    public function obtenerProductoinventario($pidinventario) {
+        $criteria = new CDbCriteria;
+        $criteria->with = array('idproducto0');
+        $criteria->compare('idinventario', $pidinventario);
+        return new CActiveDataProvider($this, array(
+            'pagination' => false,           
+            'criteria' => $criteria,
+            'sort'=>array(
+                    'defaultOrder' => 'idproducto0.codigo asc',                    
+            ),
+        ));
+    }
+
+}

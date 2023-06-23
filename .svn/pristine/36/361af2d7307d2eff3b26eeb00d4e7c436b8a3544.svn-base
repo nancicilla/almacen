@@ -1,0 +1,89 @@
+<?php
+/* @var $this ProductonotaController */
+/* @var $model Productonota */
+
+echo System::Search(array(
+    'title' => 'Kardex Valorado ',
+    'titleSearchAdvanced'=>'Parámetros', 
+    'formSearch' => $this->renderPartial('_searchValorado', array('model' => $model,), true),
+    'buttons' => array(        
+                array('icon' => 'print', 'url' => 'reporteKardexValorado', 'key' => 'i'),
+    ),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admKardexValorado',
+        'dataProvider' => $model->searchValorado(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'fecha',
+                'type' => 'datetime',
+                'width' => 12,
+            ),
+            array(
+                'name' => 'notaTipo',
+                'header' => 'Tipo',
+                'value' => '$data->idnota0->idtipo0->nombre',
+                'width' => 8,
+            ),
+            array(
+                'name' => 'notaNumero',
+                'header' => 'Nº Nota',
+                'value' => '$data->idnota0->numero',
+                'width' => 5,
+            ),
+            array(
+                'name' => 'glosa',
+                'width' => 25,
+                'split'=> true,
+            ),            
+            array(
+                'name' => 'ingreso',
+                'type' => 'number', // le da el formato de número decimal
+                'align' => 'right',
+                'width' => 7,
+            ),
+            array(
+                'name' => 'salida',
+                'type' => 'number', // le da el formato de número decimal
+                'align' => 'right',
+                'width' => 7,
+            ),
+            array(
+                'name' => 'saldo',
+                'type' => 'number', // le da el formato de número decimal
+                'align' => 'right',
+                'width' => 8,
+            ),
+            array(
+                'name' => 'ingresoimporte',
+                'type' => 'number('.Yii::app()->params['cantDecimalContabilidad'].')',
+                'align' => 'right',
+                'width' => 7,
+            ),
+            array(
+                'name' => 'salidaimporte',
+                'type' => 'number('.Yii::app()->params['cantDecimalContabilidad'].')',
+                'align' => 'right',
+                'width' => 7,
+            ),
+            array(
+                'name' => 'saldoimporte',
+                'type' => 'number('.Yii::app()->params['cantDecimalContabilidad'].')',
+                'align' => 'right',
+                'width' => 7,
+            ),  
+            array(
+                'name' => 'precioPromedioPonderado',
+                'type' => 'number',
+                'align' => 'right',
+                'width' => 7,
+                'value' => '$data->saldoimporte/$data->saldo'
+            ),
+        ),
+            )
+    )
+        )
+);
+
+           

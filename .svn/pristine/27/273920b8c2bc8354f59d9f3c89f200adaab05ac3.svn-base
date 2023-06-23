@@ -1,0 +1,51 @@
+<?php
+
+/* @var $this VigenciaController */
+/* @var $model Vigencia */
+
+echo System::Search(array(
+    'title' => 'Administración de Vigencias',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admVigencia',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+		array(
+		'name' => 'idalmacen',
+                'value' => '($data->idalmacen == null) ? "" : $data->almacen0->nombre',
+		'width' => 50,
+		),
+                array(
+                'name'=>'fechainicio',
+                'type' => 'date', 
+                'width'=> 10,
+                ), 
+		array(
+		'name' => 'usuarioinicio',
+		'width' => 15,
+		),
+                array(
+                'name'=>'fechafin',
+                'type' => 'date', 
+                'width'=> 10,
+                ), 
+		array(
+		'name' => 'usuariofin',
+		'width' => 15,
+		),
+//                array('typeCol' => 'buttons',
+//                    'width' => 0,
+//                    'deleteConfirmation'=>'¿Seguro que desea eliminar este elemento?',
+//                    'buttons' => 	array(
+//                                    'update' => array(
+//                                        'label' => 'Modificar',
+//                                        'visible' =>'$data->idalmacen == NULL',),
+//                                    //'delete' => array('label' => 'Eliminar'),
+//                                    ),
+//		),
+	),
+    ))
+));
+

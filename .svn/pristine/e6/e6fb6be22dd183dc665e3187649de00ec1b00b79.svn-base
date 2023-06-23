@@ -1,0 +1,87 @@
+<?php
+    echo SGridView::widget('TGridView', array(
+        'id' => 'ProductonotaValorado',
+        'dataProvider' => $productonota,
+        'buttonText' => '+',
+        'height' => 210,
+        'eventAfterEditionAutomatic' => true,
+        'columns' => array(
+            array(
+                'name' => 'fecha',
+                'width' => 10,
+                'type' => 'datetime',
+                'typeCol' => 'uneditable',
+                'align' => 'left',
+            ),
+            array(
+                'name' => 'tipo',
+                'width' => 10,
+                'value' => '$data->idnota0->idtipo0->nombre',
+                'typeCol' => 'uneditable',
+                'align' => 'left',
+            ),
+            array(
+                'name' => 'idnota',
+                'header' => 'Nº Nota',
+                'width' => 5,
+                'typeCol' => 'uneditable',
+                'align' => 'center',
+            ),
+            array(
+                'name' => 'glosa',
+                'width' => 33,
+                'align' => 'left',
+                'typeCol' => 'uneditable',
+            ),
+            array(
+                'name' => 'ingreso',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'left',
+                'type' => 'number', // le da el formato de número decimal
+                'align' => 'right',//(9,4)
+            ),
+            array(
+                'name' => 'salida',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'name' => 'saldo',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'name' => 'ingresoimporte',
+                'header' => 'Debe',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'name' => 'salidaimporte',
+                'header' => 'Haber',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'name' => 'saldoimporte',
+                'header' => 'Saldo',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'name' => 'precioPromedioPonderado',
+                'header' => 'Precio',
+                'type' => 'number',
+                'align' => 'right',
+                'width' => 6,
+                'value' => '$data->saldoimporte/$data->saldo == 0 ? 0.00 : $data->saldoimporte/$data->saldo',
+            ),
+        )
+    ));
+?>

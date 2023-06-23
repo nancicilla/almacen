@@ -1,0 +1,239 @@
+<?php
+
+/*
+ * WSNotaborradorController.php
+ *
+ * Version 0.$Rev: 204 $
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date: 2015-05-19 15:24:15 -0400 (Tue, 19 May 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+
+class WSNotaborradorController extends CController {
+
+    public function actions() {
+        return array(
+            'notaborrador' => array(
+                'class' => 'CWebServiceAction',
+                'classMap' => 'Notaborrador'
+                ),
+            'notaborradorimportacion' => array(
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarNotaBorradorImportacion'
+            ),
+            'notaBorradorIngresoSalidaAlmacen' => array( // url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarNotaBorradorIngresoSalidaAlmacen' // funcion
+                ),            
+            'UrlAnulacionBorrador' => array( // url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'anulacionBorrador' // funcion
+                ),
+            'notaborradoranular' => array(
+                'class' => 'CWebServiceAction',
+                'classMap' => 'anularNotaBorrador'
+                ),
+            'conexionalmacen' => array(
+                'class' => 'CWebServiceAction',
+                'classMap' => 'wsprueba'
+                )
+            );
+}
+
+    /**
+     * prueba
+     * @param string $dato
+     * @return string
+     * @soap
+     */
+    public function wsprueba($dato) {
+        return "hola ".$dato;
+    }
+
+
+    /**
+     * Registra una nota borrador en el almacen de compra
+     * @param integer $norden
+     * @param double $total
+     * @param string $proveedor
+     * @param integer $factura
+     * @param array $arrayProducto
+     * @param string $usuario
+     * @param string $idorden
+     * @param string $glosaAdicional
+     * @param integer $idasientointegrado
+     * @param integer $idalmacen id del almacen al que pertenece la nota
+     * @return integer
+     * @soap
+     */
+    public function registrarNotaborrador($norden, $total, $proveedor, $factura, $arrayProducto, $usuario, $idorden, $glosaAdicional, $idasientointegrado,$idalmacen) {
+        $model = new Notaborrador;
+        $model->setScenario('orden');
+        $model->glosa = 'INGRESO POR COMPRA Nº ' . $norden.' '. $glosaAdicional;
+        $model->idtipo = Tipo::model()->INGRESO;
+        $model->idtipodocumento = Tipodocumento::model()->COMPRA;
+        $model->idorigen = Origen::model()->idOrigenCompra;
+        $model->iddocumento= $idorden;
+        $model->total = $total;
+        $model->numero = Notaborrador::model()->generarNumero();
+        $model->idalmacen=$idalmacen;
+        $model->idasientointegrado = $idasientointegrado;
+        $model->scenario = 'miUsuario';
+        Yii::app()->session['var'] = $usuario;
+        if ($model->save()) {
+            foreach ($arrayProducto as $producto) {
+                $modelProductonotaborrador = new Productonotaborrador;
+                $modelProductonotaborrador->scenario = 'miUsuario';
+                $modelProductonotaborrador->attributes = $producto;
+                $modelProductonotaborrador->glosa = 'INGRESO DE ' . $proveedor . ' ORDEN DE COMPRA Nº ' . $norden . ' '. $glosaAdicional.' FACTURA ' . $factura;
+                $modelProductonotaborrador->costo = $producto['costo'];
+                $modelProductonotaborrador->ingreso = $producto['cantidad'];
+                $modelProductonotaborrador->salida = 0;
+                $modelProductonotaborrador->idnotaborrador = $model->id;
+                $modelProductonotaborrador->save();
+            }
+            return $model->id;
+        }
+    }
+    
+    /**
+     * Registra una nota borrador en el almacen de por compra con importación
+     * @param array $dataService
+     * @return integer
+     * @soap
+     */
+    public function registrarNotaBorradorImportacion($dataService) {
+        $arrayProducto = isset($dataService['arrayProducto']) ? $dataService['arrayProducto'] : array();
+        $norden = isset($dataService['norden']) ? $dataService['norden'] : '';
+        $proveedor = isset($dataService['proveedor']) ? $dataService['proveedor'] : '';
+        $total = isset($dataService['totalimportacion']) ? $dataService['totalimportacion'] : '';
+        $usuario = isset($dataService['usuario']) ? $dataService['usuario'] : '';
+        $iddocumento = isset($dataService['idorden']) ? $dataService['idorden'] : '';
+        
+        $model = new Notaborrador;
+        $model->scenario = 'orden';
+        $model->glosa = 'INGRESO POR ORDEN DE IMPORTACIÓN Nº ' . $norden;
+        $model->idtipo = Tipo::model()->INGRESO;
+        $model->idtipodocumento = Tipodocumento::model()->IMPORTACION;
+        $model->idorigen = Origen::model()->idOrigenCompra;
+        $model->total = $total;
+        $model->iddocumento= $iddocumento;
+        $model->numero = Notaborrador::model()->generarNumero();
+        $model->scenario = 'miUsuario';
+        Yii::app()->session['var'] = $usuario;
+        if ($model->save()) {
+            foreach ($arrayProducto as $producto) {
+                $modelProductonotaborrador = new Productonotaborrador;
+                $modelProductonotaborrador->scenario = 'miUsuario';
+                $modelProductonotaborrador->glosa = 'INGRESO DE ' . $proveedor . ' ORDEN DE IMPORTACIÓN Nº ' . $norden;
+                $modelProductonotaborrador->costo = $producto['total'];;
+                $modelProductonotaborrador->ingreso = $producto['cantidad'];
+                $modelProductonotaborrador->salida = 0;
+                $modelProductonotaborrador->idproducto = $producto['idproducto'];
+                $modelProductonotaborrador->idnotaborrador = $model->id;
+                $modelProductonotaborrador->save();
+            }
+            return $model->id;
+        }
+    }
+
+    /**
+     * Registra una nota borrador en el almacen de produccion
+     * @param integer $norden
+     * @param array $datosalmacen
+     * @param array $arrayProducto
+     * @param string $nomb
+     * @param integer $identif
+     * @soap
+     */
+    public function registrarNotaBorradorIngresoSalidaAlmacen($norden, $datosalmacen, $arrayProducto, $nomb, $identif) {
+
+        $model = new Notaborrador;
+        $model->setScenario('produccion');
+        $model->idalmacen = $datosalmacen['idalmacen'];
+        $model->idcontracuenta = $datosalmacen['idcontracuenta'];
+        $model->scenario = 'miUsuario';
+        Yii::app()->session['var'] = $nomb;
+        $glosa='SALIDA PARA O.P. Nº ' . $norden . ' - '.$datosalmacen['producto'];
+        $model->glosa = $glosa;
+        $model->idtipo = Tipo::model()->SALIDA;
+        $model->idtipodocumento = Tipodocumento::model()->ORDEN_PRODUCCION;
+        $model->idorigen = Origen::model()->idOrigenProduccion;
+        $model->numero = Notaborrador::model()->generarNumero();
+        $model->iddocumento = $identif;
+
+        if ($model->save()) {
+            $cantidad = count($arrayProducto);
+            for ($index = 0; $index < $cantidad; $index++) {
+                $modelProductonotaborrador = new Productonotaborrador;
+                $modelProductonotaborrador->scenario = 'miUsuario';
+                $modelProductonotaborrador->glosa =$glosa;
+                $modelProductonotaborrador->ingreso = 0;
+                $modelProductonotaborrador->salida = round($arrayProducto[$index]['cantidad'], 4);
+                $modelProductonotaborrador->idproducto = $arrayProducto[$index]['id'];
+                $modelProductonotaborrador->idnotaborrador = $model->id;
+                         
+$myfile = fopen("prod.txt", "w") or die("Unable to open file!");
+$txt =                 $modelProductonotaborrador->getErrors();
+
+fwrite($myfile, $txt);
+
+
+fclose($myfile);
+                $modelProductonotaborrador->save();
+            }
+            unset(Yii::app()->session['var']);
+        }
+    }
+
+    /**
+     * Anulacion borrador
+     * @param array $arrayParametro
+     * @soap
+     */
+    public function anulacionBorrador($arrayParametro)
+    {
+        $notaBorrador = Notaborrador::model()->findAll('iddocumento = '.$arrayParametro['iddocumento']);
+        $modelNotaBorrador = array();
+        
+        if($notaBorrador != null)
+        {
+            for($fila = 0; $fila < count($notaBorrador); $fila++)
+            {
+                $modelNotaBorrador = Notaborrador::model()->findByPk($notaBorrador[$fila]['id']);
+                $modelNotaBorrador->idestado = Estado::model()->idEstadoAnulado; // ANULADO
+                $modelNotaBorrador->fecha = date('d-m-Y');
+                $modelNotaBorrador->save();
+            }
+        }
+    }
+    
+    /**
+     * Anula Nota Borrador
+     * @param integer $id
+     * @param string $nomb
+     * @soap
+     */
+    public function anularNotaBorrador($id, $nomb) {
+        $model = Notaborrador::model()->findBySql('select * from notaborrador where id = ' .$id);
+        $model->setScenario('anular');
+        Yii::app()->session['var'] = $nomb;
+        $model->idestado = Estado::model()->idEstadoAnulado;
+        $model->fecha = date('d-m-Y');
+        if (!$model->save()) {            
+            echo System::hasErrors('Error al realizar el proceso! ', $model);
+            return;
+        };
+        unset(Yii::app()->session['var']);
+    }
+
+}

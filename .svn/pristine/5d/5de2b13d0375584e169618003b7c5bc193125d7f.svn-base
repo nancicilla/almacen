@@ -1,0 +1,104 @@
+<?php
+
+/* @var $this PedidosController */
+/* @var $model Pedidos */
+
+echo System::Search(array(
+    'title' => 'Administracion de Pedidos',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admPedidos',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'numero',
+                'header' => 'N°',
+                'width' => 5,
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'datetime',
+                'width' => 12,
+            ),
+            array(
+                'header' => 'F. Entrega',
+                'name' => 'fechaentrega',
+                'type' => 'datetime',
+                'width' => 12,
+            ),
+            array(
+                'name' => 'estado',
+                'value' => '$data->verificarPedidoProductoFaltante?"<div class=\'faltante\' >".$data->nombre."</div>":$data->nombre',
+                'width' => 10,
+                'split' => false,
+            ),
+            array(
+                'name' => 'nombrecliente',
+                'width' => 28,
+            ),
+            array('name' => 'idalmacen',
+                'value' => '$data->idalmacen0->nombre',
+                'width' => 10),
+            array(
+                'name' => 'usuario',
+                'width' => 8,
+            ),
+            array(
+                'header' => 'Conf',
+                'name' => 'almacenconfirm',
+                'width' => 5,
+                'align' => 'center',
+                'split' => false,
+                'value' => '$data->almacenconfirm?"<div class=\'confirmadoLista\' ></div>":"<div class=\'porConfirmarLista\' ></div>"'
+            ),
+            array('typeCol' => 'buttons',
+                'width' => 9,
+                'buttons' => array(
+                    'print' => array('click' => 'function() {
+                                           SGridView.selectRow(this);
+                                           admPedidos.print();
+                                           return false;
+                                          }',
+                        'label' => 'IMPRIMIR',
+                        'icon' => 'print'),
+                    'viewAlmacen' => array(
+                        'click' => 'function() '
+                        . '{'
+                        . 'SGridView.selectRow(this);
+                            admPedidos.viewAlmacen();
+                            return false;}',
+                        'icon' => 'eye-open',
+                        'label' => 'Ver Preventa'),
+                    'Modificar' => array(
+                        'click' => 'function() '
+                        . '{'
+                        . 'SGridView.selectRow(this);
+                            admPedidos.view();
+                            return false;}',
+                        'icon' => 'pencil',
+                        'label' => '(*) MODIFICAR'),
+                    'confirmar' => array(
+                        'click' => 'function() '
+                        . '{'
+                        . 'SGridView.selectRow(this);
+                            admPedidos.confirmarAlmacen();
+                            return false;}',
+                        'icon' => 'shopping-cart-full',
+                        'label' => 'CONFIRMAR'),
+                    'generartraspaso' => array(
+                        // 'visible'=>'$data->nombre=="TRASPASO"',
+                        'click' => 'function() '
+                        . '{'
+                        . 'SGridView.selectRow(this);
+                            admPedidos.generarTraspaso();
+                            return false;}',
+                        'icon' => 'truck',
+                        'label' => 'Realizar Traspaso'),
+                ),
+            ),
+        ),
+    ))
+));
+

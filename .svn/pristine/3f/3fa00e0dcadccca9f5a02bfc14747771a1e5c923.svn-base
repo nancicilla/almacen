@@ -1,0 +1,51 @@
+
+var Almacen = new Object();
+Almacen.__proto__ = SystemWindow;
+//variables
+Almacen.nameView = "Almacen";
+Almacen.url = "almacen";
+
+Almacen.options = function () {
+    this.setActions('create', {
+        WindowTitle: 'Crear Almacén',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {        
+        WindowTitle: 'Modificar Almacén',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Almacén',
+        WindowWidth: 250,
+        WindowHeight: 255,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+
+Almacen.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    return error;
+}
+Almacen.afterCreate = function () {
+       Almacen.reload();
+}
+
+Almacen.beforeUpdate = function () {
+    var error = false;//false es no existe error antes de actulizar formulario
+    return error;
+}
+Almacen.afterUpdate = function () {
+    Almacen.closeWindow();
+}

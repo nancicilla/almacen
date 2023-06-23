@@ -1,0 +1,231 @@
+<?php
+/* @var $this InventarioController */
+/* @var $model Inventario */
+
+Yii::app()->clientScript->registerScript('search', "
+$('.search-button').click(function(){
+	$('.search-form').toggle();
+	return false;
+});
+$('.search-form form').submit(function(){
+	$('#inventario-grid').yiiGridView('update', {
+		data: $(this).serialize()
+	});
+	return false;
+});
+");
+$pageSize = Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']);
+?>
+
+<div class="container">
+    <div class="offset-12">
+        <div id="content">
+            <h1>Administración de Inventarios</h1>
+
+            <?php echo CHtml::link('Busqueda Avanzada', '#', array('class' => 'search-button')); ?>
+            <div class="search-form" style="display:none">
+                <?php
+                $this->renderPartial('_search', array(
+                    'model' => $model,
+                ));
+                ?>
+            </div><!-- search-form -->
+            <?php
+            $this->widget('yiiwheels.widgets.grid.WhGridView', array(
+                'fixedHeader' => true,
+                'responsiveTable' => true,
+                'id' => 'inventario-grid',
+                'dataProvider' => $model->search(),
+                'filter' => $model,
+                'ajaxUpdate' => true,
+                'afterAjaxUpdate' => 'reinstallDatePicker',
+                'columns' => array(
+                    array(
+                        'name' => 'numero',
+                        'htmlOptions' => array('width' => '5%'),
+                    ),
+                    array(
+                        'name' => 'fechainicio',
+                        'type' => 'datetime',
+                        'filter' => $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                            'model' => $model,
+                            'attribute' => 'fechainicio',
+                            'name' => 'inventario[fechainicio]',
+                            'value' => $model->fechainicio,
+                            'language' => 'es',
+                            // additional javascript options for the date picker plugin
+                            'options' => array(
+                                'showAnim' => 'slideDown',
+                                'showButtonPanel' => true,
+                                'changeMonth' => true,
+                                'changeYear' => true,
+                                'dateFormat' => 'dd-mm-yy',
+                                'maxDate' => 'today',
+                            ),
+                            'htmlOptions' => array(
+                                'id' => 'inventario_fechainicio',
+                                'size' => '10',
+                            ),
+                                ), true)
+                    ),
+                    array(
+                        'name' => 'fechafin',
+                        'type' => 'datetime',
+                        'filter' => $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                            'model' => $model,
+                            'attribute' => 'fechafin',
+                            'name' => 'inventario[fechafin]',
+                            'value' => $model->fechafin,
+                            'language' => 'es',
+                            // additional javascript options for the date picker plugin
+                            'options' => array(
+                                'showAnim' => 'slideDown',
+                                'showButtonPanel' => true,
+                                'changeMonth' => true,
+                                'changeYear' => true,
+                                'dateFormat' => 'dd-mm-yy',
+                                'maxDate' => 'today',
+                            ),
+                            'htmlOptions' => array(
+                                'id' => 'inventario_fechafin',
+                                'size' => '10',
+                            ),
+                                ), true)
+                    ),
+                    array(
+                        'name' => 'idAlmacen',
+                        'header' => 'Almacen',
+                        'htmlOptions' => array('width' => '12%'),
+                        'value' => '$data->inventarios->nombre',
+                        'filter' => CHtml::listData(
+                                Almacen::model()->findAll(
+                                        array(
+                                            'order' => 'codigo')
+                                ), 'id', 'nombreCompleto')
+                    ),
+                    array(
+                        'name' => 'idestado',
+                        'header' => 'Estado',
+                        'htmlOptions' => array('width' => '12%'),
+                        'value' => '$data->idestado0->nombre',
+                        'filter' => CHtml::listData(
+                                Estado::model()->findAll(
+                                        array(
+                                            'order' => 'nombre')
+                                ), 'id', 'nombre')
+                    ),
+                    array(
+                        'name' => 'descripcion',
+                        'htmlOptions' => array('width' => '35%'),
+                    ),
+                    array(
+                        'class' => 'bootstrap.widgets.TbButtonColumn',
+                        'header' => CHtml::dropDownList('pageSize', $pageSize, array(Yii::app()->params['1PageSize'] => Yii::app()->params['1PageSize'],
+                            Yii::app()->params['2PageSize'] => Yii::app()->params['2PageSize'],
+                            Yii::app()->params['3PageSize'] => Yii::app()->params['3PageSize'],
+                            Yii::app()->params['4PageSize'] => Yii::app()->params['4PageSize'],
+                            Yii::app()->params['5PageSize'] => Yii::app()->params['5PageSize'],
+                                ), array(
+                            'style' => 'width:70px; margin: 0 auto;',
+                            'onchange' => "$.fn.yiiGridView.update('inventario-grid',{ data:{pageSize: $(this).val() }})",
+                                )
+                        ),
+                        'template' => '{imprimir}{update}{anular}{cerrar}{reabrir}{confirmar}',
+                        'htmlOptions' => array('width' => '60px'),
+                        'buttons' => array(
+                            'imprimir' => array('icon' => 'print'
+                                , 'url' => 'array("reporteInventario","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'options' => array("target" => "_blank")),
+                            'update' => array(
+                                'url' => 'array("update","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+                                'visible' => 'Estado::model()->esEstadoInicio($data->idestado)'),
+                            'anular' => array(
+                                'url' => 'array("anular","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+                                'icon' => 'remove',
+                                'visible' => 'Estado::model()->esEstadoInicio($data->idestado)',
+                                'click' => "function(){"
+                                . "var href = $(this).attr('href');
+                                         bootbox.confirm('¿Está seguro que desea anular el inventario, éste es un proceso irreversible?', function(confirmed){"
+                                . "if (confirmed){"
+                                . "$.fn.yiiGridView.update('inventario-grid', {
+                                             type:'POST',
+                                            url: href,                                        
+                                         });
+
+                                     }}); return false;}",
+                            ),
+                            'cerrar' => array(
+                                'label' => 'Cerrar inventario',
+                                'icon' => 'lock',
+                                'visible' => 'Estado::model()->esEstadoInicio($data->idestado)',
+                                'url' => 'array("cerrar","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+                                'click' => "function(){"
+                                . "var href = $(this).attr('href');
+                                         bootbox.confirm('¿Está seguro que desea cerrar el inventario?', function(confirmed){"
+                                . "if (confirmed){"
+                                . "$.fn.yiiGridView.update('inventario-grid', {
+                                             type:'POST',
+                                            url: href,                                        
+                                         });
+
+                                     }}); return false;}",
+                            ),
+                            'reabrir' => array(
+                                'label' => 'Reabrir Inventario',
+                                'icon' => 'repeat', 'visible' => 'Estado::model()->esEstadoCerrado($data->idestado)',
+                                'visible' => 'Estado::model()->esEstadoCerrado($data->idestado)',
+                                'url' => 'array("reabrir","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+                                'click' => "function(){"
+                                . "var href = $(this).attr('href');
+                                         bootbox.confirm('¿Está seguro que desea reabrir el inventario?', function(confirmed){"
+                                . "if (confirmed){"
+                                . "$.fn.yiiGridView.update('inventario-grid', {
+                                             type:'POST',
+                                            url: href,                                        
+                                         });
+
+                                     }}); return false;}",
+                            ),
+                            'confirmar' => array(
+                                'label' => 'Confirmar Diferencias',
+                                'icon' => 'check',
+                                'visible' => 'Estado::model()->esEstadoCerrado($data->idestado)',
+                                'url' => 'array("confirmar","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+                                'click' => "function(){"
+                                . "var href = $(this).attr('href');
+                                        bootbox.confirm('¿Esta seguro que desea confirmar las diferencias de inventario?. Este es un proceso irreversible?', function(confirmed){"
+                                . "if (confirmed){"
+                                . "$.fn.yiiGridView.update('inventario-grid', {
+                                            type:'POST',
+                                            url: href,                                        
+                                            });
+                                        }}); return false;}",),
+                        ),
+                    ),
+                ),
+            ));
+
+            Yii::app()->clientScript->registerScript('re-install-date-picker', "
+function reinstallDatePicker() {
+     //se deben usar los mismos parámetros que en el widget para ser recargado
+          $('#inventario_fechainicio').datepicker(jQuery.extend(
+            jQuery.datepicker.regional['es'],
+            {'changeYear':true,
+            'changeMonth':true,
+            'showButtonPanel':true,
+            'maxDate':'today',
+            'dateFormat' : 'dd-mm-yy',
+            'showAnim':'slideDown'}));
+          $('#inventario_fechafin').datepicker(jQuery.extend(
+            jQuery.datepicker.regional['es'],
+            {'changeYear':true,
+            'changeMonth':true,
+            'showButtonPanel':true,
+            'maxDate':'today',
+            'dateFormat' : 'dd-mm-yy',
+            'showAnim':'slideDown'}));
+     }
+");
+            ?>
+        </div>
+    </div>
+</div>

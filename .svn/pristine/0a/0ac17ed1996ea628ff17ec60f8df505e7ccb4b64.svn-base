@@ -1,0 +1,43 @@
+<?php
+/* @var $this AlmacenproductoController */
+/* @var $data Almacenproducto */
+?>
+
+<div class="view">
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('stockminimo')); ?>:</b>
+	<?php echo CHtml::encode($data->stockminimo); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('stockreposicion')); ?>:</b>
+	<?php echo CHtml::encode($data->stockreposicion); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('stockmaximo')); ?>:</b>
+	<?php echo CHtml::encode($data->stockmaximo); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('eliminado')); ?>:</b>
+	<?php echo CHtml::encode($data->eliminado); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('usuario')); ?>:</b>
+	<?php echo CHtml::encode($data->usuario); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('idalmacen')); ?>:</b>
+	<?php echo CHtml::encode($data->idalmacen); ?>
+	<br />
+
+	<?php /*
+	<b><?php echo CHtml::encode($data->getAttributeLabel('idproducto')); ?>:</b>
+	<?php echo CHtml::encode($data->idproducto); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('saldo')); ?>:</b>
+	<?php echo CHtml::encode($data->saldo); ?>
+	<br />
+
+	*/ ?>
+
+</div>

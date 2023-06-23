@@ -1,0 +1,214 @@
+<?php
+/*
+ * Receta.php
+ *
+ * Version 0.$Rev: 244 $
+ *
+ * Creacion: 12/09/2018
+ *
+ * Ultima Actualizacion: $Date: 2015-03-17 10:26:19 -0400 (mar, 17 mar 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ 
+ * This is the model class for table "receta".
+ *
+ * The followings are the available columns in table 'receta':
+ * @property integer $id
+ * @property integer $idestadoreceta
+ * @property integer $numero
+ * @property integer $idproducto
+ * @property string $descripcion
+ * @property string $cantidadproducir
+ * @property string $costounitario
+ * @property boolean $totalproducido
+ * @property boolean $eliminado
+ * @property string $usuario
+ * @property string $fecha
+ */
+class Receta extends CActiveRecord
+{
+    public $idalmacen;
+    public $productoValido;
+    public $producto;
+    public $cantidad;
+    public $seguimientoinsumo;
+    public $cantidadoriginalreceta;
+    
+    /**
+     * Crea un ámbito por defecto que permite añadir condiciones al modelo
+     */
+    public function defaultScope() {
+        return array(
+            'condition' => $this->getTableAlias(false, false) .
+            '.eliminado = false',
+        );
+    }
+    
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName()
+    {
+            return 'receta';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules()
+    {
+            // NOTE: you should only define rules for those attributes that
+            // will receive user inputs.
+            return array(
+                    array('idestadoreceta, numero, idproducto', 'numerical', 'integerOnly'=>true),
+                    array('cantidadproducir', 'length', 'max'=>10),
+                    array('costounitario', 'length', 'max'=>12),
+                    array('usuario', 'length', 'max'=>30),
+                    array('descripcion, totalproducido, eliminado, fecha', 'safe'),
+                    // The following rule is used by search().
+                    // @todo Please remove those attributes that should not be searched.
+                    array('id, idestadoreceta, numero, idproducto, descripcion, cantidadproducir, costounitario, totalproducido, eliminado, usuario, fecha', 'safe', 'on'=>'search'),
+            );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations()
+    {
+            // NOTE: you may need to adjust the relation name and the related
+            // class name for the relations automatically generated below.
+            return array(
+                'idproducto0' => array(self::BELONGS_TO, 'Producto', 'idproducto'),
+                'idestadoreceta0' => array(self::BELONGS_TO, 'FtblProduccionEstadoreceta',array('idestadoreceta'=>'id')),
+            );
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels()
+    {
+            return array(
+                    'id' => 'ID',
+                    'idestadoreceta' => 'Estado',
+                    'numero' => 'Numero',
+                    'idproducto' => 'Producto',
+                    'descripcion' => 'Descripción',
+                    'cantidadproducir' => 'Cant. Producir',
+                    'costounitario' => 'Gasto Unit.',
+                    'totalproducido' => 'Total Planificado',
+                    'eliminado' => 'Eliminado',
+                    'usuario' => 'Usuario',
+                    'fecha' => 'Fecha',
+            );
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function search()
+    {
+            // @todo Please modify the following code to remove attributes that should not be searched.
+
+            $criteria=new CDbCriteria;
+            $criteria->with = array('idproducto0');
+		$criteria->compare('t.id',$this->id);
+		$criteria->compare('t.idestadoreceta',$this->idestadoreceta);
+		$criteria->compare('t.numero',$this->numero);
+		if($this->idproducto!=null){
+                    $criteria->compare('t.idproducto',$this->idproducto);
+                }
+		$criteria->addSearchCondition('t.descripcion',$this->descripcion,true,'AND','ILIKE');
+		$criteria->addSearchCondition('t.cantidadproducir',$this->cantidadproducir,true,'AND','ILIKE');
+		$criteria->addSearchCondition('t.costounitario',$this->costounitario,true,'AND','ILIKE');
+		$criteria->compare('t.totalproducido',$this->totalproducido);
+		$criteria->addSearchCondition('t.usuario',$this->usuario,true,'AND','ILIKE');
+		 if ($this->fecha != Null) {
+		$criteria->addCondition("t.fecha::date = '" . $this->fecha. "'");
+		 }
+
+            return new CActiveDataProvider($this, array(
+                    'pagination'=>array(
+                        'pageSize'=> Yii::app()->user->getState('pageSize',Yii::app()->params['defaultPageSize']),
+                    ), 
+                    'criteria'=>$criteria,
+                    'sort' => array(
+                        'defaultOrder' => 'idproducto0.codigo asc',
+                    ),
+            ));
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection()
+    {
+            return Yii::app()->almacen;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Receta the static model class
+     */
+    public static function model($className=__CLASS__)
+    {
+            return parent::model($className);
+    }
+
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+		$this->descripcion=strtoupper($this->descripcion);
+		$this->usuario= Yii::app()->user->getName();
+		$this->fecha= new CDbExpression('NOW()');
+        return parent::beforeSave();            
+    }
+
+    public function obtenerInsumosOriginal($idproducto)
+    {
+    
+        $criteria = new CDbCriteria;
+        $criteria->compare('t.idproducto', $idproducto);
+        $criteria->select = '0 as seguimientoinsumo,p.id, o.idproducto, p.codigo, p.nombre, p.reserva, o.cantidad,o.cantidad as cantidadoriginalreceta,p.saldo, p.idunidad, u.simbolo';
+        $criteria->join = ' inner join "'.getGestionSchema().'".ordentrabajoinsumo o on t.id = o.idreceta
+        inner join "'.getGestionSchema().'".producto p on o.idproducto = p.id
+        inner join unidad u on p.idunidad = u.id';
+        $criteria->addCondition("o.eliminado=false AND t.eliminado = false");
+        
+        return new CActiveDataProvider($this, array(
+            'pagination' => false,
+            'criteria' => $criteria,
+            'sort' => array(
+                        'defaultOrder' => 'o.fecha asc',                            
+                        ),               
+            ));
+    }
+}

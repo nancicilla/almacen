@@ -1,0 +1,231 @@
+<?php
+/*
+ * Devoluciontpv.php
+ *
+ * Version 0.$Rev: 244 $
+ *
+ * Creacion: 29/11/2017
+ *
+ * Ultima Actualizacion: $Date: 2015-03-17 10:26:19 -0400 (mar, 17 mar 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ 
+ * This is the model class for table "devolucion".
+ *
+ * The followings are the available columns in table 'devolucion':
+ * @property integer $id
+ * @property integer $numero
+ * @property string $glosa
+ * @property integer $idestado
+ * @property integer $idalmacenorigen
+ * @property integer $idalmacendestino
+ * @property string $usuario
+ * @property string $fecha
+ * @property boolean $eliminado
+ * @property integer $idalmacen
+ * @property integer $idtransaccion
+ *
+ * The followings are the available model relations:
+ * @property Devolucionproducto[] $devolucionproductos
+ */
+class Devoluciontpv extends CActiveRecord
+{
+    public $almacenorigen;
+    public $disponible;
+    // ------------- Variables para productos en Devolucion --------------
+    public $idunidad;
+    public $saldo;
+    public $reserva;
+    public $codigo;
+    public $nombre;
+    public $cantidaddevolucion;
+    public $cantidadrecibida;
+    public $idproducto;
+    public $solicitud;
+    public $conforme;
+    public $coduniversal;
+    /**
+     * Crea un ámbito por defecto que permite añadir condiciones al modelo
+     */
+    public function defaultScope() {
+        return array(
+            'condition' => $this->getTableAlias(false, false) .
+            '.eliminado = false',
+        );
+    }
+    
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName()
+    {
+            return 'devolucion';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules()
+    {
+            // NOTE: you should only define rules for those attributes that
+            // will receive user inputs.
+            return array(
+                    array('numero, idestado, idalmacenorigen, idalmacendestino, idalmacen, idtransaccion', 'numerical', 'integerOnly'=>true),
+                    array('usuario', 'length', 'max'=>30),
+                    array('glosa, fecha, eliminado', 'safe'),
+                    // The following rule is used by search().
+                    // @todo Please remove those attributes that should not be searched.
+                    array('id, numero, glosa, idestado, idalmacenorigen, idalmacendestino, usuario, fecha, eliminado, idalmacen, idtransaccion', 'safe', 'on'=>'search'),
+            );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations()
+    {
+            // NOTE: you may need to adjust the relation name and the related
+            // class name for the relations automatically generated below.
+            return array(
+                    'devolucionproductos' => array(self::HAS_MANY, 'Devolucionproducto', 'iddevolucion'),
+                    'idestado0' => array(self::BELONGS_TO, 'Estadotpv', 'idestado'),
+                    'idalmacenorigen0' => array(self::BELONGS_TO, 'Almacen', 'idalmacenorigen'),
+                    'idalmacendestino0' => array(self::BELONGS_TO, 'Almacen', 'idalmacendestino'),
+            );
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels()
+    {
+            return array(
+                    'id' => 'ID',
+                    'numero' => 'Numero',
+                    'glosa' => 'Glosa',
+                    'idestado' => 'Idestado',
+                    'idalmacenorigen' => 'Idalmacenorigen',
+                    'idalmacendestino' => 'Idalmacendestino',
+                    'usuario' => 'Usuario',
+                    'fecha' => 'Fecha',
+                    'eliminado' => 'Eliminado',
+                    'idalmacen' => 'Idalmacen',
+                    'idtransaccion' => 'Idtransaccion',
+            );
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function search()
+    {
+            // @todo Please modify the following code to remove attributes that should not be searched.
+
+            $criteria=new CDbCriteria;
+
+		$criteria->compare('t.id',$this->id);
+		$criteria->compare('t.numero',$this->numero);
+		$criteria->addSearchCondition('t.glosa',$this->glosa,true,'AND','ILIKE');
+		$criteria->compare('t.idestado',$this->idestado);
+		$criteria->compare('t.idalmacenorigen',$this->idalmacenorigen);
+		$criteria->compare('t.idalmacendestino',$this->idalmacendestino);
+		$criteria->addSearchCondition('t.usuario',$this->usuario,true,'AND','ILIKE');
+		 if ($this->fecha != Null) {
+		$criteria->addCondition("t.fecha::date = '" . $this->fecha. "'");
+		 }
+		$criteria->compare('t.idalmacen',$this->idalmacen);
+		$criteria->compare('t.idtransaccion',$this->idtransaccion);
+
+            return new CActiveDataProvider($this, array(
+                    'pagination'=>array(
+                        'pageSize'=> Yii::app()->user->getState('pageSize',Yii::app()->params['defaultPageSize']),
+                    ), 
+                    'criteria'=>$criteria,
+                    'sort' => array(
+                            'defaultOrder' => 't.numero desc',
+                        ),
+            ));
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection()
+    {
+            return Yii::app()->tpv;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Devoluciontpv the static model class
+     */
+    public static function model($className=__CLASS__)
+    {
+            return parent::model($className);
+    }
+
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+		$this->glosa=strtoupper($this->glosa);
+		$this->usuario= Yii::app()->user->getName();
+		$this->fecha= new CDbExpression('NOW()');
+        return parent::beforeSave();            
+    }
+
+    /*
+     * Método para obtener los productos de una orden
+     * @param integer $idordenreceta
+     * @return CActiveDataProvider
+     */
+    public function obtenerProductosDeDevolucion($iddevolucion)
+    {
+        $criteria = new CDbCriteria;
+        $criteria->select = 'tp.id,tp.idproducto,p.coduniversal,p.codigo,p.nombre ,u.simbolo as idunidad,'
+                          . ' p.saldo, p.reserva, tp.cantidaddevolucion, tp.cantidadrecibida,1 as solicitud,true as conforme';
+        $criteria->join = 'inner join devolucionproducto tp on t.id = tp.iddevolucion and tp.eliminado = false
+                           inner join general.producto p on p.id = tp.idproducto and p.eliminado = false
+                           inner join general.unidad u on u.id = p.idunidad';
+      
+        //$criteria->order = 'p.codigo asc';
+        $criteria->addCondition("t.id = ".$iddevolucion);
+
+        return new CActiveDataProvider(
+                $this, 
+                array(
+                    'pagination' => false,
+                    'criteria' => $criteria,
+                    'sort'=>array(
+                        'defaultOrder'=>'tp.id ASC',
+                    ),
+                )
+        );
+    }
+}

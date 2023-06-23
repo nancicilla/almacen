@@ -1,0 +1,68 @@
+<?php
+/*
+ * _caracteristica.php
+ *
+ * Version 0.$Rev$
+ *
+ * Creacion: 30/01/2015
+ *
+ * Ultima Actualizacion: $Date$
+ *
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+?>
+<div  class="row">
+    <?php
+    echo SGridView::widget('TGridView', array(
+        'id' => 'Productocaracteristica',
+        'dataProvider' => $productoCaracteristica,
+        'buttonAdd' => true,
+        'buttonText' => '+',
+        'height' => 160,
+        'columns' => array(
+            array('name' => 'nombrecaracteristica',
+                'searchUrl' => 'caracteristica/generalBuscarPadre',
+                'searchIdName' => 'nombrecaracteristica',
+                'searchCopyCol' => 'idcaracteristica,tienehijo,nombresubcaracteristica=,idsubcaracteristica,valor',
+                'searchHeight' => 100,
+                'searchWidth' => 300,
+                'width' => 30,                 
+                'header' => 'Característica',
+            ),
+            array('name' => 'idcaracteristica',
+                'key' => true,
+                'typeCol' => 'hidden',
+            ),
+            array('name' => 'tienehijo',
+                'typeCol' => 'hidden'
+            ),
+            array('name' => 'nombresubcaracteristica',
+                'searchUrl' => 'caracteristica/generalBuscarHijo(tienehijo==1)',
+                'searchIdName' => 'nombresubcaracteristica',
+                'searchCopyCol' => 'idsubcaracteristica',
+                'searchHeight' => 100,
+                'searchWidth' => 300,
+                'width' => 30,                
+                'header' => 'SubCaracterística',
+            ),
+            array('name' => 'idsubcaracteristica',
+                'typeCol' => 'hidden',
+            ),
+            array('name' => 'valor',
+//              'enable'=>'caracteristica/generalBuscarHijo((tienehijo==1 && nombresubcaracteristica != "")||(tienehijo==0 && idcaracteristica!=null))',
+                'width' => 38,
+            ),
+            array('typeCol' => 'buttons',
+                'width' => 2,
+                'buttons' => array('delete')
+            )
+        ),
+    ));
+    ?>           
+</div>

@@ -1,0 +1,206 @@
+
+var Producto = new Object();
+Producto.__proto__ = SystemWindow;
+//variables
+Producto.nameView = "Producto";
+Producto.url = "producto";
+Producto.idAlmacenSelec = "";
+
+Producto.init = function () {
+    try {
+        if (this.action === 'update') {
+            this.buttonChange({id: 'save', label: 'Guardar', key: 'G'});
+        }
+        if (this.action === 'create') {
+            this.buttonChange({id: 'save', label: 'Registrar', key: 'R'});
+        }
+    } catch (err) {
+        alert('Error al cargar Producto.init()');
+    }
+//para el caso de actualización deshabilita los clonnable-fields iniciales
+    if ($('#' + this.Id("codigo")).val() !== "") {
+        if ($('#' + this.Id("existeImagen")).val() !== 'false') {
+            $('#' + this.idWindow + 'container').find(".clonnable-field-1").each(function () {
+                if (this.id !== "imagen_Productoimagen_0_idcaracteristica") {
+                    $(this).prop('disabled', true);
+                }
+            });
+        }
+    }
+
+    if (this.idKey() !== '')
+    {
+        $var = this.idKey();
+    }
+    else
+    {
+        $var = '';
+    }
+    this.gridSearchVars('productoComplementario', '&noidproducto=' + $var);
+
+    if (Producto.idAlmacenSelec !== "") {
+        $('#' + this.Id("codigoAlmacen")).val(Producto.idAlmacenSelec);
+    }
+
+}
+Producto.options = function () {
+    this.setActions('create', {
+        WindowTitle: 'Crear Producto',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {
+        WindowTitle: 'Modificar Producto',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Producto',
+        WindowWidth: 890,
+        WindowHeight: 500,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+
+Producto.beforeCreate = function () {
+    Producto.idAlmacenSelec = $('#' + this.Id("codigoAlmacen")).val();
+    var error = false;//false es no existe error antes de crear formulario
+    return error;
+}
+Producto.afterCreate = function () {
+    this.reload();
+}
+
+Producto.beforeUpdate = function () {
+    this.habilitarTodo();
+    var error = false;//false es no existe error antes de actulizar formulario
+    return error;
+}
+Producto.afterUpdate = function () {
+    Producto.closeWindow();
+}
+
+/*
+ * Genera el codigo de un producto y asigna al campo 
+ */
+Producto.generarCodigo = function () {
+    var codigoAlmacen = $('#' + this.Id("codigoAlmacen")).val();
+    var valor = $('#' + this.Id("valor")).val();
+    var codigoFamilia = $('#' + this.Id("codigoFamilia")).val();
+    var codigoClase = $('#' + this.Id("codigoClase")).val();
+    var codigo = "";
+    if (codigoAlmacen) {
+        if (codigoFamilia) {
+            if (codigoClase) {
+                if (valor) {
+                    valor = this.calcularValor(valor);
+                }
+            } else {
+                valor = "";
+            }
+        } else {
+            codigoClase = "";
+            valor = "";
+        }
+        codigo = codigoAlmacen + codigoFamilia + codigoClase + valor;
+    }
+    $('#' + this.Id("codigo")).val(codigo);
+}
+
+/*
+ * Genera el nombre de un producto y asigna al campo 
+ */
+Producto.generarNombre = function () {
+    var valor = $('#' + this.Id("valor")).val();
+    var nombreFamilia = $('#' + this.Id("nombreCompletadoFamilia")).val();
+    var nombreClase = $('#' + this.Id("nombreCompletadoClase")).val();
+    var simbolo = $('#' + this.Id("idunidad") + ' :selected').text();
+    var nombre = "";
+    if (isNaN(valor))
+        valor = '';
+    if (nombreFamilia) {
+        if (nombreClase) {
+            if (!valor) {
+                simbolo = "";
+            }
+        } else {
+            valor = "";
+            simbolo = "";
+        }
+        nombre = nombreFamilia + ' ' + nombreClase + ' ' + valor + ' ' + simbolo;
+        $('#' + this.Id("nombre")).val(nombre);
+    }
+}
+
+/*
+ * Calcula el valor a utilizarse en el codigo 
+ * @param valor Valor a tratarse
+ * @return valor a asignarse al codigo 
+ */
+
+Producto.calcularValor = function (valor) {
+    var valorModificado;
+    if (isNaN(valor)) {
+        valorModificado = ""
+    } else {
+        valorSplitted = valor.split(".");
+        if (valorSplitted.length < 2) {
+            valorModificado = parseInt(valor, 10);
+            if (valor < 100) {
+                valorModificado = '0' + valorModificado;
+                if (valor < 10) {
+                    valorModificado = '0' + valorModificado;
+                }
+
+            }
+        } else {
+            valorModificado = valor;
+        }
+    }
+    return valorModificado;
+}
+
+
+/**
+ * Setea informacion de Familia
+ */
+Producto.setInformacionFamilia = function (id, codigo, nombre) {
+    $('#' + this.Id("idfamilia")).val(id);
+    $('#' + this.Id("codigoFamilia")).val(codigo);
+    $('#' + this.Id("nombreCompletadoFamilia")).val(nombre);
+}
+
+/**
+ * Setea informacion de clase
+ */
+Producto.setInformacionClase = function (id, codigo, nombre) {
+    $('#' + this.Id("idclase")).val(id);
+    $('#' + this.Id("codigoClase")).val(codigo);
+    $('#' + this.Id("nombreCompletadoClase")).val(nombre);
+}
+
+/* Habilita todos los los elementos pertenecientes a la clase clonnable-field-1
+ * antes de enviar el formulario. Es necesario porque el si el campo esta 
+ * deshabilitado no se envia su información.
+ */
+Producto.habilitarTodo = function () {
+    $('.clonnable-field-1').prop('disabled', false);
+    $('#' + this.Id("codigoAlmacen")).prop('disabled', false);
+}
+/**
+ * Evento que se ejecuta al cerrar la ventana
+ */
+Producto.close = function () {
+    Producto.idAlmacenSelec = "";
+    $('#' + this.Id("codigoAlmacen")).val(Producto.idAlmacenSelec);
+}

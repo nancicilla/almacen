@@ -1,0 +1,49 @@
+<?php
+/* @var $this VigenciaController */
+/* @var $model Vigencia */
+/* @var $form CActiveForm */
+?>
+
+<div class="form">
+<?php $form=$this->beginWidget('CActiveForm', array(
+    'focus'=>array($model,'idalmacen')
+)); ?>
+    <div class="formWindow">
+    
+        <?php 
+            echo TbHtml::alert(TbHtml::ALERT_COLOR_SUCCESS, 
+                 '<h4>Información</h4> Al crear una nueva parametrización, '
+                            . 'la parametrización anterior será dado de baja y el nuevo será el vigente.'); 
+        ?>
+        
+        <div class="row">
+            <?php 
+                echo $form->labelEx($model, 'idalmacen');
+ 
+                //echo $form->textField($model,'idalmacen'); 
+                echo $form->dropDownList(
+                    $model, 'idalmacen', 
+                    CHtml::listData(Almacen::model()->findAll(
+                            array('order' => 'nombre', 
+                                  'condition' => 't.id not in(
+                                      select idalmacen 
+                                      from producto
+                                      where idalmacen in(select id from almacen)) and eliminado is false and 
+                                      idalmacen is null and vigente = false and 
+                                      id not in(select idalmacen from vigencia where fechafin is null)')
+                            ), 'id', 'nombre'),
+                        array('style' => 'width: 290px')
+                );
+            ?>
+	</div>
+     
+    </div>
+    <?php
+    echo System::Buttons(array(
+        'nameView' => 'Vigencia',
+        'buttons' => array()
+    ));
+    ?> 
+<?php $this->endWidget(); ?>
+
+</div><!-- form -->

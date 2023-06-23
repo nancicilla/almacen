@@ -1,0 +1,24 @@
+<?php
+/* @var $this CaracteristicaController */
+/* @var $data Caracteristica */
+?>
+
+<div class="view">
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('nombre')); ?>:</b>
+	<?php echo CHtml::encode($data->nombre); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('fecha')); ?>:</b>
+	<?php echo CHtml::encode(Yii::app()->format->datetime(strtotime($data->fecha))); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('usuario')); ?>:</b>
+	<?php echo CHtml::encode($data->usuario); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('idgenero')); ?>:</b>
+	<?php echo CHtml::encode($data->idgenero0->nombre); ?>
+	<br />
+
+</div>

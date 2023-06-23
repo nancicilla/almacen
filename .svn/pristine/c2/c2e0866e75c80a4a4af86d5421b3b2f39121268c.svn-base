@@ -1,0 +1,33 @@
+<?php
+/* @var $this InventarioController */
+/* @var $data Inventario */
+?>
+
+<div class="view">
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('descripcion')); ?>:</b>
+	<?php echo CHtml::encode($data->descripcion); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('fechainicio')); ?>:</b>
+	<?php echo CHtml::encode(Yii::app()->format->datetime(strtotime($data->fechainicio))); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('fechafin')); ?>:</b>
+	<?php echo CHtml::encode(Yii::app()->format->datetime(strtotime($data->fechafin))); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('cerrado')); ?>:</b>
+	<?php echo CHtml::encode($data->cerrado); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('eliminado')); ?>:</b>
+	<?php echo CHtml::encode($data->eliminado); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('usuario')); ?>:</b>
+	<?php echo CHtml::encode($data->usuario); ?>
+	<br />
+
+
+</div>

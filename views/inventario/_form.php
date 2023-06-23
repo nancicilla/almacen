@@ -1,0 +1,96 @@
+<?php
+/* @var $this InventarioController */
+/* @var $model Inventario */
+/* @var $form CActiveForm */
+?>
+<div class="form">
+    <?php
+    $form = $this->beginWidget('CActiveForm', array(        
+    ));
+    $model->idAlmacen = $model->getIdAlmacen();
+    ?>
+    <div class="formWindow">
+        <div class="row">
+            <div class="column">
+                <?php echo $form->labelEx($model, 'idAlmacen'); ?>              
+                <?php
+                echo $form->dropDownList(
+                        $model, 'idAlmacen', CHtml::listData(Almacen::model()->findAll(array('order' => 'codigo')), 'id', 'nombreCompleto')
+                        , array("disabled" => true)
+                );
+                ?>          
+            </div>
+
+            <div class="column">
+                <?php echo $form->labelEx($model, 'descripcion'); ?>
+                <?php echo $form->textArea($model, 'descripcion', array('style' => 'text-transform: uppercase; width: 1000px;height: 100px;',"disabled" => false)); ?>
+            </div>
+        </div>
+        <div class="row">
+
+        </div>
+        <div  class="row">
+            <?php
+            echo SGridView::widget('TGridView', array(
+                'id' => 'Pedidoproducto',
+                'dataProvider' => $productoInventario,
+                'eventAfterEdition'=>'Inventario.actualizarSaldo()', 
+                'height' => 300,
+                'columns' => array(
+                    array('name' => 'codigo',
+                        'typeCol' => 'uneditable',
+                        'width' => 13,
+                        'value' => '$data->idproducto0->codigo'
+                    ),
+                    array('name' => 'nombre',
+                        'typeCol' => 'uneditable',
+                        'width' => 60,
+                        'header' => 'Producto',
+                        'value' => '$data->idproducto0->nombre'
+                    ),
+                    array('name' => 'saldo',
+                        'width' => 18,                 
+                        'align' => 'right',
+                        'type' => 'number',
+                    ),
+                    array(
+                        'name' => 'Udd',
+                        'typeCol' => 'uneditable',
+                        'value' => '$data->idproducto0->idunidad0->simbolo',
+                        'width' => 5,
+                    ),
+                    array('name' => 'id',
+                        'value' => '$data->idproducto0->id',
+                        'typeCol' => 'hidden'
+                    ),
+                    array(
+                        'typeCol' => 'buttons',
+                        'width' => 4,
+                        'buttons' => array(
+                            'actualizar' => array(
+                                'label' => 'Opción para actualizar saldo producto y saldo importe',
+                                'icon' => 'refresh',
+                                'click' => 'function() {
+                                    SGridView.selectRow(this);
+                                    Inventario.ActualizarSaldoProducto();
+                                    return false;
+                                }'
+                            )
+                        )
+                    ),
+                ),
+            ));
+            ?>           
+        </div>
+
+    </div>	
+
+    <?php
+    echo System::Buttons(array(
+        'nameView' => 'Inventario',
+        'buttons' => array()
+    ));
+    $this->endWidget();
+    ?>
+
+</div><!-- form -->

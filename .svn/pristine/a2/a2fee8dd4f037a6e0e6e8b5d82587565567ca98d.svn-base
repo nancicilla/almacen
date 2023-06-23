@@ -1,0 +1,97 @@
+<script type = "text/javascript">
+    function verificarAutocomplete() {
+        //verifica que exista un producto seleccionado a partir del autocomplete
+        //en el textfield nombreProducto, de no ser asi, setea el id por defecto
+        //-1 para que no muestre nada en el cgridviewProducto[nombreCompletoProducto]
+        var nombreAutocomplete = document.getElementById("Producto_codigo").value;
+        var nombreCorrecto = document.getElementById("Producto_auxiliarCodigo").value;
+        if (nombreAutocomplete.trim() === "" || (nombreAutocomplete !== nombreCorrecto)) {
+            document.getElementById("Producto_id").value = null;
+        }
+    }
+</script>
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+/* @var $form CActiveForm */
+?>
+<?php
+$nombreCodigo = "";
+$nombreProducto = "";
+?>
+
+
+<div class="form">
+    <?php
+    $form = $this->beginWidget('CActiveForm', array(        
+        'action' => Yii::app()->createUrl($this->route),
+        'method' => 'get',
+        'id' => 'admStock'
+    ));
+    ?>
+
+    <div class="column">
+        <?php echo $form->label($model, 'codigo'); ?>
+        <?php echo $form->textField($model, 'codigo', array('maxlength' => 10)); ?>
+    </div>  
+    <div class="column">
+        <?php echo $form->label($model, 'nombre'); ?>
+        <?php echo $form->textField($model, 'nombre', array('maxlength' => 100)); ?>
+    </div>
+    <div class="row">
+        <?php echo $form->labelEx($model, 'idalmacen'); ?>              
+        <?php
+        echo $form->dropDownList(
+                $model, 'idalmacen', CHtml::listData(Almacen::model()->findAll(array('order' => 'codigo')), 'id', 'nombreCompleto'), array(
+            'onchange' =>
+            ' document.getElementById("Producto_id").value = null;' .
+            ' document.getElementById("Producto_nombre").value = "";',
+                )
+        );
+        ?>       
+    </div>
+    <div class="row">
+        <div class="column">
+            <?php echo $form->label($model, 'stockminimode'); ?>
+            <?php echo $form->textField($model, 'stockminimode', array('maxlength' => 12)); ?>
+        </div>
+        <div class="column">
+            <?php echo $form->label($model, 'stockminimoa'); ?>
+            <?php echo $form->textField($model, 'stockminimoa', array('maxlength' => 12)); ?>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            <?php echo $form->label($model, 'stockmaximode'); ?>
+            <?php echo $form->textField($model, 'stockmaximode', array('maxlength' => 12)); ?>
+        </div>
+        <div class="column">
+            <?php echo $form->label($model, 'stockmaximoa'); ?>
+            <?php echo $form->textField($model, 'stockmaximoa', array('maxlength' => 12)); ?>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="column">
+            <?php echo $form->label($model, 'puntopedidode'); ?>
+            <?php echo $form->textField($model, 'puntopedidode', array('maxlength' => 12)); ?>
+        </div>
+        <div class="column">
+            <?php echo $form->label($model, 'puntopedidoa'); ?>
+            <?php echo $form->textField($model, 'puntopedidoa', array('maxlength' => 12)); ?>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            <?php echo $form->label($model, 'stockde'); ?>
+            <?php echo $form->textField($model, 'stockde', array('maxlength' => 12)); ?>
+        </div>
+        <div class="column">
+            <?php echo $form->label($model, 'stocka'); ?>
+            <?php echo $form->textField($model, 'stocka', array('maxlength' => 12)); ?>
+        </div>
+    </div>
+
+    <?php $this->endWidget(); ?>
+
+</div>

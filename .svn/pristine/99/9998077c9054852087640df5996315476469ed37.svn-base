@@ -1,0 +1,72 @@
+<?php
+/* @var $this NotaController */
+/* @var $model Nota */
+/* @var $form CActiveForm */
+?>
+
+<div class="form">
+
+<?php $form=$this->beginWidget('CActiveForm', array(
+    'focus'=>array($model,'numero')
+)); ?>
+    <div class="formWindow">
+    
+	<div class="row">
+		<?php echo $form->labelEx($model,'numero'); ?>
+		<?php echo $form->textField($model,'numero'); ?>
+	</div>
+    
+	<div class="row">
+		<?php echo $form->labelEx($model,'glosa'); ?>
+		<?php echo $form->textArea($model,'glosa',array('rows'=>6, 'cols'=>50,'style' => 'text-transform: uppercase')); ?>
+	</div>
+    
+	<div class="row">
+		<?php echo $form->labelEx($model,'idtipo'); ?>
+		<?php echo $form->textField($model,'idtipo'); ?>
+	</div>
+    
+	<div class="row">
+		<?php echo $form->labelEx($model,'idorigen'); ?>
+		<?php echo $form->textField($model,'idorigen'); ?>
+	</div>
+    
+	<div class="row">
+		<?php echo $form->labelEx($model,'idnotaborrador'); ?>
+		<?php echo $form->textField($model,'idnotaborrador'); ?>
+	</div>
+    
+	<div class="row">
+		<?php echo $form->labelEx($model,'total'); ?>
+		<?php echo $form->textField($model,'total',array('maxlength'=>12)); ?>
+	</div>
+    
+	<div class="row">
+		<?php echo $form->labelEx($model,'idchofer'); ?>
+		<?php echo $form->textField($model,'idchofer'); ?>
+	</div>
+    
+	<div class="row">
+		<?php echo $form->labelEx($model,'idestado'); ?>
+		<?php echo $form->textField($model,'idestado'); ?>
+	</div>
+    
+	<div class="row">
+		<?php echo $form->labelEx($model,'descripcion'); ?>
+		<?php echo $form->textField($model,'descripcion',array('style' => 'text-transform: uppercase')); ?>
+	</div>
+    
+	<div class="row">
+		<?php echo $form->labelEx($model,'fechaentrega'); ?>
+		<?php echo $form->textField($model,'fechaentrega'); ?>
+	</div>
+    </div>
+    <?php
+    echo System::Buttons(array(
+        'nameView' => 'Nota',
+        'buttons' => array()
+    ));
+    ?> 
+<?php $this->endWidget(); ?>
+
+</div><!-- form -->

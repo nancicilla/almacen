@@ -1,0 +1,56 @@
+<?php
+/* @var $this CaracteristicaController */
+/* @var $model Caracteristica */
+
+Yii::app()->clientScript->registerScript('search', "
+$('.search-button').click(function(){
+	$('.search-form').toggle();
+	return false;
+});
+$('.search-form form').submit(function(){
+	$('#caracteristica-grid').yiiGridView('update', {
+		data: $(this).serialize()
+	});
+	return false;
+});
+");
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Administración de Caracteristicas</h1>
+
+<?php echo CHtml::link('Busqueda Avanzada','#',array('class'=>'search-button')); ?>
+<div class="search-form" style="display:none">
+<?php $this->renderPartial('_search',array(
+	'model'=>$model,
+)); ?>
+</div><!-- search-form -->
+
+<?php $this->widget('bootstrap.widgets.TbGridView', array(
+	'id'=>'caracteristica-grid',
+	'dataProvider'=>$model->search(),
+	'filter'=>$model,
+        'ajaxUpdate' =>true,
+	'columns'=>array(
+		'nombre',
+                array(
+                    'name' => 'idgenero',
+                    'value' => '$data->idgenero0->nombre',
+                    'filter' => CHtml::listData(Genero::model()->findall(), 'id', 'nombre')
+                    ),   
+		array(
+			'class'=>'bootstrap.widgets.TbButtonColumn',
+                                'deleteConfirmation'=>'¿Seguro que desea eliminar este elemento?',
+				'buttons' => 	array(
+						'view'=>array('url'=>'array("view","id"=>SeguridadModule::enc($data->getPrimaryKey()))'),
+                            			'update'=>array('url'=>'array("update","id"=>SeguridadModule::enc($data->getPrimaryKey()))'),
+						'delete'=>array('url'=>'array("delete","id"=>SeguridadModule::enc($data->getPrimaryKey()))')
+                            			),
+		),
+	),
+));
+?>
+		</div>
+	</div>
+</div>

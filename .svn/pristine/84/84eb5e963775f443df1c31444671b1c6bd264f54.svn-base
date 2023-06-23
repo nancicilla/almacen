@@ -1,0 +1,69 @@
+<?php
+
+/* @var $this PedidosController */
+/* @var $model Pedidos */
+
+echo System::Search(array(
+    'title' => 'Confirmación de Pedidos',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admPedidos',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'numero',
+                'width' => 8,
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'datetime',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'nombre',
+                'value'=>'$data->verificarPedidoProductoFaltante?"<div class=\'faltante\' >".$data->nombre."</div>":$data->nombre',
+                'width' => 10,
+                'split'=>false,
+            ),
+            array(
+                'name' => 'nombrecliente',
+                'width' => 27,
+            ),
+            array('name' => 'idalmacen',
+                'value' => '$data->idalmacen0->nombre',
+                'width' => 15),
+            array(
+                'name' => 'usuario',
+                'width' => 10,
+            ),
+            array('name' => 'almacenconfirm',
+                'width' => 7,
+                'align' => 'center',
+                'split' => false,
+                'value' => '$data->almacenconfirm?"<div class=\'confirmadoLista\' ></div>":"<div class=\'porConfirmarLista\' ></div>"'
+            ),
+            array('typeCol' => 'buttons',
+                'width' => 5,
+                'buttons' => array( 
+                    'print' => array( 'click' => 'function() {
+                                           SGridView.selectRow(this);
+                                           admPedidos.print();
+                                           return false;
+                                          }',
+                                    'icon' => 'print'),
+                    'confirmar' => array(
+                        'click' => 'function() '
+                        . '{'
+                         .'SGridView.selectRow(this);
+                            admPedidos.confirmarAlmacen();
+                            return false;}',
+                        'icon' => 'ok',
+                        'label' => 'Confirmar Preventa'),
+                ),
+            ),
+        ),
+    ))
+));
+

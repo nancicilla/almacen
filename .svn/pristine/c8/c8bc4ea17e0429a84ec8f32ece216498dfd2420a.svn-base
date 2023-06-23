@@ -1,0 +1,80 @@
+var admPedidos = new Object();
+admPedidos.__proto__ = SystemSearch;
+
+//declare var
+admPedidos.nameView = "admPedidos";
+admPedidos.url = "pedidos/admin";
+admPedidos.idContainer = "";
+admPedidos.eventRow = "THIS.view();";
+admPedidos.nextView = "VentaPedido";
+//functions
+admPedidos.init = function () {
+    
+}
+
+admPedidos.options = function () {
+    var afterFunction = '';
+    var updateFunction = 'THIS.search(VentaPedido.idKeySend());';
+    //para actualizar la lista si actualiza/borrar/crea un formulario
+    var idKey = SGridView.getSelected('id');
+    var varsSend = "";
+    var url = "";
+    var nameContainer = "";
+
+    var options = {
+        idKey: idKey,
+        afterFunction: afterFunction,
+        updateFunction: updateFunction,
+        varsSend: varsSend
+    };
+    return options;
+}
+
+admPedidos.desconfirmarAlmacen = function(){
+    //alert("alerta");
+}
+
+admPedidos.confirmarAlmacen= function () {        
+        var data='&id='+SGridView.getSelected('id');
+        var success=null;
+        var afterFunction='if(admPedidos.error==false){ admPedidos.desconfirmarAlmacen(); VentaPedido.confirmarAlmacen(THIS.getOptions());}';
+        //afterFunction='';
+        this.executeAdmin({actionController:'verificarConfirmadoAlmacen',
+                           varSend:data,
+                           afterFunction:afterFunction
+                      });
+
+
+    return false;
+
+
+};
+admPedidos.view=function(){
+    var options=this.getOptions();
+    VentaPedido.view(options.idkey,options);
+}
+
+admPedidos.generarTraspaso= function () {        
+        var data='&id='+SGridView.getSelected('id');
+        var success=null;
+        var afterFunction='if(admPedidos.error==false)VentaTraspaso.create("idpedido="+SGridView.getSelected("id"));';
+        //afterFunction='';
+        this.executeAdmin({actionController:'verificarGenerarTraspaso',
+                           varSend:data,
+                           afterFunction:afterFunction
+                      });
+
+
+    return false;
+
+
+};
+
+admPedidos.viewAlmacen= function () {        
+    VentaPedido.viewAlmacen(this.getOptions());
+};
+
+admPedidos.print=function(){
+    var url = 'venta/pedido/reportePedido?id=' + SGridView.getSelected('id');
+    this.openUrl(url);
+}

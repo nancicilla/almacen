@@ -1,0 +1,64 @@
+<?php
+/* @var $this ProductoController */
+/* @var $data Producto */
+?>
+
+<div class="view">
+
+    <b><?php echo CHtml::encode(strtoupper($data->getAttributeLabel('codigo'))); ?>:</b>
+	<?php echo CHtml::encode($data->codigo); ?>
+	<br />
+        <b><?php echo CHtml::encode(strtoupper($data->getAttributeLabel('nombre'))); ?>:</b>
+	<?php echo CHtml::encode($data->nombre); ?>
+	<br />
+        <b><?php echo CHtml::encode(strtoupper($data->getAttributeLabel('nombreFamilia'))); ?>:</b>
+	<?php echo CHtml::encode($data->idfamilia0->nombre); ?>
+	<br />
+        <b><?php echo CHtml::encode(strtoupper($data->getAttributeLabel('nombreClase'))); ?>:</b>
+	<?php echo CHtml::encode($data->idclase0->nombre); ?>
+	<br />
+        <b><?php echo CHtml::encode(strtoupper($data->getAttributeLabel('valor'))); ?>:</b>
+	<?php echo CHtml::encode($data->valor); ?>
+	<br />
+        <b><?php echo CHtml::encode(strtoupper($data->getAttributeLabel('idunidad'))); ?>:</b>
+	<?php echo CHtml::encode($data->idunidad0->simbolo); ?>
+	<br />
+        <b><?php echo CHtml::encode(strtoupper($data->getAttributeLabel('idalmacen'))); ?>:</b>
+	<?php echo CHtml::encode($data->idalmacen0->nombre); ?>
+        <br />
+        
+         <?php 
+        $caracteristicaGeneralProducto = Productocaracteristica::model()->getCaracteristicaGeneralProducto($data->id);
+        foreach ($caracteristicaGeneralProducto as $value) {
+            $caracteristica = Caracteristica::model()->findByPk($value['idcaracteristica']);
+            if(isset($caracteristica)){
+            ?>
+        
+        <b><?php echo CHtml::encode($caracteristica->getAttribute('nombre')) . ':';?></b>
+            <?php 
+            echo $value['valor'];?>
+            <br /><?php
+            }}
+    ?>
+           
+              <?php 
+        $caracteristicaArchivoProducto = Productocaracteristica::model()->getCaracteristicaArchivoProducto($data->id);
+       ?>
+           <b> <?php
+                if (!empty($caracteristicaArchivoProducto)) {
+                    echo CHtml::encode('IMÁGENES');
+                    ?>
+           
+
+                <?php
+                $i = 1;
+                foreach ($caracteristicaArchivoProducto as $value) {
+                    $caracteristica = Caracteristica::model()->findByPk($value['idcaracteristica']);
+                    $i++;
+                    $imagen[$i] = array('image' => Yii::app()->baseUrl . '/' . Productocaracteristica::model()->directorioImagen . $data->id . '/' . $value['archivo'], 'title' => $caracteristica->getAttribute('nombre'));
+                }
+                echo TbHtml::thumbnails($imagen);
+            }
+            ?></b>
+	
+</div>

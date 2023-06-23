@@ -1,0 +1,25 @@
+<?php
+/* @var $this AlmacenproductoController */
+/* @var $model Almacenproducto */
+
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Ver Almacenproducto</h1>
+
+<?php $this->widget('zii.widgets.CDetailView', array(
+	'data'=>$model,
+	'attributes'=>array(
+		'stockminimo',
+		'stockreposicion',
+		'stockmaximo',
+		'eliminado',
+		'usuario',
+		'idalmacen',
+		'idproducto',
+		'saldo',
+	),
+)); ?>		</div>
+	</div>
+</div>

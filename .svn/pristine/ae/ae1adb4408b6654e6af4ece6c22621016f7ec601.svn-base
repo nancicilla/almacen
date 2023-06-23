@@ -1,0 +1,808 @@
+<?php
+/*
+ * ControlcalidadalmacenController.php
+ *
+ * Version 0.$Rev: 286 $
+ *
+ * Creacion: 17/01/2019
+ *
+ * Ultima Actualizacion: $Date: 2015-10-13 09:08:14 -0400 (mar 13 de oct de 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+class ControlcalidadalmacenController extends Controller
+{
+	 /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+    
+    /* 
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+   
+    public function filters()
+    {
+        return array_merge(
+            array(
+                'accessControl',
+                array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+            )
+        );
+    } 
+    
+    /* 
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+    private function _publicActionsList()
+    {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',          
+        );
+    }
+    
+    public function accessRules()
+    {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+
+    /**
+     * Creates a new model.
+     */
+    public function actionCreate()
+    {
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        
+        $model=new Controlcalidadalmacen;
+
+        if(isset($_POST['Controlcalidadalmacen'])){
+                $model->attributes=$_POST['Controlcalidadalmacen'];
+                if($model->save()){                       
+                    echo System::dataReturn('Creación exitosa!', array('id' => SeguridadModule::enc($model->id)));
+                    return;
+                } else {
+                    echo System::hasErrors('Revise los datos! ', $model);
+                return;
+                }
+        }
+
+        $this->renderPartial('create',array(
+            'model'=>$model,
+        ), false, true);
+    }
+
+    /**
+     * Updates a particular model.
+     * @param integer $id the ID of the model to be updated
+     */
+    public function actionUpdate($id)
+    {
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        
+        $model=$this->loadModel(SeguridadModule::dec($id));
+        $model->estado=$model->idestado0->nombre;
+        $productos= Controlcalidadalmacen::model()->obtenerControlCalidadProductos($model->id);
+        if(isset($_POST['Controlcalidadalmacen']))
+        {
+            $model->attributes=$_POST['Controlcalidadalmacen'];
+            $model->idestado= Estado::EN_PROCESO;
+            $model->usuariocontrolcalidad=Yii::app()->user->getName();
+            if($model->save()){
+                $productos = $_POST['gridProducto'];
+                foreach ($productos as $producto):
+                    $controlcalidadProducto = Controlcalidadproductoalmacen::model()->find('id='.$producto['id']);
+                    $controlcalidadProducto->cantidadbaja = $producto['cantidadbaja']==null?0:$producto['cantidadbaja'];
+                    $controlcalidadProducto->cantidadaceptada = $producto['cantidadaceptada']==null?0:$producto['cantidadaceptada'];
+                    if ($producto['cantidadbaja']==0){
+                        $controlcalidadProducto->idrecuperacion=-1;
+                    }
+                    $controlcalidadProducto->observacion = $producto['observacion'];
+                    $controlcalidadProducto->save();
+                endforeach;
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+        $this->renderPartial('update',array(
+            'model'=>$model, 'productos' => $productos
+        ), false, true);
+    }
+
+    /**
+     * Deletes safely a particular model.
+     * If deletion is successful, the browser will be redirected to the 'admin' page.
+     * @param integer $id the ID of the model to be deleted
+     */
+    public function actionDelete($id)
+    {
+            $this->loadModel(SeguridadModule::dec($id))->safeDelete();
+            self::actionAdmin();
+    }
+
+    /**
+     * Manages all models.
+     */
+    public function actionAdmin()
+    {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model=new Controlcalidadalmacen('search');
+        $model->unsetAttributes();  // clear any default values
+        
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }           
+
+        if(isset($_GET['Controlcalidadalmacen'])){
+                $model->attributes=$_GET['Controlcalidadalmacen'];
+                if (!$model->validate()) {
+                    echo System::hasErrorSearch($model);
+                    return;
+                }
+        }        
+
+        $this->renderPartial('admin',array(
+            'model'=>$model,
+        ), false, true);
+    }
+
+	/**
+	 * Returns the data model based on the primary key given in the GET variable.
+	 * If the data model is not found, an HTTP exception will be raised.
+	 * @param integer $id the ID of the model to be loaded
+	 * @return Controlcalidadalmacen the loaded model
+	 * @throws CHttpException
+	 */
+	public function loadModel($id)
+	{
+		$model=Controlcalidadalmacen::model()->findByPk($id);
+		if($model===null)
+			throw new CHttpException(404,'The requested page does not exist.');
+		return $model;
+	}
+
+	/**
+	 * Performs the AJAX validation.
+	 * @param Controlcalidadalmacen $model the model to be validated
+	 */
+	protected function performAjaxValidation($model)
+	{
+		if(isset($_POST['ajax']) && $_POST['ajax']==='controlcalidadalmacen-form')
+		{
+			echo CActiveForm::validate($model);
+			Yii::app()->end();
+		}
+	}
+        
+        public function actionVerificaEstadoCC() {
+
+        $identificador = SeguridadModule::dec($_GET["id"]);
+        $model = Controlcalidadalmacen::model()->findByPk($identificador);
+        $idestado = $model->idestado;
+        $modelRecepcion = Recepcioncontrolcalidad::model()->findAll('idcontrolcalidad='.$model->id);
+        if (count($modelRecepcion)>0){
+            foreach ($modelRecepcion as $recepcion):
+                $estadoRecepcion = $recepcion->idestado;
+            endforeach;
+        }else{
+            $estadoRecepcion=0;
+        }
+//        print_r($modelRecepcion);
+        $data = array();
+
+        $data['espera'] = array(
+            'estado' => false);
+        $data['anulado'] = array(
+            'estado' => false);
+        $data['pendienteCC'] = array(
+            'estado' => false);
+        $data['finalizadoCC'] = array(
+            'estado' => false);
+        $data['enprocesoCC'] = array(
+            'estado' => false);
+        $data['sinverificarCC'] = array(
+            'estado' => false);
+        $data['correccion'] = array(
+            'estado' => false);
+
+        switch ($idestado) {
+            case Estado::ANULADO:
+                $data['anulado'] = array(
+                    'estado' => true,'recepcion'=>$estadoRecepcion==Estado::ESTADO_RECEPCIONADO?true:false);
+                break;
+            case Estado::ESTADO_PENDIENTECC:
+                $data['pendienteCC'] = array(
+                    'estado' => true,'recepcion'=>$estadoRecepcion==Estado::ESTADO_RECEPCIONADO?true:false);
+                break;
+            case Estado::ESTADO_ESPERA:
+                $data['espera'] = array(
+                    'estado' => true,'recepcion'=>$estadoRecepcion==Estado::ESTADO_RECEPCIONADO?true:false);
+                break;
+            case Estado::ESTADO_FINALIZADOCC:
+                $data['finalizadoCC'] = array(
+                    'estado' => true);
+                break;
+            case Estado::EN_PROCESO:
+                $data['enprocesoCC'] = array(
+                    'estado' => true,'recepcion'=>$estadoRecepcion==Estado::ESTADO_RECEPCIONADO?true:false);
+                break;
+            case Estado::ESTADO_SINVERIFICAR:
+                $data['sinverificarCC'] = array(
+                    'estado' => true);
+                break;
+            case Estado::ESTADO_CORRECCION:
+                $data['correccion'] = array(
+                    'estado' => true);
+                break;
+        }
+
+        $this->layout = 'empty';
+        echo CJSON::encode($data);
+    }
+    
+    public function actionRecepcion($id)
+    {
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        
+        $model=$this->loadModel(SeguridadModule::dec($id));
+        $model->estado=$model->idestado0->nombre;
+        $productos= Controlcalidadalmacen::model()->obtenerControlCalidadProductos($model->id);
+        $model->scenario='recepcion';
+
+        if(isset($_POST['Controlcalidadalmacen']))
+        {
+            $model->attributes=$_POST['Controlcalidadalmacen'];
+            $estadoanterior = $model->idestado;
+            $model->idestado = Estado::ESTADO_PENDIENTECC;
+            $modelRecepcion = new Recepcioncontrolcalidad;
+            $modelRecepcion->idestado = Estado::ESTADO_RECEPCIONADO;
+            $modelRecepcion->idcontrolcalidad = $model->id;
+            $modelRecepcion->save();
+            if($model->save()){
+                $productos = $_POST['gridProducto'];
+                foreach ($productos as $producto):
+                    $controlcalidadProducto = Controlcalidadproductoalmacen::model()->find('id='.$producto['id']);
+//                    $controlcalidadProducto->cantidadregistrada = $producto['cantidadrecepcion'];
+                    $controlcalidadProducto->save();
+                endforeach;
+                if ($estadoanterior!=null && $estadoanterior!=Estado::$EN_ESPERA){
+                    $solicitud = Solicituddevolucion::model()->find('id='.$model->iddocumento);
+                    FtblMoodleAsientointegrado::model()->registrarAsientoRecepcion($solicitud);
+                }
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('update',array(
+            'model'=>$model, 'productos' => $productos
+        ), false, true);
+    }
+    
+    public function actionVerificaRecepcionCC() {
+
+        $identificador = SeguridadModule::dec($_GET["id"]);
+        $model = Controlcalidadalmacen::model()->findByPk($identificador);
+        
+        $modelRecepcion = Recepcioncontrolcalidad::model()->findAll('idcontrolcalidad='.$model->id);
+        if (count($modelRecepcion)>0){
+            foreach ($modelRecepcion as $recepcion):
+                $idestado = $recepcion->idestado;    
+            endforeach;
+        }else{
+            $idestado=0;
+        }
+//        print_r($modelRecepcion);
+        $data = array();
+        $data['pendiente'] = array(
+            'estado' => false);
+        $data['recepcion'] = array(
+            'estado' => false);
+        $data['espera'] = array(
+            'estado' => false);
+
+        switch ($idestado) {
+            case 0:
+                $data['espera'] = array(
+                    'estado' => true,'finalizado' => $model->idestado== Estado::ESTADO_FINALIZADOCC?true:false,'sinverificar'=> $model->idestado== Estado::ESTADO_SINVERIFICAR?true:false,'correccion'=> $model->idestado== Estado::ESTADO_CORRECCION?true:false);
+                break;
+            case Estado::ESTADO_PENDIENTERECEPCION:
+                $data['pendiente'] = array(
+                    'estado' => true,'finalizado' => $model->idestado== Estado::ESTADO_FINALIZADOCC?true:false);
+                break;
+            case Estado::ESTADO_RECEPCIONADO:
+                $data['recepcion'] = array(
+                    'estado' => true,'finalizado' => $model->idestado== Estado::ESTADO_FINALIZADOCC?true:false);
+                break;
+        }
+        $this->layout = 'empty';
+        echo CJSON::encode($data);
+    }
+    
+    public function actionFinalizar($id)
+    {
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        
+        $model=$this->loadModel(SeguridadModule::dec($id));
+        $model->estado=$model->idestado0->nombre;
+        $productos= Controlcalidadalmacen::model()->obtenerControlCalidadProductos($model->id);
+        $model->scenario='finalizar';
+        
+        if(isset($_POST['Controlcalidadalmacen']))
+        {            
+            $model->attributes=$_POST['Controlcalidadalmacen'];
+            $productos = $_POST['gridProducto'];
+            $model->idestado = Estado::ESTADO_FINALIZADOCC;
+            $model->usuariofinalizado=Yii::app()->user->getName();
+            if($model->save()){
+                foreach ($productos as $producto):
+                    $controlcalidadProducto = Controlcalidadproductoalmacen::model()->find('id='.$producto['id']);
+                    $controlcalidadProducto->cantidadbaja = $producto['cantidadbaja']==null?0:$producto['cantidadbaja'];
+                    $controlcalidadProducto->cantidadaceptada = $producto['cantidadaceptada']==null?0:$producto['cantidadaceptada'];
+                    if ($producto['cantidadbaja']==0){
+                        $controlcalidadProducto->idrecuperacion=-1;
+                    }
+                    $controlcalidadProducto->observacion = $producto['observacion'];
+                    $controlcalidadProducto->save();
+                endforeach;
+                $model->registrarWSAlmacen();
+                switch ($model->idtipodocumento) {
+                    case Tipodocumento::DEVOLUCION_TPV:
+                        $modelDevolucion = Devoluciontpv::model()->find('id='.$model->iddocumento);
+                        $modelDevolucion->idestado = Estadotpv::FINALIZADO;
+                        if ($modelDevolucion->save()) {
+                            $controlcalidad = Controlcalidadalmacen::model()->find('id='.$model->id);
+                            $controlcalidad->aceptada = true;
+                            $controlcalidad->save();
+                            echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                            return;
+                        }
+                        break;
+                }                
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('update',array(
+            'model'=>$model, 'productos' => $productos
+        ), false, true);
+    }
+    
+    public function actionPendiente(){
+        $respuesta = 0;
+        $idcontrolcalidad = filter_input(INPUT_POST, 'idcontrolcalidad');
+        $model = Controlcalidadalmacen::model()->findByPk($idcontrolcalidad);
+        $model->idestado = Estado::ESTADO_ESPERA;
+        $modelRecepcion = new Recepcioncontrolcalidad;
+        $modelRecepcion->idestado = Estado::ESTADO_PENDIENTERECEPCION;
+        $modelRecepcion->idcontrolcalidad = $model->id;
+        $modelRecepcion->save();
+        if ($model->update()) {
+            $solicitud = Solicituddevolucion::model()->find('id='.$model->iddocumento);
+            FtblMoodleAsientointegrado::model()->registrarAsientoPendiente($solicitud);
+            $respuesta = 1;
+            $response['actualizo'] = $respuesta;
+        }else{
+            $response['errorRechazo'] = 1;
+        }
+        echo json_encode($response);
+    }
+    public function actionConfirmar(){
+        $respuesta = 0;
+        $idcontrolcalidad = filter_input(INPUT_POST, 'idcontrolcalidad');
+        $model = Controlcalidadalmacen::model()->findByPk($idcontrolcalidad);
+        $model->idestado = Estado::ESTADO_FINALIZADOCC;
+        $model->usuariofinalizado=Yii::app()->user->getName();
+        if ($model->update()) {
+            $model->registrarWSAlmacen();
+            $respuesta = 1;
+            $response['actualizo'] = $respuesta;
+        }else{
+            $response['errorRechazo'] = 1;
+        }
+        echo json_encode($response);
+    }
+    
+    public function actionVerificaBajaCC() {
+
+        $identificador = SeguridadModule::dec($_GET["id"]);
+        $model = Controlcalidadalmacen::model()->findByPk($identificador);
+        $idestado = $model->idestado;
+        $modelRecepcion = Recepcioncontrolcalidad::model()->findAll('idcontrolcalidad='.$model->id);
+        if (count($modelRecepcion)>0){
+            foreach ($modelRecepcion as $recepcion):
+                $estadoRecepcion = $recepcion->idestado;
+            endforeach;
+        }else{
+            $estadoRecepcion=0;
+        }
+//        print_r($modelRecepcion);
+        $data = array();
+
+        $data['espera'] = array(
+            'estado' => false);
+        $data['anulado'] = array(
+            'estado' => false);
+        $data['pendienteCC'] = array(
+            'estado' => false);
+        $data['finalizadoCC'] = array(
+            'estado' => false);
+
+        switch ($idestado) {
+            case Estado::ANULADO:
+                $data['anulado'] = array(
+                    'estado' => true,'pendiente'=>$estadoRecepcion==Estado::ESTADO_PENDIENTERECEPCION?true:false);
+                break;
+            case Estado::ESTADO_PENDIENTECC:
+                $data['pendienteCC'] = array(
+                    'estado' => true,'pendiente'=>$estadoRecepcion==Estado::ESTADO_PENDIENTERECEPCION?true:false);
+                break;
+            case Estado::ESTADO_ESPERA:
+                $data['espera'] = array(
+                    'estado' => true,'pendiente'=>$estadoRecepcion==Estado::ESTADO_PENDIENTERECEPCION?true:false);
+                break;
+            case Estado::ESTADO_FINALIZADOCC:
+                $data['finalizadoCC'] = array(
+                    'estado' => true);
+                break;
+        }
+
+        $this->layout = 'empty';
+        echo CJSON::encode($data);
+    }
+    
+    public function actionRecuperarProducto($id){
+
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        $idccp=$id;
+        $model = new Recuperacion;
+        $modelCCP = Controlcalidadproductoalmacen::model()->find('id='.$idccp);
+        $codigoProducto = Producto::model()->find('id='.$modelCCP->idproducto)->codigo;
+        $nombreProducto = Producto::model()->find('id='.$modelCCP->idproducto)->nombre;
+        $model->codigonombre = "(".$codigoProducto.") ".$nombreProducto;
+        $model->idcontrolcalidadproducto=$modelCCP->id;
+        $model->cantidad= filter_input(INPUT_GET, 'cantidad');// cantidad a recuperar por defecto es el valor de baja 
+        $insumos = ProduccionOrdenrecetaproducto::model()->obtenerinsumos($modelCCP->idproducto);
+        if(isset($_POST['Controlcalidadalmacen']))
+        {
+            $model->attributes=$_POST['Controlcalidadalmacen'];
+            $insumos =$_POST['gridInsumo'];
+            if($model->save()){
+                foreach ($insumos as $insumo):
+                    $modelRecuperacioninsumos = new Recuperacioninsumo;
+                    $modelRecuperacioninsumos->idrecuperacion = $model->id;
+                    $modelRecuperacioninsumos->idproducto = $insumo['idproducto'];
+                    $modelRecuperacioninsumos->cantidad = $insumo['cantidadrecuperar'];
+                    $modelRecuperacioninsumos->cantidadreceta = $insumo['cantidad'];
+                    $modelRecuperacioninsumos->aceptado = $insumo['conforme']==1?true:false;
+                    $modelRecuperacioninsumos->save();
+                endforeach;
+                $modelCCP= Controlcalidadproductoalmacen::model()->find('id='.$idccp);
+                $modelCCP->idrecuperacion=$model->id;
+                $modelCCP->save();
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+        $this->renderPartial('_recuperar',array(
+            'model'=>$model, 'insumos' => $insumos
+        ), false, true);
+    }
+    
+    public function actionVerificaRecuperacionCC() {
+
+        $identificador = $_GET["id"];
+        $model = Controlcalidadproductoalmacen::model()->findByPk($identificador);
+
+        if (count($model)>0){
+            $recuperacion = $model->idrecuperacion==null?0:1;
+        }
+        $data = array();
+
+        $data['recuperacion'] = array(
+            'estado' => false);
+
+        switch ($recuperacion) {
+            case 0:
+                $data['recuperacion'] = array(
+                    'estado' => false);
+                break;
+            case 1:
+                $data['recuperacion'] = array(
+                    'estado' => true);
+                break;
+        }
+        $this->layout = 'empty';
+        echo CJSON::encode($data);
+    }
+    public function actionAutocompleteProducto() {
+        $request = trim($_GET['term']);
+
+        if ($request != '') {
+            $producto = new Producto;
+            $productos = $producto->buscarProducto($request);
+            $model = $productos->getData();
+            $data = array();
+            foreach ($model as $get) {
+                $data[] = array('value' => $get->nombre,
+                    'label' => '[' . $get->codigo . '] ' . $get->nombre,
+                    'idproducto' => $get->id
+                );
+            }
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+    
+    public function actionView($id)
+    {
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        
+        $model=$this->loadModel(SeguridadModule::dec($id));
+        $model->estado=$model->idestado0->nombre;
+        $model->scenario='view';
+        $productos= Controlcalidadalmacen::model()->obtenerControlCalidadProductos($model->id);
+        if(isset($_POST['Controlcalidadalmacen']))
+        {
+            $model->attributes=$_POST['Controlcalidadalmacen'];
+            
+        }
+        $this->renderPartial('view',array(
+            'model'=>$model, 'productos' => $productos
+        ), false, true);
+    }
+    
+    public function actionVerRecuperarProducto($id){
+
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        $idccp=$id;
+        $model = Recuperacion::model()->find('idcontrolcalidadproducto='.$idccp);
+        $modelCCP = Controlcalidadproductoalmacen::model()->find('id='.$idccp);
+        $codigoProducto = Producto::model()->find('id='.$modelCCP->idproducto)->codigo;
+        $nombreProducto = Producto::model()->find('id='.$modelCCP->idproducto)->nombre;
+        $codigoNombre ="(".$codigoProducto.") ".$nombreProducto;
+        if (count($model)>0){
+            $model->codigonombre = $codigoNombre;
+            $insumos = Recuperacioninsumo::model()->obtenerInsumos($model->id);//ProduccionOrdenrecetaproducto::model()->obtenerinsumos($modelCCP->idproducto);
+        }else{
+            $model=new Recuperacion;
+            $insumos =array();
+        }
+        if(isset($_POST['Controlcalidadalmacen']))
+        {
+            $model->attributes=$_POST['Controlcalidadalmacen'];
+            $insumos =$_POST['gridInsumo'];
+            if($model->save()){
+                foreach ($insumos as $insumo):
+                    $modelRecuperacioninsumos = new Recuperacioninsumo;
+                    $modelRecuperacioninsumos->idrecuperacion = $model->id;
+                    $modelRecuperacioninsumos->idproducto = $insumo['idproducto'];
+                    $modelRecuperacioninsumos->cantidad = $insumo['cantidadrecuperar'];
+                    $modelRecuperacioninsumos->cantidadreceta = $insumo['cantidad'];
+                    $modelRecuperacioninsumos->aceptado = $insumo['conforme']==1?true:false;
+                    $modelRecuperacioninsumos->save();
+                endforeach;
+                $modelCCP= Controlcalidadproductoalmacen::model()->find('id='.$idccp);
+                $modelCCP->idrecuperacion=$model->id;
+                $modelCCP->save();
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+        $this->renderPartial('_recuperar',array(
+            'model'=>$model, 'insumos' => $insumos
+        ), false, true);
+    }
+    public function actionEditarRecuperarProducto($id){
+
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        $idccp=$id;
+        $model = Recuperacion::model()->find('idcontrolcalidadproducto='.$idccp);
+        if ($model==null){
+            $model = new Recuperacion;
+            $modelCCP = Controlcalidadproductoalmacen::model()->find('id='.$idccp);
+            $codigoProducto = Producto::model()->find('id='.$modelCCP->idproducto)->codigo;
+            $nombreProducto = Producto::model()->find('id='.$modelCCP->idproducto)->nombre;
+            $model->codigonombre = "(".$codigoProducto.") ".$nombreProducto;
+            $model->idcontrolcalidadproducto=$modelCCP->id;
+            $model->cantidad= filter_input(INPUT_GET, 'cantidad');// cantidad a recuperar por defecto es el valor de baja 
+            $insumos = ProduccionOrdenrecetaproducto::model()->obtenerinsumos($modelCCP->idproducto); 
+        }else{
+            $modelCCP = Controlcalidadproductoalmacen::model()->find('id='.$idccp);
+            $codigoProducto = Producto::model()->find('id='.$modelCCP->idproducto)->codigo;
+            $nombreProducto = Producto::model()->find('id='.$modelCCP->idproducto)->nombre;
+            $model->codigonombre = "(".$codigoProducto.") ".$nombreProducto;
+            $insumos = Recuperacioninsumo::model()->obtenerInsumos($model->id);//ProduccionOrdenrecetaproducto::model()->obtenerinsumos($modelCCP->idproducto);
+        }
+        $model->scenario='finalizar';
+        if(isset($_POST['Controlcalidadalmacen']))
+        {
+            $model->attributes=$_POST['Controlcalidadalmacen'];
+            //$insumos =$_POST['gridInsumo'];
+            if (isset($_POST['gridInsumo'])){
+                $insumos =$_POST['gridInsumo'];
+                if($model->save()){
+                    Recuperacioninsumo::model()->deleteAll('idrecuperacion='.$model->id);
+                    foreach ($insumos as $insumo):
+                        $modelRecuperacioninsumos = new Recuperacioninsumo;
+                        $modelRecuperacioninsumos->idrecuperacion = $model->id;
+                        $modelRecuperacioninsumos->idproducto = $insumo['idproducto'];
+                        $modelRecuperacioninsumos->cantidad = $insumo['cantidadrecuperar'];
+                        $modelRecuperacioninsumos->cantidadreceta = $insumo['cantidad'];
+                        $modelRecuperacioninsumos->aceptado = $insumo['conforme']==1?true:false;
+                        $modelRecuperacioninsumos->save();
+                    endforeach;
+                    $modelCCP= Controlcalidadproductoalmacen::model()->find('id='.$idccp);
+                    $modelCCP->idrecuperacion=$model->id;
+                    $modelCCP->save();
+                    echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                    return;
+                } else {
+                    echo System::hasErrors('Revise los datos! ', $model);
+                    return;
+                }
+            }else{
+                if($model->save()){
+                    echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                    return;
+                } else {
+                    echo System::hasErrors('Revise los datos! ', $model);
+                    return;
+                }
+            }
+        }
+        $this->renderPartial('_recuperar',array(
+            'model'=>$model, 'insumos' => $insumos
+        ), false, true);
+    }
+    
+    public function actionImprimir($id){    
+        $ids=  explode('.', SeguridadModule::dec($id));
+        
+        $re = new JasperReport('/reports/Almacen/controlcalidadalmacen', JasperReport::FORMAT_PDF, array(
+            'pId' => $ids[0],
+            'pUsuario' => Yii::app()->user->getName(),
+            'pFormatoNumero' => Yii::app()->params['formatNumberVenta'],
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+        
+      
+        $re->exec();
+
+        if ($re->getPages() > 0) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+    
+    public function actionVerificar($id)
+    {
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        
+        $model=$this->loadModel(SeguridadModule::dec($id));
+        $model->estado=$model->idestado0->nombre;
+        $productos= Controlcalidadalmacen::model()->obtenerControlCalidadProductos($model->id);
+
+        if(isset($_POST['Controlcalidadalmacen']))
+        {
+            $model->attributes=$_POST['Controlcalidadalmacen'];
+            $estadoanterior = $model->idestado;
+            $model->idestado = Estado::ESTADO_ESPERA;
+//            $modelRecepcion = new Recepcioncontrolcalidad;
+//            $modelRecepcion->idestado = Estado::ESTADO_RECEPCIONADO;
+//            $modelRecepcion->idcontrolcalidad = $model->id;
+//            $modelRecepcion->save();
+            if($model->save()){
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('verificar',array(
+            'model'=>$model, 'productos' => $productos
+        ), false, true);
+    }
+    
+    public function actionRechazar(){
+        Yii::app()->getClientScript()->scriptMap=array('jquery.js'=>false, 'jquery.ui.js'=>false, 'jquery-ui.min.js'=>false);
+        $idcontrolcalidad = filter_input(INPUT_POST, 'idcontrolcalidad');
+        $productosJSON=filter_input(INPUT_POST, 'productos');
+        $productos= json_decode($productosJSON);
+        $model = Controlcalidadalmacen::model()->findByPk($idcontrolcalidad);
+        $model->idestado = Estado::ESTADO_CORRECCION;
+        $model->eliminado=true;
+        $modelSolicitud = Solicituddevolucion::model()->find('id='.$model->iddocumento);
+        $modelSolicitud->idestado = Estado::ESTADO_PENDIENTE;
+        $cambio=array();
+        foreach ($productos as $producto):
+            if(!empty($producto->obs)){
+                $jsoncambio = array(
+                    'idproducto' => $producto->idproducto,
+                    'obs' => $producto->obs,
+
+                );
+                array_push($cambio, $jsoncambio);
+            }
+        endforeach;
+        if(empty($modelSolicitud->cambios))
+                $json_cambio = $cambio;
+        else
+        {
+            $json_cambio = json_decode($modelSolicitud->cambios);
+            $json_cambio = array_merge($json_cambio,$cambio);
+        }
+        $modelSolicitud->cambios = json_encode($json_cambio);
+        $modelSolicitud->save();
+        $respuesta=0;
+        if ($model->update()) {
+            foreach ($productos as $producto):
+                $solicitudProducto = Solicituddevolucionproducto::model()->find('idsolicituddevolucion='.$modelSolicitud->id.' and idproducto='.$producto->idproducto);
+                $solicitudProducto->obs = $producto->obs;
+                if ($solicitudProducto->save()){
+                    $respuesta++;
+                }else{
+                    print_r($solicitudProducto->getErrors());
+                    $respuesta=0;
+                }
+            endforeach;
+            if($respuesta==count($productos)){
+                $respuesta=1;
+            }else{
+                $respuesta=0;
+            }
+            $response['actualizo'] = $respuesta;
+        }else{
+            $response['errorRechazo'] = 1;
+        }
+        echo json_encode($response);
+    }
+}

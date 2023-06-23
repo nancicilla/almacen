@@ -1,0 +1,26 @@
+<?php
+/* @var $this NotaController */
+/* @var $model Nota */
+
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Ver Nota</h1>
+
+<?php $this->widget('zii.widgets.CDetailView', array(
+	'data'=>$model,
+	'attributes'=>array(
+		'numero',
+		'glosa',
+		array(
+			 'name' => 'fecha',
+			 'value'=>Yii::app()->format->datetime(strtotime($model->fecha)),
+		),
+		'eliminado',
+		'usuario',
+		'idtipo',
+	),
+)); ?>		</div>
+	</div>
+</div>

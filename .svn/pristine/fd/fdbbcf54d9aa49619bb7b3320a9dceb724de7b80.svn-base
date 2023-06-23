@@ -1,0 +1,55 @@
+<?php
+/* @var $this AlmacenproductonotaController */
+/* @var $data Almacenproductonota */
+?>
+
+<div class="view">
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('glosa')); ?>:</b>
+	<?php echo CHtml::encode($data->glosa); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('costo')); ?>:</b>
+	<?php echo CHtml::encode($data->costo); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('precio')); ?>:</b>
+	<?php echo CHtml::encode($data->precio); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('ingreso')); ?>:</b>
+	<?php echo CHtml::encode($data->ingreso); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('salida')); ?>:</b>
+	<?php echo CHtml::encode($data->salida); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('saldo')); ?>:</b>
+	<?php echo CHtml::encode($data->saldo); ?>
+	<br />
+
+	<?php /*
+	<b><?php echo CHtml::encode($data->getAttributeLabel('eliminado')); ?>:</b>
+	<?php echo CHtml::encode($data->eliminado); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('usuario')); ?>:</b>
+	<?php echo CHtml::encode($data->usuario); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('idalmacen')); ?>:</b>
+	<?php echo CHtml::encode($data->idalmacen); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('idproducto')); ?>:</b>
+	<?php echo CHtml::encode($data->idproducto); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('idnota')); ?>:</b>
+	<?php echo CHtml::encode($data->idnota); ?>
+	<br />
+
+	*/ ?>
+
+</div>

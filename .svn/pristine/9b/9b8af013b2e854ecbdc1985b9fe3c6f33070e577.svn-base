@@ -1,0 +1,84 @@
+var Notaborrador = new Object();
+Notaborrador.__proto__ = SystemWindow;
+//variables
+Notaborrador.nameView = "Notaborrador";
+Notaborrador.url = "notaborrador";
+
+Notaborrador.init = function () {  
+    try {   
+        $('#Proveedor_pais').live('change', function (e)
+        {
+            admProveedor.filtrarDepartamento($(this).val());
+        });
+    } catch (err) {
+        alert('Error al cargar Notaborrador.init()');
+    }
+    this.gridSearchVars('Productonotaborrador','&idalmacn='+$('#' + this.Id("idalmacenOrigen")).val());
+    $('#' + this.Id("idalmacenOrigen")).live('change', function (e)
+        {
+            Notaborrador.filtrarDepartamento($(this).val());
+            Notaborrador.gridReset('Productonotaborrador');
+            Notaborrador.gridSearchVars('Productonotaborrador','&idalmacn='+$(this).val());
+        });
+}
+
+Notaborrador.options = function () {
+    this.setActions('create', {
+        WindowTitle: 'Crear Notaborrador',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {        
+        WindowTitle: 'Modificar Notaborrador',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('registrarTraspaso', {        
+        WindowTitle: 'Registrar Traspaso',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Notaborrador',
+        WindowWidth: 250,
+        WindowHeight: 255,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+
+Notaborrador.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    return error;
+}
+Notaborrador.afterCreate = function () {
+    Notaborrador.reload();
+}
+
+Notaborrador.beforeUpdate = function () {
+    var error = false;//false es no existe error antes de actulizar formulario
+    return error;
+}
+Notaborrador.afterUpdate = function () {
+    Notaborrador.closeWindow();
+}
+
+Notaborrador.registrarTraspaso = function(options){
+    this.action='registrarTraspaso';      
+       var options=this.options();
+       options['WindowTitle']=(this.layer[this.action]!=null && this.layer[this.action]['WindowTitle']!=null)?this.layer[this.action]['WindowTitle']:this.action;
+       options['WindowWidth']= 725,
+       options['WindowHeight']= 425,
+       options.url=this.url+'/registrarTraspaso';
+       this.open(options);   
+}

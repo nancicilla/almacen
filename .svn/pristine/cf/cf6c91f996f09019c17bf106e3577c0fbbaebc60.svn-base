@@ -1,0 +1,250 @@
+<?php
+
+/**
+ * This is the model class for table "productonota".
+ *
+ * The followings are the available columns in table 'productonota':
+ * @property string $glosa
+ * @property string $costo
+ * @property string $ingreso
+ * @property string $salida
+ * @property string $saldo
+ * @property string $fecha
+ * @property boolean $eliminado
+ * @property integer $idproducto
+ * @property integer $idnota
+ *
+ * The followings are the available model relations:
+ * @property Producto $idproducto0
+ * @property Nota $idnota0
+ */
+class Productonota extends CActiveRecord
+{
+    public $notaNumero;//número de nota a la cual corresponde el movimiento
+    public $fechaInicio;//busqueda entre rangos
+    public $fechaFin;//busqueda entre rangos
+    public $nombreProducto;//nombre del producto que corresponde al movimiento
+    public $nombreCompletoProducto;//variable auxiliar que almacen el nombre del
+                                    //completo del producto
+    public $notaTipo; // tipo de nota al que corresponde el movimiento
+    public $idalmacen;
+    
+        public function primaryKey()
+        {
+            //IMPORTANTE! en este orden se obtienen los ids en $keyvalue de 
+            //la extension.
+             return array('idyii');
+        }      
+ 
+        public function init()
+        {
+          $this->idproducto = -1;
+        }
+    /**
+	 * @return string the associated database table name
+	 */
+	public function tableName()
+	{
+		return 'productonota';
+	}
+
+	/**
+	 * @return array validation rules for model attributes.
+	 */
+	public function rules()
+	{
+		// NOTE: you should only define rules for those attributes that
+		// will receive user inputs.
+		return array(
+                    	array('fecha', 'required','except'=>'search,checked'),
+                        array('fecha', 'type', 'type' => 'date', 'message' => 'Fecha no es una fecha válida.','dateFormat'=>Yii::app()->locale->getDateFormat('medium')),
+                        array('notaNumero','numerical', 'integerOnly'=>true,'message'=>'El Nº de nota debe ser un número entero.'),
+			array('idproducto, idnota', 'numerical', 'integerOnly'=>true),
+                        array('idproducto','required'),
+                    	array('costo, ingreso, salida, saldo', 'numerical', 'integerOnly'=>false),
+                        array('fechaFin', 'compareDateRange', 'type' => 'date', 'message' => 'Fecha fin no es una fecha válida.', 'dateFormat'=>Yii::app()->locale->getDateFormat('medium')),
+                        array('fechaInicio', 'type', 'type' => 'date', 'message' => 'Fecha inicio no es una fecha válida.','dateFormat'=>Yii::app()->locale->getDateFormat('medium')),
+                        array('fechaFin', 'type', 'type' => 'date', 'message' => 'Fecha fin no es una fecha válida.','dateFormat'=>Yii::app()->locale->getDateFormat('medium')),
+                        array('fechaFin,fechaInicio', 'required','on'=>'checked'), 	
+			array('idproducto,glosa, costo,  ingreso, salida, saldo, eliminado', 'safe'),
+                    	array('costo, ingreso, salida, saldo, eliminado', 'safe'),                   
+                        array('nombreProducto,codigoProducto,nombreCompletadoProducto', 'safe'),
+			// The following rule is used by search().
+			// @todo Please remove those attributes that should not be searched.
+			array('glosa, costo,  ingreso, salida, saldo, fecha,'
+                            . 'notaNumero,notaTipo,fechaInicio,fechaFin,'
+                            . ' eliminado, idproducto, idnota', 'safe', 'on'=>'search'),
+		);
+	}
+
+	/**
+	 * @return array relational rules.
+	 */
+	public function relations()
+	{
+		// NOTE: you may need to adjust the relation name and the related
+		// class name for the relations automatically generated below.
+		return array(
+			'idproducto0' => array(self::BELONGS_TO, 'Producto', 'idproducto'),
+			'idnota0' => array(self::BELONGS_TO, 'Nota', 'idnota'),
+		);
+	}
+
+	/**
+	 * @return array customized attribute labels (name=>label)
+	 */
+	public function attributeLabels()
+	{
+		return array(
+			'glosa' => 'Glosa',
+			'costo' => 'Costo',			
+			'ingreso' => 'Ingreso',
+			'salida' => 'Salida',
+			'saldo' => 'Saldo',
+			'fecha' => 'Fecha',
+			'eliminado' => 'Eliminado',
+			'idproducto' => 'Idproducto',
+			'idnota' => 'Idnota',
+                        'nombreProducto'=>'Producto',
+                        'fechaInicio'=>'Fecha desde',
+                        'fechaFin'=>'Fecha hasta',
+                        'glosa'=>'Descripción'
+		);
+	}
+
+	/**
+	 * Retrieves a list of models based on the current search/filter conditions.
+	 *
+	 * Typical usecase:
+	 * - Initialize the model fields with values from filter form.
+	 * - Execute this method to get CActiveDataProvider instance which will filter
+	 * models according to data in model fields.
+	 * - Pass data provider to CGridView, CListView or any similar widget.
+	 *
+	 * @return CActiveDataProvider the data provider that can return the models
+	 * based on the search/filter conditions.
+	 */
+	public function search()
+	{
+	
+            $criteria=new CDbCriteria;
+            $criteria->with = array('idnota0', 'idnota0.idtipo0');
+            
+            if ($this->validate()) {
+                Yii::app()->session['mostrarReporteKardex']=true;
+                $criteria->compare('costo',$this->costo);
+                $criteria->compare('ingreso',$this->ingreso);
+                $criteria->compare('salida',$this->salida);
+                $criteria->compare('saldo',$this->saldo);
+                if ($this->fecha != Null) {
+                    $criteria->addCondition("t.fecha::date = '" . $this->fecha . "'");
+                }
+                    
+                $criteria->compare('idalmacen',$this->idalmacen);                  
+                        
+                if ($this->notaNumero != Null) {
+                    $criteria->addCondition("numero = " .(int)$this->notaNumero . "");
+                }
+                                
+                if ($this->notaTipo != Null) {
+                    $criteria->addCondition("idtipo0.nombre ilike '%".$this->notaTipo."%'");
+                }
+                
+                if ($this->glosa != Null) {
+                    $criteria->addCondition("t.glosa ilike '%".$this->glosa."%'");
+                }
+                
+                if ($this->fechaInicio != Null) {
+                    if ( $this->fechaFin == Null){
+                        $this->fechaFin=new CDbExpression('NOW()');
+                    }                        
+                    $criteria->addCondition("t.fecha::date BETWEEN '$this->fechaInicio' AND '$this->fechaFin'");
+                }               
+                
+                $criteria->compare('eliminado',$this->eliminado);
+                $criteria->compare('idnota',$this->idnota);
+                $criteria->compare('idproducto',$this->idproducto);
+            }
+        else{
+            Yii::app()->session['mostrarReporteKardex']=false;
+            $criteria->compare('idnota',-10);                
+        }
+        Yii::app()->session['productonotaReporteKardex'] =  $this->findAll($criteria);
+        return new CActiveDataProvider($this, 
+            array(
+                'criteria'=>$criteria,
+                'pagination'=>array(
+                    'pageSize'=> Yii::app()->user->getState('pageSize',Yii::app()->params['defaultPageSize']),
+                ), 
+                'sort'=>array(
+                    'defaultOrder' => 't.fecha desc',
+                    'attributes'=>array(
+                        'notaNumero'=>array(
+                            'asc'=>'idnota0.numero',
+                            'desc'=>'idnota0.numero DESC',
+                        ),
+                        'notaTipo'=>array(
+                            'asc'=>'idtipo0.nombre',
+                            'desc'=>'idtipo0.nombre DESC',
+                        ),
+                        '*',
+                    ),
+                ),
+            )
+        );
+        }
+
+	/**
+	 * @return CDbConnection the database connection used for this class
+	 */
+	public function getDbConnection()
+	{
+		return Yii::app()->almacen;
+	}
+
+	/**
+	 * Returns the static model of the specified AR class.
+	 * Please note that you should have this exact method in all your CActiveRecord descendants!
+	 * @param string $className active record class name.
+	 * @return Productonota the static model class
+	 */
+	public static function model($className=__CLASS__)
+	{
+		return parent::model($className);
+	}
+             
+  
+        /**
+         *
+         * Sentencias entes de ejecutar metodo save
+	 * Antes de guardar se cambia todos los campos  de tipo character
+         * varying y text a mayúsculas
+         * Si existe el campo fecha, este toma el valor de la fecha actual antes
+         * de almacenarse
+         * Si existe el campo usuario, toma el valor del usuario actual antes de
+         * almacenarse
+	 * 
+	 */
+        public function beforeSave() {
+		$this->glosa=strtoupper($this->glosa);
+		$this->fecha= new CDbExpression('NOW()');
+            return parent::beforeSave();            
+        }
+        
+         /**
+         *
+         * Sirve para comparar un rango de fechas, verifica que la fecha posterior
+         * sea mayor a la fecha inicial, de no ser asi, se añade un error
+	 * 
+	 */
+        public function compareDateRange($attribute,$params) {
+        if(!empty($this->fechaFin)) {
+            if(strtotime($this->fechaFin) < strtotime($this->fechaInicio)) {
+                $this->addError($attribute,'Fecha fin no puede ser menor a la fecha de inicio.');
+            }
+        }
+        }
+
+
+
+}

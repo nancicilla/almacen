@@ -1,0 +1,495 @@
+<?php
+
+/*
+ * TraspasotpvController.php
+ *
+ * Version 0.$Rev: 286 $
+ *
+ * Creacion: 01/11/2017
+ *
+ * Ultima Actualizacion: $Date: 2015-10-13 09:08:14 -0400 (mar 13 de oct de 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+
+class TraspasotpvController extends Controller {
+    /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+
+    /*
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+
+    public function filters() {
+        return array_merge(
+                array(
+                    'accessControl',
+                    array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+                )
+        );
+    }
+
+    /*
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+
+    private function _publicActionsList() {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',
+        );
+    }
+
+    public function accessRules() {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+
+    /**
+     * Creates a new model.
+     */
+    public function actionCreate() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Traspasotpv;
+        $model->scenario = 'create';
+        $model->idestado = Estadotpv::TRASPASO;
+        $gridSolicitudProducto = array();
+        $almacenes = array();
+
+        if (isset($_POST['Traspasotpv'])) {
+            $disponible = $_POST['Traspasotpv']['disponible'];
+            if (!isset($_POST['gridTraspasoproducto'])) {
+                echo System::hasErrors('No existe Productos para Solicitar Traspaso! ', $model);
+                return;
+            }
+            if ($disponible == 1) {
+                $model->attributes = $_POST['Traspasotpv'];
+                $model->numero = Traspasotpv::model()->generarNumero();
+                $model->idalmacen = $model->idalmacenorigen;
+                if ($model->save()) {
+                    $productos = $_POST['gridTraspasoproducto'];
+                    $cantidad = count($productos);
+                    for ($i = 1; $i <= $cantidad; $i++) {
+                        $dato = $productos[$i];
+                        $modelTraspasoProducto = new Traspasoproductotpv;
+                        $modelTraspasoProducto->cantidadsolicitada = 0;
+                        $modelTraspasoProducto->cantidadenviada = $dato['cantidadenviada'];
+                        $modelTraspasoProducto->idproducto = $dato['idproducto'];
+                        $modelTraspasoProducto->idtraspaso = $model->id;
+                        $modelTraspasoProducto->save();
+                        Producto::model()->actualizaSaldoSolicitud($dato['idproducto'], $dato['cantidadenviada']);
+                    }
+                    $agencia = Yii::app()->almacen->createCommand("select nombre from almacen where id = ". $model->idalmacenorigen)->queryScalar();
+                    $idcontracuenta = Yii::app()->almacen->createCommand("select idcuenta from almacen where id = ". $model->idalmacenorigen)->queryScalar();
+//                    $agencia = Almacen::model()->find('id=' . $model->idalmacenorigen)->nombre;
+                    $arrayParametros = array(
+                        'productosorigen' => $productos,
+                        'glosa' => 'TRASPASO ENTRE ALMACENES POR TRASPASO N° ' . $model->numero . ' - ' . $agencia,
+                        'idtraspaso' => $model->id,
+                        'idalmacendestino' => $model->idalmacendestino,
+                        'idcontracuenta' => $idcontracuenta,
+                    );
+                    $erroresSalida = $this->registroSalidaTraspasoAlmacenes($arrayParametros);
+                    if ($erroresSalida['error']) {
+                        echo System::hasErrors($erroresSalida['mensaje']);
+                        return;
+                    }
+                    echo System::dataReturn('Creación exitosa!', array('id' => SeguridadModule::enc($model->id)));
+                    return;
+                } else {
+                    echo System::hasErrors('Revise los datos! ', $model);
+                    return;
+                }
+            } else {
+                echo System::hasErrors('No existe cantidad disponible para realizar el traspaso! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('create', array(
+            'model' => $model,
+            'gridSolicitudProducto' => $gridSolicitudProducto,
+            'almacenes' => $almacenes,
+                ), false, true);
+    }
+
+    /**
+     * Updates a particular model.
+     * @param integer $id the ID of the model to be updated
+     */
+    public function actionUpdate($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = $this->loadModel(SeguridadModule::dec($id));
+        $idtraspaso = SeguridadModule::dec($id);
+        $model->scenario = 'update';
+        $gridSolicitudProducto = Traspasotpv::model()->obtenerProductosDeTraspaso(SeguridadModule::dec($id));
+        $estadoanterior = $model->idestado;
+        $model->estadoanterior = $estadoanterior;
+
+        if (isset($_POST['Traspasotpv'])) {
+            //--- init control value --
+            $reserva = false;
+            $cambioEstado = false;
+            $disponible = $_POST['Traspasotpv']['disponible'];
+            if (!isset($_POST['gridTraspasoproducto'])) {
+                echo System::hasErrors('No existe Productos para Solicitar Traspaso! ', $model);
+                return;
+            }
+            $model->attributes = $_POST['Traspasotpv'];
+            $modelTraspaso = $this->loadModel($idtraspaso);
+            $gridSolicitudProducto = $gridSolicitudProducto->getData();
+            if (($estadoanterior != $model->idestado) && $model->idestado == Estadotpv::BORRADOR) {
+                for ($i = 1; $i <= count($gridSolicitudProducto); $i++) {
+                    $dato = $gridSolicitudProducto[$i - 1];
+                    Producto::model()->quitarReservaSolicitud($dato['idproducto'], $dato['cantidadsolicitada']);
+                }
+            }
+            if ($model->save()) {
+                Traspasoproductotpv::model()->deleteAllByAttributes(array('idtraspaso' => $idtraspaso));
+                $productos = $_POST['gridTraspasoproducto'];
+                $respuesta = Traspasoproductotpv::model()->registrarTraspasoProducto( $idtraspaso, $productos);
+                
+                if ($respuesta['error']) {
+                    echo System::hasErrors($respuesta['mensaje']);
+                    return;
+                }
+
+                if ($estadoanterior != $model->idestado) {
+                    $cambioEstado = true;
+                    if ($estadoanterior == Estadotpv::BORRADOR && $model->idestado == Estadotpv::SOLICITUD) {
+                        if ($disponible == 1) {
+                            $reserva = true;
+                        }
+                    }
+                    if ($estadoanterior == Estadotpv::SOLICITUD && $model->idestado == Estadotpv::BORRADOR) {
+                        $reserva = false;
+                    }
+                }
+                if ($reserva) {
+                    for ($i = 1; $i <= count($productos); $i++) {
+                        $dato = $productos[$i];
+                        Producto::model()->actualizaReservaSolicitud($dato['idproducto'], $dato['cantidadsolicitada']);
+                    }
+                } else {
+                    $modelTraspaso = $this->loadModel($model->id);
+                    $modelTraspaso->idestado = Estadotpv::BORRADOR;
+                    $modelTraspaso->save();
+                }
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('update', array(
+            'model' => $model,
+            'gridSolicitudProducto' => $gridSolicitudProducto,
+                ), false, true);
+    }
+
+    /**
+     * Deletes safely a particular model.
+     * If deletion is successful, the browser will be redirected to the 'admin' page.
+     * @param integer $id the ID of the model to be deleted
+     */
+    public function actionDelete($id) {
+        $this->loadModel(SeguridadModule::dec($id))->safeDelete();
+        self::actionAdmin();
+    }
+
+    /**
+     * Manages all models.
+     */
+    public function actionAdmin() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Traspasotpv('search');
+        $model->unsetAttributes();  // clear any default values
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Traspasotpv'])) {
+            $model->attributes = $_GET['Traspasotpv'];
+            if (!$model->validate()) {
+                echo System::hasErrorSearch($model);
+                return;
+            }
+        }
+
+        $this->renderPartial('admin', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return Traspasotpv the loaded model
+     * @throws CHttpException
+     */
+    public function loadModel($id) {
+        $model = Traspasotpv::model()->findByPk($id);
+        if ($model === null)
+            throw new CHttpException(404, 'The requested page does not exist.');
+        return $model;
+    }
+
+    /**
+     * Performs the AJAX validation.
+     * @param Traspasotpv $model the model to be validated
+     */
+    protected function performAjaxValidation($model) {
+        if (isset($_POST['ajax']) && $_POST['ajax'] === 'traspasotpv-form') {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+    }
+
+    /**
+     * Confirma las Solicitudes y genera las notas de salida correspondiente, y quita la reserva y actualiza saldo
+     * @param integer $id el id de la nota borrador a confirmarse
+     */
+    public function actionRegistrarConfirmacion($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = $this->loadModel(SeguridadModule::dec($id));
+        $idTraspaso = SeguridadModule::dec($id);
+        $model->setScenario('confirmacion');
+        $model->scenario = 'confirmacion';
+        $gridSolicitudProducto = Traspasotpv::model()->obtenerProductosDeTraspaso(SeguridadModule::dec($id));
+
+        if (isset($_POST['Traspasotpv'])) {
+            $productos = $_POST['gridTraspasoproducto'];
+            $model->idestado = Estadotpv::TRASPASO;
+            if ($model->save()) {
+                $productosVerificar = $_POST['gridTraspasoproducto'];
+                $productosSolicitados = array();
+                $productosDemasia = array();
+                $agencia = Yii::app()->almacen->createCommand("select nombre from almacen where id = ". $model->idalmacenorigen)->queryScalar();
+                $idcontracuenta = Yii::app()->almacen->createCommand("select idcuenta from almacen where id = ". $model->idalmacenorigen)->queryScalar();
+//                $agencia = Almacen::model()->find('id=' . $model->idalmacenorigen)->nombre;
+                for ($i = 1; $i <= count($productosVerificar); $i++) {
+                    $productoVerificar = $productosVerificar[$i];
+                    if ($productoVerificar['cantidadsolicitada'] < $productoVerificar['cantidadenviada']) {
+                        array_push($productosDemasia, $productoVerificar);
+                    } else {
+                        array_push($productosSolicitados, $productoVerificar);
+                    }
+                }
+
+                //----------- Realiza Confirmacion y notas de salida
+                $nombreAlmacenOrigen = Yii::app()->almacen->createCommand("select nombre from almacen where id = ". $model->idalmacenorigen)->queryScalar();
+//                $nombreAlmacenOrigen = Almacen::model()->find('id = ' . $model->idalmacenorigen)->nombre;
+                $arrayParametros = array(
+                    'productosorigen' => $productos,
+                    'glosa' => 'TRASPASO ENTRE ALMACENES POR SOLICITUD N° ' . $model->numero . ' - ' . $agencia,
+                    'idtraspaso' => $idTraspaso,
+                    'idalmacendestino' => $model->idalmacendestino,
+                    'idcontracuenta' => $idcontracuenta,
+                );
+
+                $erroresSalida = $this->registroSalidaTraspasoAlmacenes($arrayParametros);
+
+                if ($erroresSalida['error']) {
+                    echo System::hasErrors($erroresSalida['mensaje']);
+                    return;
+                }
+
+                $productoTraspaso = $_POST['gridTraspasoproducto'];
+                foreach ($productoTraspaso as $producto):
+//                    Producto::model()->quitarReservaSolicitud($producto['idproducto'], $producto['cantidadenviada']);
+                    Producto::model()->actualizaSaldoSolicitud($producto['idproducto'], $producto['cantidadenviada']);
+                    $modelTraspasoProducto = Traspasoproductotpv::model()->findByPk($producto['id']);
+                    $modelTraspasoProducto->cantidadenviada = $producto['cantidadenviada'];
+                    $modelTraspasoProducto->save();
+                endforeach;
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('confirmacion', array(
+            'model' => $model,
+            'gridSolicitudProducto' => $gridSolicitudProducto,
+                ), false, true);
+    }
+
+    /**
+     * Registro de la nota y productonota al realizar el traspaso, este registro ocurre por salida del almacen destino
+     * @param type $idalmacenorigen
+     * @param type $idalmacendestino
+     * @param type $productosorigen
+     * @param type $productosdestino
+     * @param type $glosa
+     * @return array
+     */
+    public function registroSalidaTraspasoAlmacenes($arrayParametros) {
+        $productos = $arrayParametros['productosorigen'];
+        $glosa = $arrayParametros['glosa'];
+        $idtraspaso = $arrayParametros['idtraspaso'];
+        $idcontracuenta = $arrayParametros['idcontracuenta'];
+
+        $nota = new Nota;
+        $nota->scenario = 'Traspaso';
+        $nota->idtipo = Tipo::model()->SALIDA; //INGRESO
+        $nota->idtipodocumento = Tipodocumento::TRASPASO;
+        $nota->glosa = $glosa;
+        $nota->numero = $nota->generarNumero();
+        $nota->setScenario("TraspasoEntreAlmacenes");
+        $idcuenta = FtblMoodleCuentasespeciales::TRANSITO;
+//        $nota->idcontracuenta = Yii::app()->tpv->createCommand("select idcuenta from ftbl_moodle_cuentasespeciales where id = " . $idcuenta)->queryScalar();
+        $nota->idcontracuenta = $idcontracuenta;
+        $nota->iddocumento = $idtraspaso;
+        $nota->idalmacen = $arrayParametros['idalmacendestino'];
+        $nota->idestado = Estado::model()->idEstadoVigente;
+
+        $nota->total = 0;
+        for ($k = 1; $k <= count($productos); $k++) {
+            if (isset($productos[$k]['cantidadsolicitada'])){
+                if ($productos[$k]['cantidadenviada'] > $productos[$k]['cantidadsolicitada']) {
+                    $nota->total += ($productos[$k]['cantidadenviada'] - $productos[$k]['cantidadsolicitada']);
+                } else {
+                    $nota->total += $productos[$k]['cantidadenviada'];
+                }
+            }else{
+                 $nota->total += $productos[$k]['cantidadenviada'];
+            }
+        }
+
+        if ($nota->save()) {
+            Productonota::model()->registrarProductoNota_TraspasoEntreAlmacenesTpv($nota->id, $productos, $nota->numero, Tipo::model()->SALIDA, Tipodocumento::TRASPASO, $glosa);
+            return array('mensaje' => 'Sin errores', 'numeroNota' => $nota->numero, 'error' => false, 'idnota' => $nota->id);
+        } else {
+            print_r($nota->getErrors());
+            return array('mensaje' => 'No se pudo guardar la nota', 'error' => true);
+        }
+    }
+
+    /*
+     * Buscador de Código de Barras
+     */
+
+    public function actionBuscacodigoBarra() {
+        if (isset($_POST['codigobarra'])) {
+            $idalmacen = isset($_POST['idalmacen']) ? $_POST['idalmacen'] : '';
+            $productoExcluido = null;
+
+            $model = Producto::model()->find('coduniversal = ' . $_POST['codigobarra'] . ' and idalmacen =' . $_POST['idalmacen']);
+            if ($model == null)
+                echo 0;
+            else {
+                $arrayDatosProducto = array(
+                    'id' => $model->id,
+                    'idproducto' => $model->id,
+                    'codigobarra' => $model->coduniversal,
+                    'codigo' => $model->codigo,
+                    'nombre' => $model->nombre,
+                    'saldo' => $model->saldo,
+                    'reserva' => $model->reserva,
+                    'saldoDisponible' => $model->saldo - $model->reserva,
+                    'unidad' => $model->idunidad > 0 ? Unidad::model()->find('id = ' . $model->idunidad)->simbolo : '',
+                );
+                echo json_encode($arrayDatosProducto);
+            }
+        }
+    }
+
+    /**
+     * Genera un reporte de Traspaso
+     * @param type $id de traspaso
+     * @throws CrugeException
+     */
+    public function actionReporteTraspaso($id) {
+
+        $txt = SeguridadModule::dec($id);
+        $model = Traspasotpv::model()->findByPk($txt);
+        $re = new JasperReport('/reports/Tpv/traspaso', JasperReport::FORMAT_PDF, array(
+            'pId' => $model->id,
+            'pIdalmacen' =>$model->idalmacenorigen,
+            'pUsuario' => Yii::app()->user->getName(),
+            'formatNumberProduccion' => Yii::app()->params['formatNumberProduccion'],
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+
+        $re->exec();
+
+        if ($re->getPages() > 0) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+
+    /**
+     * Devuelve la lista de almacenes destino disponibles
+     */
+    public function actionFiltrarAlmacenDestino($idAlmacenDestino) {
+
+        $command = Yii::app()->almacen->createCommand();
+        $almacenes= $command->select('id,nombre')->from('almacen')->where('id not in (:idalmacendestino) and 
+                    case when  (select COALESCE(idalmacen,0) from almacen where id =:idalmacendestino)>0 then
+                            idalmacen = (select idalmacen from almacen where id =:idalmacendestino ) or id = (select idalmacen from almacen where id =:idalmacendestino )
+                        else idalmacen = :idalmacendestino end',array(':idalmacendestino'=>$idAlmacenDestino))->queryAll();
+        header("Content-type: application/json");
+        echo CJSON::encode($almacenes);
+    }
+
+    public function actionAutocompleteProducto() {
+        $request = trim($_GET['term']);
+
+        if ($request != '') {
+            $producto = new Producto;
+            $productos = $producto->buscarProducto($request);
+            $model = $productos->getData();
+            $data = array();
+
+            foreach ($model as $get) {
+                $data[] = array('value' => $get->nombre,
+                    'label' => '[' . $get->codigo . '] ' . $get->nombre,
+                    'idproducto' => $get->id
+                );
+            }
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+}

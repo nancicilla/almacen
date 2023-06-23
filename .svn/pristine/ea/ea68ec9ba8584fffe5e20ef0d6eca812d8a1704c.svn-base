@@ -1,0 +1,504 @@
+<?php
+/*
+ * Nota.php
+ *
+ * Version 0.$Rev$
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date$:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ *
+ * This is the model class for table "nota".
+ *
+ * The followings are the available columns in table 'nota':
+ * @property integer $id
+ * @property integer $numero
+ * @property string $glosa
+ * @property string $fecha
+ * @property boolean $eliminado
+ * @property string $usuario
+ * @property integer $idtipo
+ * @property integer $idorigen
+ * @property integer $idnotaborrador
+ * @property string $total
+ * @property integer $idchofer
+ * @property integer $idestado
+ * @property string $descripcion
+ * @property string $fechaentrega
+ *
+ * The followings are the available model relations:
+ * @property Productonota[] $productonotas
+ * @property Origen $idorigen0
+ * @property Tipo $idtipo0
+ * @property Tipodocumento $idtipodoc0
+ * @property Estado $idestado0
+ * @property Chofer $idchofer0
+ */
+class Nota extends CActiveRecord {
+    public $idalmacenorigen;
+    public $idalmacendestino;
+    
+    public $notaTipo; //tipo de nota al que corresponde el movimiento
+    public $fechaInicio; //busqueda entre rangos
+    public $fechaFin; //busqueda entre rangos
+    public $idcausa;
+    public $idalmacen;
+    public $idalmacenOrigen;
+    public $idalmacenDestino;
+    public $idtipodocumento;
+    public $norden;
+    public $detalle;
+    public $costovariable;
+    public $pedidoEspecial;
+    public $color;
+    
+    /**
+     * Crea un ámbito por defecto que permite añadir condiciones al modelo
+     */
+    public function defaultScope() {
+        
+       if (Yii::app()->user->getName() == 'invitado') {
+            return array(
+                'condition' => $this->getTableAlias(false, false) .
+                '.eliminado = false'
+            );
+        } else {
+            return array(
+                'condition' => $this->getTableAlias(false, false) .
+                '.eliminado = false'
+                . ' and ' . $this->getTableAlias(false, false) .
+                '.idalmacen in (select unnest(\'{' . CrugeModule::checkAccessAlmacen() . '}\'::int[]))',
+            );
+        }
+    }
+
+    /**
+     * @return string the associated database table name
+     */
+
+    public function tableName() {
+        return 'nota';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules() {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            array('idalmacenOrigen,idalmacenDestino, glosa', 'required', 'on' => array('traspaso')),
+            array('idorigen,idalmacen,idtipodocumento,idcausa', 'required', 'on' => array('insert', 'update'), 'except' => 'correccionsistema'),
+            array('idtipodocumento', 'required', 'on' => array('salidaVenta')),
+            array('fecha', 'type', 'type' => 'date', 'message' => 'Fecha no es una fecha válida.', 'dateFormat' => Yii::app()->locale->getDateFormat('medium'),'on'=>array('insert','update','search')),
+            array('numero', 'numerical', 'integerOnly' => true, 'message' => 'El Nº de nota debe ser un número entero.'),
+            array('idtipo, idorigen,cantidadcaja,iddetallenota', 'numerical', 'integerOnly' => true),
+            array('usuario', 'length', 'max' => 30),
+            array('fechaFin', 'compareDateRange', 'type' => 'date', 'message' => 'Fecha fin no es una fecha válida.', 'dateFormat' => Yii::app()->locale->getDateFormat('medium')),
+            array('fechaInicio', 'type', 'type' => 'date', 'message' => 'Fecha inicio no es una fecha válida.', 'dateFormat' => Yii::app()->locale->getDateFormat('medium')),
+            array('fechaFin', 'type', 'type' => 'date', 'message' => 'Fecha fin no es una fecha válida.', 'dateFormat' => Yii::app()->locale->getDateFormat('medium')),
+            array('fechaFin,fechaInicio', 'required', 'on' => 'checked'),
+            array('glosa, eliminado,descripcion,idchofer,cantidadcaja,idcausa', 'safe'),
+            // The following rule is used by search().
+            // @todo Please remove those attributes that should not be searched.
+            array('idalmacen,norden,notaTipo,id, numero, glosa, fecha, eliminado,fechaInicio,fechaFin,'
+                . 'usuario, idtipo, idorigen,total,idchofer, idtipodocumento, '
+                . 'idestado, descripcion, fechaentrega, idcausa',
+                'safe', 'on' => 'search'),
+        );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations() {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+            'productonotas' => array(self::HAS_MANY, 'Productonota', 'idnota'),
+            'idorigen0' => array(self::BELONGS_TO, 'Origen', 'idorigen'),
+            'idtipo0' => array(self::BELONGS_TO, 'Tipo', 'idtipo'),
+            'idtipodoc0' => array(self::BELONGS_TO, 'Tipodocumento', 'idtipodocumento'),
+            'idestado0' => array(self::BELONGS_TO, 'Estado', 'idestado'),
+            'idalmacen0' => array(self::BELONGS_TO, 'Almacen', 'idalmacen'),
+            'idchofer0' => array(self::BELONGS_TO, 'Chofer', 'idchofer'),
+            'iddetallenota0' => array(self::BELONGS_TO, 'Detallenota', 'iddetallenota'));
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels() {
+        return array(
+            'id' => 'ID',
+            'norden' => 'Nº O.P.',
+            'numero' => 'Nº Nota',
+            'glosa' => 'Glosa',
+            'fecha' => 'Fecha',
+            'eliminado' => 'Eliminado',
+            'usuario' => 'Usuario',
+            'idtipo' => 'Movimiento',
+            'idorigen' => 'Origen',
+            'fechaInicio' => 'Fecha desde',
+            'fechaFin' => 'Fecha hasta',
+            'total' => 'Total',
+            'idchofer' => 'Chofer',
+            'iddetallenota' => 'Detalle',
+            'idestado' => 'Idestado',
+            'descripcion' => 'Descripción',
+            'fechaentrega' => 'Fechaentrega',
+            'cantidadcaja'=> 'Cantidad de cajas',
+            'idcausa'=> 'Causa',
+            'idalmacen'=> 'Almacén',
+            'idalmacenOrigen' => 'Almacén Origen',
+            'idalmacenDestino' => 'Almacén Destino',
+            'idtipodocumento' => 'Documento',
+            'notaTipo' => 'Movimiento',
+            'idalmacenorigen'=>'Almacén de Origen',
+            'idalmacendestino'=>'Almacén de Destino',
+        );
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function search() {
+        // @todo Please modify the following code to remove attributes that should not be searched.
+        
+        $criteria = new CDbCriteria;
+        $criteria->with = array('idtipo0','idestado0', 'idtipodoc0');
+        if ($this->validate()) {
+            $criteria->compare('t.id', $this->id);
+            $criteria->compare('t.numero', $this->numero);
+            $criteria->compare('t.idalmacen', $this->idalmacen);
+            if ($this->norden != Null) {
+                $criteria->addCondition("t.glosa ilike '%O.P. Nº " . $this->norden. " %'");
+            }
+            $criteria->addSearchCondition('t.glosa', $this->glosa, true, 'AND', 'ILIKE');
+            if ($this->fecha != Null) {
+                $criteria->addCondition("t.fecha::date = '" . $this->fecha . "'");
+            }
+            if ($this->notaTipo != Null) {
+                $criteria->addCondition("idtipo0.nombre ilike '" . $this->notaTipo . "'");
+            }
+            if ($this->idcausa != Null) {
+                $modelCausa = Causa::model()->find('id = '.$this->idcausa);
+                $criteria->compare('t.idcontracuenta', $modelCausa->idcuenta);
+            }
+            $criteria->compare('t.eliminado',0);
+            $criteria->addSearchCondition('t.usuario', $this->usuario, true, 'AND', 'ILIKE');
+            $criteria->compare('t.idtipo', $this->idtipo);
+            $criteria->compare('t.idorigen', $this->idorigen);
+            $criteria->compare('t.idtipodocumento', $this->idtipodocumento);
+            if ($this->fechaInicio != Null) {
+                if ($this->fechaFin == Null) {
+                    $this->fechaFin = new CDbExpression('NOW()');
+                }
+
+                $criteria->addCondition("t.fecha::date BETWEEN '$this->fechaInicio' AND '$this->fechaFin'");
+            }
+        } else {
+            $criteria->compare('t.idorigen', -10);
+        }
+        Yii::app()->session['notaLote'] = $criteria;
+        
+        return new CActiveDataProvider($this, array(
+            'pagination' => false,
+            'criteria' => $criteria,
+            'sort' => array(
+                'defaultOrder' => 't.numero desc',
+                'attributes' => array(
+                    'notaTipo' => array(
+                        'asc' => 'idtipo0.nombre',
+                        'desc' => 'idtipo0.nombre DESC',
+                    ),
+                    'idestado' => array(
+                        'asc' => 'idestado0.nombre',
+                        'desc' => 'idestado0.nombre DESC',
+                    ),
+                    'idtipodocumento' => array(
+                        'asc' => 'idtipodoc0.nombre',
+                        'desc' => 'idtipodoc0.nombre DESC',
+                    ),
+                    '*',
+                ),
+            ),
+        ));
+    }
+    
+    /*
+     * Muestra las causa de cada nota
+     */
+    public function getMostrarCausa()
+    {
+        if($this->idcontracuenta != null)
+        {
+            $modelCausa = Causa::model()->find('idcuenta = '.$this->idcontracuenta);
+            if($modelCausa == null)
+                return "";
+            else
+                return $modelCausa->nombre;
+        }
+        else
+            return "";
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection() {
+        return Yii::app()->almacen;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Nota the static model class
+     */
+    public static function model($className = __CLASS__) {
+        return parent::model($className);
+    }
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+        if($this->scenario=='traspasoAgencia'
+           || $this->scenario=='CSdocumentoVenta' 
+           || $this->scenario=='anularTraspaso'     
+           || $this->scenario=='salidaVenta'
+           || $this->scenario=='ingresoDevolucion'
+           || $this->scenario=='salidaBajaNotaRecepcion'
+           || $this->scenario=='salidaReprocesoNotaRecepcion'
+           || $this->scenario=='salidaVentaConsignacion'
+           || $this->scenario=='anularVenta'
+           || $this->scenario=='combo'
+           || $this->scenario=='correccionsistema'
+          )
+        {
+            $this->glosa = strtoupper($this->glosa);
+            $this->idestado= Estado::model()->idEstadoVigente;
+            return parent::beforeSave();
+        }
+        if ($this->scenario != 'produccion') {
+            if ($this->scenario == 'despacho') {
+                $this->fechaentrega = new CDbExpression('NOW()');
+                $this->descripcion = strtoupper($this->descripcion);
+            } else {
+                $this->glosa = strtoupper($this->glosa);
+                $this->fecha = new CDbExpression('NOW()');
+                $this->usuario = Yii::app()->user->getName();
+                $this->idestado = Estado::model()->idEstadoVigente;
+            }
+            if (isset(Yii::app()->session['var'])) {
+                $this->usuario = Yii::app()->session['var'];
+            } else
+                $this->usuario = Yii::app()->user->getName();
+        }
+        return parent::beforeSave();
+    }
+
+    /**
+     *
+     * Sirve para comparar un rango de fechas, verifica que la fecha posterior
+     * sea mayor a la fecha inicial, de no ser asi, se añade un error
+     * 
+     */
+    public function compareDateRange($attribute, $params) {
+        if (!empty($this->fechaFin)) {
+            if (strtotime($this->fechaFin) < strtotime($this->fechaInicio)) {
+                $this->addError($attribute, 'Fecha fin no puede ser menor a la fecha de inicio.');
+            }
+        }
+    }
+    
+    /**
+     * Función que genera un numero de orden ya sea consecutivo
+     * o que rellena los numeros faltantes
+     * @return type
+     */
+    public function generarNumero() {
+        return Yii::app()->almacen->createCommand("SELECT MAX(numero) "
+                . "FROM nota where eliminado=false")->queryScalar()+1;
+    }
+    
+    public function registrarSalidaInsumoAdicional($norden, $datosalmacen, $arrayProducto, $usuario, $idnotaborrador) {
+        $retorno = -1;
+        $model = new Nota;
+        $model->scenario = 'produccion';
+        $model->idalmacen = $datosalmacen['idalmacen'];
+        $idalmacenprodproc = Almacen::model()->idAlmacenProductosEnProceso;
+        $model->idcontracuenta = Yii::app()->almacen->createCommand("select idcuenta from almacen where id = " . $idalmacenprodproc)->queryScalar();
+        $model->scenario = 'miUsuario';
+        Yii::app()->session['var'] = $usuario;
+        $glosa = 'SALIDA AD. PARA O.P. Nº ' . $norden . ' - ' . $datosalmacen['producto'];
+        $model->glosa = $glosa;
+        $model->idtipo = Tipo::model()->SALIDA;
+        $model->idtipodocumento = Tipodocumento::model()->ORDEN_PRODUCCION;
+        $model->idorigen = Origen::model()->idOrigenProduccion;
+        $model->numero = Nota::model()->generarNumero();
+        $model->total = 0.00;
+        $model->idnotaborrador = $idnotaborrador;
+        if ($model->save()) {
+            $modelnotaborrador = Notaborrador::model()->findByPk($idnotaborrador);
+            $modelnotaborrador->scenario = 'nota';
+            $modelnotaborrador->eliminado = true;
+            if ($modelnotaborrador->save()) {
+                $cantidad = count($arrayProducto);
+                for ($i = 0; $i < $cantidad; $i++) {
+                    $modelProducto = Producto::model()->findByPk($arrayProducto[$i]['id']);
+                    $modelProductonota = new Productonota;
+                    $modelProductonota->scenario = 'miUsuario';
+                    $modelProductonota->glosa = $glosa;
+                    $modelProductonota->ingreso = 0;
+                    $modelProductonota->salida = round($arrayProducto[$i]['cantidad'], 4);
+                    $modelProductonota->idproducto = $arrayProducto[$i]['id'];
+                    $modelProductonota->idnota = $model->id;
+                    $modelProductonota->saldo = $modelProducto->saldo - $modelProductonota->salida;
+                    //actualizar saldo en Producto
+                    $modelProducto->scenario = 'productonota';
+                    $modelProducto->saldo = $modelProductonota->saldo;
+                    if ($modelProducto->saldo == 0 || $modelProducto->saldoimporte == 0) {
+                        $modelProductonota->salidaimporte = $modelProductonota->salida * $modelProducto->ultimoppp;
+                    } else {
+                        $modelProductonota->salidaimporte = $modelProductonota->salida * ($modelProducto->saldoimporte / $modelProducto->saldo);
+                    }
+                    $modelProducto->saldoimporte -= $modelProductonota->salidaimporte;
+                    if (!$modelProductonota->save()) {
+                        $error = 'No se registró producto nota : numero nota ' . $model->numero;
+                        throw new CException($error);
+                    }
+                }
+            }
+            unset(Yii::app()->session['var']);
+            $retorno = $model->id;
+        } else {
+            $error = 'No se registró la nota';
+            throw new CException($error);
+        }
+        return $retorno;
+    }
+    /**
+     * Validacion de datos en el formualrio de traspaso entre almacenes
+     * @param type $idalmacenorigen
+     * @param type $idalmacendestino
+     * @param type $productosorigen
+     * @param type $productosdestino
+     * @param type $glosa
+     * @return array
+     */
+    public function validarTraspasoEntreAlmacenes($arrayParametros){
+        $idalmacenorigen = $arrayParametros['idalmacenorigen'];
+        $idalmacendestino = $arrayParametros['idalmacendestino'];
+        $productosorigen = $arrayParametros['productosorigen'];
+        $productosdestino = $arrayParametros['productosdestino'];
+        $glosa = $arrayParametros['glosa'];
+        
+        if($idalmacenorigen==null||$idalmacendestino==null){
+            return array('mensaje'=>'El id del almacen no puede estar vacio! ','error'=>true);
+        }
+        
+        /*if($idalmacenorigen==$idalmacendestino){
+            //return array('mensaje'=>'Almacen origen y destino deben ser diferentes! ','error'=>true);
+        }*/
+        if($glosa==""){
+            return array('mensaje'=>'La glosa no puede estar vacia.','error'=>true);
+        }
+        for ($index = 1; $index <= count($productosorigen); $index++) {
+            $item=$productosorigen[$index];
+            if($item['cantidad']==0){
+                return array('mensaje'=>'La cantidad a traspasar del almacen de origen no puede ser 0.','error'=>true);
+            }
+        }
+        
+        $arrayIdsProdcutos = array_column($productosorigen, 'idproducto');
+        for($i = 0; $i < count($arrayIdsProdcutos); $i++)
+        {
+            $modelproducto=  Producto::model()->findByPk($arrayIdsProdcutos[$i]);
+            if($modelproducto != null)
+            {
+                //esta variable nos sirve para comprobar la cantidad total de un producto y compararlo con el disponible del muismo
+                $cantidadTotalProducto=0;
+                foreach ($productosorigen as $value) {
+                    if($value['idproducto']==$modelproducto->id)
+                        $cantidadTotalProducto+=$value['cantidad'];
+                }
+                $disponible=$modelproducto->saldo-$modelproducto->reserva;
+                if($cantidadTotalProducto>$disponible){
+                    $mensaje="La cantidad es mayor al disponible.";
+                    return array('mensaje'=>$mensaje,'error'=>true);               
+                }
+            }
+        }
+        
+        return array('mensaje'=>'Sin errores','error'=>false);
+    }
+    /**
+     * Registro de la nota y productonota al realizar el traspaso, este registro ocurre por salida del almacen de origen
+     * @param type $idalmacenorigen
+     * @param type $idalmacendestino
+     * @param type $productosorigen
+     * @param type $productosdestino
+     * @param type $glosa
+     * @return array
+     */
+    public function registroSalidaTraspasoEntreAlmacenes($arrayParametros){
+        $idalmacenorigen = $arrayParametros['idalmacenorigen'];
+        $idalmacendestino = $arrayParametros['idalmacendestino'];
+        $productosorigen = $arrayParametros['productosorigen'];
+        $productosdestino = $arrayParametros['productosdestino'];
+        $glosa = $arrayParametros['glosa'];
+                
+        $nota = new Nota;
+        
+        //$idtipodocumento=Tipo::model()->SALIDA;//SALIDA
+        $nota->idtipo = Tipo::model()->SALIDA;//INGRESO
+        $nota->idtipodocumento =  Tipodocumento::model()->TRASPASO;// $_POST['Nota']['idtipodocumento'];
+        $nota->idorigen = Origen::model()->ALMACEN;
+        $nota->glosa="TRASPASO ENTRE ALMACENES - ".$glosa;
+        $nota->numero = $nota->generarNumero();
+        $nota->setScenario("TraspasoEntreAlmacenes");
+        $nota->idalmacen = $idalmacenorigen;
+        $idalmacenprodproc = Almacen::model()->idAlmacenProductosEnProceso;
+        $nota->idcontracuenta = Yii::app()->almacen->createCommand("select idcuenta from almacen where id = " . $idalmacenprodproc)->queryScalar();
+        
+        $nota->total=0;                 
+        for($k=1;$k<=count($productosorigen);$k++){            
+            $nota->total+=$productosorigen[$k]['cantidad'];
+        } 
+        
+        if($nota->save()){
+            Productonota::model()->registrarProductoNota_TraspasoEntreAlmacenes($nota->id, $productosorigen, $nota->numero, Tipo::model()->SALIDA,Tipodocumento::model()->TRASPASO,$glosa);        
+            return array('mensaje'=>'Sin errores', 'numeroNota'=>$nota->numero, 'error'=>false, 'idnota'=>$nota->id);
+        }else{
+            return array('mensaje'=>'No se pudo guardar la nota','error'=>true);
+        }
+    }
+
+}

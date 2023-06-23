@@ -1,0 +1,73 @@
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+
+echo System::Search(array(
+    'title' => 'Administración de Productos',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model,), true),
+    'buttons' => array(
+        array('name' => 'print', 'icon' => 'print', 'widthLinks' => 100,
+            'links' => array(
+                array('icon' => 'print', 'url' => 'reporteProductoLote', 'title' => 'Detalle'),
+                array('icon' => 'print', 'url' => 'reporteProductoLista', 'title' => 'Lista'),
+            )
+        ),
+    ),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],    
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admProducto',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'codigo',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'coduniversal',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'nombre',
+                'width' => 38,
+            ),
+            array(
+                'name' => 'idalmacen',
+                'width' => 12,
+                'header' => 'Almacén',
+                'value' => '$data->idalmacen0->nombre',
+               
+            ),
+            array(
+                'name' => 'usuario',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'date',
+                'width' => 10,
+            ),
+            array('typeCol' => 'buttons',
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'width' => 10,
+                'buttons' => array(
+                    'imprimir' => array('icon' => 'print', 'url' => 'array("reporteProductoDetalle","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'options' => array("target" => "_blank")),
+                    'update' => array(
+                        'url' => 'array("update","id"=>SeguridadModule::enc($data->getPrimaryKey()))',                        
+                        ),
+                    'eliminar' => array(
+                        'label' => 'Eliminar',
+                        'icon' => 'trash',                       
+                        'click' => 'function(){
+                            SGridView.selectRow(this);
+                            admProducto.eliminar();
+                            return false;
+                       }',
+                    ),
+                ),
+            ),
+        ),
+            )
+    )
+        )
+);

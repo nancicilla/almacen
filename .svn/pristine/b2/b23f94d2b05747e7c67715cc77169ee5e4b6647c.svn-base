@@ -1,0 +1,43 @@
+<?php
+/* @var $this NotaController */
+/* @var $model Nota */
+/* @var $form CActiveForm */
+?>
+
+<div class="form">
+
+<?php $form=$this->beginWidget('CActiveForm', array(
+	'id'=>'nota-form',
+	// Please note: When you enable ajax validation, make sure the corresponding
+	// controller action is handling ajax validation correctly.
+	// There is a call to performAjaxValidation() commented in generated controller code.
+	// See class documentation of CActiveForm for details on this.
+	'enableAjaxValidation'=>false,
+)); ?>
+
+	<p class="note"><span class="required">*</span> Campos requeridos.</p>
+
+	<?php echo $form->errorSummary($model); ?>
+
+	<div class="row">
+		<?php echo $form->labelEx($model,'numero'); ?>
+		<?php echo $form->textField($model,'numero'); ?>
+		<?php echo $form->error($model,'numero'); ?>
+	</div>
+	<div class="row">
+		<?php echo $form->labelEx($model,'glosa'); ?>
+		<?php echo $form->textArea($model,'glosa',array('rows'=>6, 'cols'=>50,'style' => 'text-transform: uppercase')); ?>
+		<?php echo $form->error($model,'glosa'); ?>
+	</div>
+	<div class="row">
+		<?php echo $form->labelEx($model,'idtipo'); ?>
+		<?php echo $form->textField($model,'idtipo'); ?>
+		<?php echo $form->error($model,'idtipo'); ?>
+	</div>
+	<div class="row buttons">
+		<?php echo TbHtml::submitButton($model->isNewRecord ? 'Crear' : 'Guardar'); ?>
+	</div>
+
+<?php $this->endWidget(); ?>
+
+</div><!-- form -->

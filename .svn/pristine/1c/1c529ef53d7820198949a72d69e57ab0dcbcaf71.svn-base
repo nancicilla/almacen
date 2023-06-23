@@ -1,0 +1,173 @@
+<?php
+
+class ClaseController extends Controller {
+    /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+
+    /*
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+
+    public function filters() {
+        return array_merge(
+                array(
+                    'accessControl',
+                    array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+                )
+        );
+    }
+
+    /*
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+
+    private function _publicActionsList() {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',
+        );
+    }
+
+    public function accessRules() {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+    
+    /**
+     * Funcion que guarda un nuevo registro o actualiza un registro
+     * seleccionado y devuelve si fue exitoso o no en formato JSON
+     */
+    public function actionCreateAjax() {
+        if ($_POST['Clase']['id'] == Null) {
+            $model = new Clase;
+            if (isset($_POST['Clase'])) {
+                $model->attributes = $_POST['Clase'];
+                $this->performAjaxValidation($model);
+                if ($model->save()) {
+                    echo CJSON::encode(['status' => 'success']);
+                } else {
+                    $error = CActiveForm::validate($model);
+                    if ($error != '[]') {
+                        echo CJSON::encode(['status' => 'failed']);
+                    }
+                }
+                Yii::app()->end();
+            }
+        } else {
+            $model = $this->loadModel($_POST['Clase']['id']);
+            if (isset($_POST['Clase'])) {
+                $model->attributes = $_POST['Clase'];
+                $this->performAjaxValidation($model);
+                if ($model->save()) {
+                    echo CJSON::encode(['status' => 'success']);
+                } else {
+                    $error = CActiveForm::validate($model);
+                    if ($error != '[]') {
+                        echo CJSON::encode(['status' => 'failed']);
+                    }
+                }
+                Yii::app()->end();
+            }
+        }
+    }
+
+    /**
+     * Deletes a particular model.
+     * If deletion is successful, the browser will be redirected to the 'admin' page.
+     * @param integer $id the ID of the model to be deleted
+     */
+    public function actionDelete($id) {
+        $this->loadModel(SeguridadModule::dec($id))->delete();
+
+        // if AJAX request (triggered by deletion via admin grid view), we should not redirect the browser
+        if (!isset($_GET['ajax']))
+            $this->redirect(isset($_POST['returnUrl']) ? $_POST['returnUrl'] : array('admin'));
+    }
+
+    /**
+     * Manages all models.
+     */
+    public function actionAdmin() {
+        $model = new Clase('search');
+        $model->unsetAttributes();  // clear any default values
+        Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+            unset($_GET['pageSize']);
+        }
+
+        if (isset($_GET['Clase']))
+            $model->attributes = $_GET['Clase'];
+
+        $this->render('admin', array(
+            'model' => $model,
+        ));
+    }
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return Clase the loaded model
+     * @throws CHttpException
+     */
+    public function loadModel($id) {
+        $model = Clase::model()->findByPk($id);
+        if ($model === null)
+            throw new CHttpException(404, 'The requested page does not exist.');
+        return $model;
+    }
+
+    /**
+     * Performs the AJAX validation.
+     * @param Clase $model the model to be validated
+     */
+    protected function performAjaxValidation($model) {
+        if (isset($_POST['ajax']) && $_POST['ajax'] === 'clase-form') {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+    }
+
+    public function actionAutocomplete() {
+        $request = trim($_GET['term']);
+        $requestMayuscula = strtoupper($request);
+        if ($request != '') {
+            $model = Clase::model()->findAll(array("condition" => "nombre like '%$requestMayuscula%' OR codigo like '%$requestMayuscula%'", "order" => "nombre"));
+            $data = array();
+            foreach ($model as $get) {
+                $data[] = array(
+                    'label' => $get->nombre . ' (' . $get->codigo . ')',
+                    'value' => $get->nombre,
+                    'codigo' => $get->codigo,
+                    'nombre' => $get->nombre,
+                    'id' => $get->id);
+            }
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+
+}

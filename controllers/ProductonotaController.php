@@ -1,0 +1,445 @@
+<?php
+/*
+ * ProductonotaController.php
+ *
+ * Version 0.$Rev: 1033 $
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date: 2020-02-14 11:56:29 -0400 (vie, 14 feb 2020) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+class ProductonotaController extends Controller {
+    /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+
+    /*
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+    public function filters() {
+        return array_merge(
+                array(
+                    'accessControl',
+                    array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+                )
+        );
+    }
+
+    /*
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+    private function _publicActionsList() {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',
+        );
+    }
+
+    public function accessRules() {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+    
+    // -------------------------------------------------------------------------
+    // ------------------------------ KARDEX -----------------------------------
+    /*
+     * Abre el formulario de kardex
+     */
+    public function actionKardex() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Productonota('search');
+        $productos = array();
+        $productonota = array();
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Productonota'])) {
+            $model->attributes = $_GET['Productonota'];
+            if (!$model->validate()) {
+                echo System::hasErrorSearch($model);
+                return;
+            }
+        }
+
+        $model->nameView = isset($_GET['nameView']) ? $_GET['nameView'] : 'Productonota';
+        $this->renderPartial('kardex', array(
+            'model' => $model,
+            'productos' => $productos,
+            'productonota' => $productonota,
+                ), false, true);
+    }
+    
+    /*
+     * Filtra los productos de un determinado "almacen" y por "nombre del producto"
+     */
+    public function actionLoadProductos()
+    {
+        $idalmacen = isset($_GET['idalmacen']) ? $_GET['idalmacen'] : null;
+        $producto = isset($_GET['producto']) ? $_GET['producto'] : null;
+        if($idalmacen == null && $producto == null)
+            $productos = array();
+        else
+            $productos = Producto::model()->getProductos($idalmacen, $producto);
+
+        $this->renderPartial('_productos',array(
+            'productos' => $productos,
+        ), false, true);
+    }
+    
+    /*
+     * Filtra todos los datos de la tabla "productonota"
+     */
+    public function actionLoadProductoNota()
+    {
+        $idproducto = isset($_GET['idproducto']) ? $_GET['idproducto'] : null;
+        $fechaInicio= isset($_GET['fechaInicio']) ? $_GET['fechaInicio'] : null;
+        $fechaFin = isset($_GET['fechaFin']) ? $_GET['fechaFin'] : null;
+        $movimiento = isset($_GET['movimiento']) ? $_GET['movimiento'] : null;
+        $origen = isset($_GET['origen']) ? $_GET['origen'] : null;
+
+        if($idproducto == null && $fechaInicio == null && $fechaFin == null)
+            $productonota = array();
+        else
+            $productonota = Productonota::model()->getProductoNota($idproducto, $fechaInicio, $fechaFin, $movimiento, $origen);
+            
+        $this->renderPartial('_productonota',array(
+            'productonota' => $productonota,
+        ), false, true);
+    }
+    
+    // -------------------------------------------------------------------------
+    // -------------------------- KARDEX VALORADO ------------------------------
+    /*
+     * Abre el formulario de kardex valorado
+     */
+    public function actionKardexValorado() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Productonota('search');
+        $productos = array();
+        $productonota = array();
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Productonota'])) {
+            $model->attributes = $_GET['Productonota'];
+            if (!$model->validate()) {
+                echo System::hasErrorSearch($model);
+                return;
+            }
+        }
+
+        $model->nameView = isset($_GET['nameView']) ? $_GET['nameView'] : 'Productonota';
+        $this->renderPartial('kardexValorado', array(
+            'model' => $model,
+            'productos' => $productos,
+            'productonota' => $productonota,
+                ), false, true);
+    }
+    
+    /*
+     * Filtra los productos de un determinado "almacen" y por "nombre del producto",
+     * muestra en el formulario kardex valorado
+     */
+    public function actionLoadProductosValorado()
+    {
+        $idalmacen = isset($_GET['idalmacen']) ? $_GET['idalmacen'] : null;
+        $producto = isset($_GET['producto']) ? $_GET['producto'] : null;
+        if($idalmacen == null && $producto == null)
+            $productos = array();
+        else
+            $productos = Producto::model()->getProductos($idalmacen, $producto);
+
+        $this->renderPartial('_valoradoProductos',array(
+            'productos' => $productos,
+        ), false, true);
+    }
+    
+    /*
+     * Filtra todos los datos de la tabla "productonota", en el formulario de
+     * kardex valorado
+     */
+    public function actionLoadProductoNotaValorado()
+    {
+        $idproducto = isset($_GET['idproducto']) ? $_GET['idproducto'] : null;
+        $fechaInicio= isset($_GET['fechaInicio']) ? $_GET['fechaInicio'] : null;
+        $fechaFin = isset($_GET['fechaFin']) ? $_GET['fechaFin'] : null;
+        $movimiento = isset($_GET['movimiento']) ? $_GET['movimiento'] : null;
+        $origen = isset($_GET['origen']) ? $_GET['origen'] : null;
+        
+        if($idproducto == null && $fechaInicio == null && $fechaFin == null)
+            $productonota = array();
+        else
+            $productonota = Productonota::model()->getProductoNota($idproducto, $fechaInicio, $fechaFin, $movimiento, $origen);
+
+        $this->renderPartial('_valoradoProductonota',array(
+            'productonota' => $productonota,
+        ), false, true);
+    }
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return Productonota the loaded model
+     * @throws CHttpException
+     */
+    public function loadModel($id) {
+        $model = Productonota::model()->findByPk($id);
+        if ($model === null)
+            throw new CHttpException(404, 'The requested page does not exist.');
+        return $model;
+    }
+
+    /**
+     * Performs the AJAX validation.
+     * @param Productonota $model the model to be validated
+     */
+    protected function performAjaxValidation($model) {
+        if (isset($_POST['ajax']) && $_POST['ajax'] === 'productonota-form') {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+    }
+
+    /**
+     * Genera el reporte en formato pdf del kardex de producto en base a la 
+     * vista del cgridview de la interfaz de kardex,  en caso de que el reporte
+     * no tenga paginas se muestra una excepción
+     */
+    public function actionReporteKardex($fechas) {
+        //$modeloProductonota=Productonota::model()->findAll(Yii::app()->session['productonotaReporteKardex']);
+        $modeloProductonota=Productonota::model()->findAll(Yii::app()->session['sesionProductoNotaKardexYKardexValorado']);
+
+        if ($modeloProductonota != null) {
+            $fechaInicioGestion = Gestion::model()->getGestionInicio();
+            $fechaFinGestion = Gestion::model()->getGestionFin();
+
+            $fechaInicioFin = explode('*', $fechas);
+            $fechaInicio = $fechaInicioFin[0];
+            $fechaFin = $fechaInicioFin[1];
+
+            if($fechaInicio == "")
+                $fechaInicio = $fechaInicioGestion;
+            if($fechaFin == "")
+                $fechaFin = $fechaFinGestion;
+
+            $re = new JasperReport('/reports/Almacen/productoKardex', JasperReport::FORMAT_PDF, array(
+                'pIds' => SWUtil::aRtoArrayReport($modeloProductonota, 'id'),
+                'pUsuario' => Yii::app()->user->getName(),
+                
+                'pFechaInicio' => Yii::app()->format->date(strtotime($fechaInicio)),
+                'pFechaFin' => Yii::app()->format->date(strtotime($fechaFin)),
+                'pFormatoNumero' => Yii::app()->params['formatNumberAlm'],
+                'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+            ));
+
+            $re->exec();
+            if ($re->getPages() > 0 && Yii::app()->session['sesionProductoNotaKardexYKardexValorado']) {
+                echo $re->toPDF();
+            } else {
+                throw new CrugeException('El reporte no tiene páginas.', 483);
+            }
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+   
+    /**
+     * Genera el reporte en formato pdf del kardex de producto valoraddo
+     * en base a la vista del gridview de la interfaz de kardex,  
+     * en caso de que el reporte no tenga paginas se muestra una excepción
+     */ 
+    public function actionReporteKardexValorado($fechas) {
+        $modeloProductonota=Productonota::model()->findAll(Yii::app()->session['sesionProductoNotaKardexYKardexValorado']);
+         if ($modeloProductonota != null) {
+            $fechaInicioGestion = Gestion::model()->getGestionInicio();
+            $fechaFinGestion = Gestion::model()->getGestionFin();
+
+            $fechaInicioFin = explode('*', $fechas);
+            $fechaInicio = $fechaInicioFin[0];
+            $fechaFin = $fechaInicioFin[1];
+
+            if($fechaInicio == "")
+                $fechaInicio = $fechaInicioGestion;
+            if($fechaFin == "")
+                $fechaFin = $fechaFinGestion;
+
+            $re = new JasperReport('/reports/Almacen/productoKardexValorado', JasperReport::FORMAT_PDF, array(                
+                'pIds' => SWUtil::aRtoArrayReport($modeloProductonota, 'id'),
+                'pUsuario' => Yii::app()->user->getName(),
+                'pFechaInicio' => Yii::app()->format->date(strtotime($fechaInicio)),
+                'pFechaFin' => Yii::app()->format->date(strtotime($fechaFin)),
+                'pFormatoNumero' => Yii::app()->params['formatNumberAlm'],
+                'pFormatoConta' => Yii::app()->params['formatNumberContabilidad'],
+                'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+            ));
+            $re->exec();
+            
+            if ($re->getPages() > 0 && Yii::app()->session['sesionProductoNotaKardexYKardexValorado']) {
+                echo $re->toPDF();
+            } else {
+                throw new CrugeException('El repordte no tiene páginas.', 483);
+            }
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+    
+    public function actionGetSumatoriaKardex()
+    {
+        $fechaInicio = $_GET['fechaInicio'];
+        $date = new DateTime($fechaInicio);
+        $fechaInicio = $date->format('Y-m-d');
+        $idProducto = $_GET['idProducto'];
+        $fechaInicioGestion = Gestion::model()->getGestionInicio();
+
+        $productoNota = Yii::app()->almacen
+                ->createCommand("select sum(ingreso) - sum(salida)
+                                from productonota 
+                                where idproducto = $idProducto and 
+                                cast(fecha as date) >= '".$fechaInicioGestion."' and cast(fecha as date)<'".$fechaInicio."' ")->queryScalar();
+        echo $productoNota;
+        return;
+    }
+    
+    public function actionGetSumatoriaKardexValorado()
+    {
+        $fechaInicio = $_GET['fechaInicio'];
+        $date = new DateTime($fechaInicio);
+        $fechaInicio = $date->format('Y-m-d');
+        $idProducto = $_GET['idProducto'];
+        $fechaInicioGestion = Gestion::model()->getGestionInicio();
+
+        $productoNota = Yii::app()->almacen
+                ->createCommand("select sum(ingresoimporte) - sum(salidaimporte)
+                                from productonota 
+                                where idproducto = $idProducto and 
+                                cast(fecha as date) >= '".$fechaInicioGestion."' and cast(fecha as date) < '".$fechaInicio."' ")->queryScalar();
+        echo $productoNota;
+        return;
+    }
+    
+    /**
+     * Genera el reporte en formato pdf del kardex de producto en base a la 
+     * vista del cgridview de la interfaz de kardex,  en caso de que el reporte
+     * no tenga paginas se muestra una excepción
+     */
+    public function actionReporteKardexExcel($fechas) {
+        //$modeloProductonota=Productonota::model()->findAll(Yii::app()->session['productonotaReporteKardex']);
+        $modeloProductonota=Productonota::model()->findAll(Yii::app()->session['sesionProductoNotaKardexYKardexValorado']);
+
+        if ($modeloProductonota != null) {
+            $fechaInicioGestion = Gestion::model()->getGestionInicio();
+            $fechaFinGestion = Gestion::model()->getGestionFin();
+
+            $fechaInicioFin = explode('*', $fechas);
+            $fechaInicio = $fechaInicioFin[0];
+            $fechaFin = $fechaInicioFin[1];
+
+            if($fechaInicio == "")
+                $fechaInicio = $fechaInicioGestion;
+            if($fechaFin == "")
+                $fechaFin = $fechaFinGestion;
+//            echo Yii::app()->format->date(strtotime($fechaInicio));
+//            return;
+            $re = new JasperReport('/reports/Almacen/productoKardexExcel', JasperReport::FORMAT_XLS, array(
+                'pIds' => SWUtil::aRtoArrayReport($modeloProductonota, 'id'),
+                'pUsuario' => Yii::app()->user->getName(),
+                
+                'pFechaInicio' => Yii::app()->format->date(strtotime($fechaInicio)),
+                'pFechaFin' => Yii::app()->format->date(strtotime($fechaFin)),
+                'pFormatoNumero' => Yii::app()->params['formatNumberAlm'],
+                'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+            ));
+
+            $re->exec();
+            if ($re->getPages() > 0 && Yii::app()->session['sesionProductoNotaKardexYKardexValorado']) {
+                echo $re->toXLS();
+            } else {
+                throw new CrugeException('El reporte no tiene páginas.', 483);
+            }
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+
+    /**
+     * Genera el reporte en formato pdf del kardex de producto valoraddo
+     * en base a la vista del gridview de la interfaz de kardex,  
+     * en caso de que el reporte no tenga paginas se muestra una excepción
+     */ 
+    public function actionReporteKardexValoradoExcel($fechas) {
+        $modeloProductonota=Productonota::model()->findAll(Yii::app()->session['sesionProductoNotaKardexYKardexValorado']);
+         if ($modeloProductonota != null) {
+            $fechaInicioGestion = Gestion::model()->getGestionInicio();
+            $fechaFinGestion = Gestion::model()->getGestionFin();
+
+            $fechaInicioFin = explode('*', $fechas);
+            $fechaInicio = $fechaInicioFin[0];
+            $fechaFin = $fechaInicioFin[1];
+
+            if($fechaInicio == "")
+                $fechaInicio = $fechaInicioGestion;
+            if($fechaFin == "")
+                $fechaFin = $fechaFinGestion;
+
+            $re = new JasperReport('/reports/Almacen/productoKardexValoradoExcel', JasperReport::FORMAT_XLS, array(                
+                'pIds' => SWUtil::aRtoArrayReport($modeloProductonota, 'id'),
+                'pUsuario' => Yii::app()->user->getName(),
+                'pFechaInicio' => Yii::app()->format->date(strtotime($fechaInicio)),
+                'pFechaFin' => Yii::app()->format->date(strtotime($fechaFin)),
+                'pFormatoNumero' => Yii::app()->params['formatNumberAlm'],
+                'pFormatoConta' => Yii::app()->params['formatNumberContabilidad'],
+                'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+            ));
+            $re->exec();
+            
+            if ($re->getPages() > 0 && Yii::app()->session['sesionProductoNotaKardexYKardexValorado']) {
+                echo $re->toXLS();
+            } else {
+                throw new CrugeException('El repordte no tiene páginas.', 483);
+            }
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+}

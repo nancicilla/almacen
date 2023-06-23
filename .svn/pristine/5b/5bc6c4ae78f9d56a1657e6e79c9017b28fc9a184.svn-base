@@ -1,0 +1,148 @@
+<?php
+
+/**
+ * This is the model class for table "productocaracteristica".
+ *
+ * The followings are the available columns in table 'productocaracteristica':
+ * @property string $valor
+ * @property string $archivo
+ * @property string $fecha
+ * @property boolean $eliminado
+ * @property string $usuario
+ * @property integer $idcaracteristica
+ * @property integer $idproducto
+ *
+ * The followings are the available model relations:
+ * @property Producto $idproducto0
+ * @property Caracteristica $idcaracteristica0
+ */
+class Productocaracteristica extends CActiveRecord
+{
+	/**
+	 * @return string the associated database table name
+	 */
+	public function tableName()
+	{
+		return 'productocaracteristica';
+	}
+
+	/**
+	 * @return array validation rules for model attributes.
+	 */
+	public function rules()
+	{
+		// NOTE: you should only define rules for those attributes that
+		// will receive user inputs.
+		return array(
+			array('fecha', 'required'),
+			array('idcaracteristica, idproducto', 'numerical', 'integerOnly'=>true),
+			array('usuario', 'length', 'max'=>30),
+			array('valor, archivo, eliminado', 'safe'),
+			// The following rule is used by search().
+			// @todo Please remove those attributes that should not be searched.
+			array('valor, archivo, fecha, eliminado, usuario, idcaracteristica, idproducto', 'safe', 'on'=>'search'),
+		);
+	}
+
+	/**
+	 * @return array relational rules.
+	 */
+	public function relations()
+	{
+		// NOTE: you may need to adjust the relation name and the related
+		// class name for the relations automatically generated below.
+		return array(
+			'idproducto0' => array(self::BELONGS_TO, 'Producto', 'idproducto'),
+			'idcaracteristica0' => array(self::BELONGS_TO, 'Caracteristica', 'idcaracteristica'),
+		);
+	}
+
+	/**
+	 * @return array customized attribute labels (name=>label)
+	 */
+	public function attributeLabels()
+	{
+		return array(
+			'valor' => 'Valor',
+			'archivo' => 'Archivo',
+			'fecha' => 'Fecha',
+			'eliminado' => 'Eliminado',
+			'usuario' => 'Usuario',
+			'idcaracteristica' => 'Idcaracteristica',
+			'idproducto' => 'Idproducto',
+		);
+	}
+
+	/**
+	 * Retrieves a list of models based on the current search/filter conditions.
+	 *
+	 * Typical usecase:
+	 * - Initialize the model fields with values from filter form.
+	 * - Execute this method to get CActiveDataProvider instance which will filter
+	 * models according to data in model fields.
+	 * - Pass data provider to CGridView, CListView or any similar widget.
+	 *
+	 * @return CActiveDataProvider the data provider that can return the models
+	 * based on the search/filter conditions.
+	 */
+	public function search()
+	{
+		// @todo Please modify the following code to remove attributes that should not be searched.
+
+		$criteria=new CDbCriteria;
+
+		$criteria->compare('valor',$this->valor,true);
+		$criteria->compare('archivo',$this->archivo,true);
+		 if ($this->fecha != Null) {
+		$criteria->addCondition("fecha::date = '" . $this->fecha. "'");
+		 }
+		$criteria->compare('eliminado',$this->eliminado);
+		$criteria->compare('usuario',$this->usuario,true);
+		$criteria->compare('idcaracteristica',$this->idcaracteristica);
+		$criteria->compare('idproducto',$this->idproducto);
+
+		return new CActiveDataProvider($this, array(
+			'criteria'=>$criteria,
+		));
+	}
+
+	/**
+	 * @return CDbConnection the database connection used for this class
+	 */
+	public function getDbConnection()
+	{
+		return Yii::app()->almacen;
+	}
+
+	/**
+	 * Returns the static model of the specified AR class.
+	 * Please note that you should have this exact method in all your CActiveRecord descendants!
+	 * @param string $className active record class name.
+	 * @return Productocaracteristica the static model class
+	 */
+	public static function model($className=__CLASS__)
+	{
+		return parent::model($className);
+	}
+             
+  
+        /**
+         *
+         * Sentencias entes de ejecutar metodo save
+	 * Antes de guardar se cambia todos los campos  de tipo character
+         * varying y text a mayúsculas
+         * Si existe el campo fecha, este toma el valor de la fecha actual antes
+         * de almacenarse
+         * Si existe el campo usuario, toma el valor del usuario actual antes de
+         * almacenarse
+	 * 
+	 */
+        public function beforeSave() {
+		$this->valor=strtoupper($this->valor);
+		$this->fecha= new CDbExpression('NOW()');
+		$this->usuario= Yii::app()->user->getName();
+            return parent::beforeSave();            
+        }
+
+
+}

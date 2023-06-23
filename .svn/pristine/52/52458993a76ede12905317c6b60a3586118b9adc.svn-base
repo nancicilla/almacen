@@ -1,0 +1,87 @@
+<script type="text/javascript" src="<?php echo Yii::app()->request->baseUrl; ?>/protected/components/js/jquery.maskMoney.js"></script>
+<style>
+input[type="text"]  {
+text-align: right;
+}
+</style>
+<?php
+Yii::app()->getClientScript()->registerScript("some_script_id","
+    /*
+        called only if declared. hardwired.
+
+        event_name  string  'on_create', 'on_ajax'
+        input       object  the jquery wrapped input object
+        tag         object  the jquery wrapped object containing more info
+     */
+    function eeditable_callback(event_name, input,tag){
+        if('on_create' == event_name) {
+                input.maskMoney({precision:4});
+        }
+        if('on_ajax' == event_name){
+            return true;
+        }
+    }
+",CClientScript::POS_HEAD);
+?>
+<?php
+/* @var $this AlmacenproductoinventarioController */
+/* @var $model Almacenproductoinventario */
+
+Yii::app()->clientScript->registerScript('search', "
+$('.search-button').click(function(){
+	$('.search-form').toggle();
+	return false;
+});
+$('.search-form form').submit(function(){
+	$('#almacenproductoinventario-grid').yiiGridView('update', {
+		data: $(this).serialize()
+	});
+	return false;
+});
+");
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Inventario</h1>
+<h3>
+<?php $modeloAlmacen=$model->findByAttributes(array('idinventario'=>$model->idinventario));
+echo 'ALMACEN DE '.$modeloAlmacen->idalmacen0->idalmacen0->nombre;?>
+ </h3>  
+<h5>    
+<?php echo $model->idinventario0->descripcion;?>
+ </h5> 
+<?php $this->widget('bootstrap.widgets.TbGridView', array(
+	'id'=>'almacenproductoinventario-grid',
+	'dataProvider'=>$model->mostrarProductos(),
+        'ajaxUpdate' =>true,
+        'afterAjaxUpdate'=>new CJavaScriptExpression("function(id){ $('#'+id).EEditable(); }"),
+	'columns'=>array(
+            array(
+                'name' => 'nombreProducto',
+                'header'=>'Producto',
+                'value' => '$data->idproductos0->idproducto0->codigo',
+            ), 
+            array(
+                'name' => 'codigoProducto',
+                'header'=>'Codigo',
+                'value' => '$data->idproductos0->idproducto0->nombre',    
+            ), 
+            array('name'=>'saldo',
+		'class'=>'EEditableColumn', 
+                'editable_type'=>'editbox',
+//                	'input_options'=>array('align'=>'right'),
+
+                'type'  => 'number', // le da el formato de número decimal
+		'action'=>array('almacenproductoinventario/modificarSaldo'),
+                'htmlOptions'=>array('width'=>'220px','style' => 'text-align: right;'),
+	    ),
+
+	),
+));
+?>
+
+		</div>
+	</div>
+</div>
+

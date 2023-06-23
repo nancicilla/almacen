@@ -1,0 +1,657 @@
+<?php
+
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+class WSNotaController extends CController {
+
+  //properties  
+    protected static $success=true;
+    protected static $messageError='';
+    protected static $modelError=array();
+    protected static $usuario='';
+    protected static $dataReturn=array();
+ 
+    
+    //put your code here
+
+    public function actions() {
+        return array(
+            'notacorregirflete' => array(// url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarNotaPorCorreccionFlete' // funcion
+            ),
+            'notacorregircantidad' => array(// url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarNotaPorCorreccionCantidad' // funcion
+            ),
+            'notacorregircosto' => array(// url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarNotaPorCorreccionCosto' // funcion
+            ),
+            'notaIngresoAlmacenPorDevolucion' => array(// url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarNotaIngresoAlmacenPorDevolucion' // funcion
+            ),
+            'notaIngresoAlmacenPorEntrega' => array(// url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarNotaIngresoAlmacenPorEntrega' // funcion
+            ),
+            'registrarNotaSalidaVenta' => array( // url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarNotaSalidaVenta' // funcion
+                ),
+            'registrarNotaRegistrarEntregadespacho' => array( // url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarNotaRegistrarEntregadespacho' // funcion
+                ),            
+            'registrarNotaeIngresoVentaAnulacion' => array( // url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'registrarNotaeIngresoVentaAnulacion' // funcion
+                ),
+        );
+    }
+
+    public static function getResponse(){
+        if(self::$messageError!='')self::$success=false;
+        
+        return array('success'=>  self::$success,
+                     'messageError'=>  self::$messageError==''?'':'ERROR EN EJECUCION [WSNotaController]: '.PHP_EOL.self::$messageError,
+                     'modelError'=>  self::$modelError,
+                     'dataReturn'=>self::$dataReturn
+                );
+    }
+
+    /**
+     * Registrar una nota por corrección de flete en compra
+     * @param array $dataService
+     * @soap
+     */
+    public function registrarNotaPorCorreccionFlete($dataService) {
+        try {
+            $arrayProducto = isset($dataService['arrayProducto']) ? $dataService['arrayProducto'] : array();
+            $norden = isset($dataService['norden']) ? $dataService['norden'] : '';
+            $idorden = isset($dataService['idorden']) ? $dataService['idorden'] : '';
+            
+            Yii::app()->session['var'] = $dataService['usuario'];
+            $arrayFleteIngreso = array();
+            $arrayFleteSalida = array();
+            foreach ($arrayProducto as $tupla) {
+                $flete = $tupla['totalflete'] - $tupla['totalfleteant'];
+                if ($flete > 0)
+                    $arrayFleteIngreso[] = $tupla;
+                elseif ($flete < 0)
+                    $arrayFleteSalida[] = $tupla;
+            }
+            
+            if (count($arrayFleteIngreso) > 0) {
+                $model = new Nota();
+                $model->setScenario('correccionflete');
+                $model->numero = Nota::model()->generarNumero();
+                $model->glosa = 'CORRECCION POR INGRESO FLETE EN ORDEN Nº ' . $norden;
+                $model->idtipo = Tipo::model()->INGRESO;
+                $model->idorigen = Origen::model()->idOrigenCompra;
+                $model->idtipodocumento = Tipodocumento::model()->CORRECCIONFLETE;
+                $model->iddocumento = $idorden;
+                //$model->usuario = self::$usuario;
+                if ($model->save()) {
+                    foreach ($arrayFleteIngreso as $fleteingreso) {
+                        $flete = $fleteingreso['totalflete'] - $fleteingreso['totalfleteant'];
+                        if (Productonota::model()->registrarCorreccionFleteIngreso($model->numero, $fleteingreso['idproducto'], $model->id, $flete, self::$usuario)) {
+                            $modelProducto = Producto::model()->findBySql('select * from producto where id = ' . $fleteingreso['idproducto']);
+                            $modelProducto->setScenario('correccionflete');
+                            $saldoanterior = $modelProducto->saldo * $modelProducto->ppp;
+                            $saldoimporte = $saldoanterior + $flete;
+                            $modelProducto->ppp = $saldoimporte / $modelProducto->saldo;
+                            $modelProducto->save();
+                        }
+                    }
+                }
+            }
+            if (count($arrayFleteSalida) > 0) {
+                $model = new Nota();
+                $model->setScenario('correccionflete');
+                $model->numero = Nota::model()->generarNumero();
+                $model->glosa = 'CORRECCION POR SALIDA FLETE EN ORDEN Nº ' . $norden;
+                $model->idtipo = Tipo::model()->SALIDA;
+                $model->idorigen = Origen::model()->idOrigenCompra;
+                $model->idtipodocumento = Tipodocumento::model()->CORRECCIONFLETE;
+                $model->iddocumento = $idorden;
+                $model->usuario = self::$usuario;
+                if ($model->save()) {
+                    foreach ($arrayFleteSalida as $fletesalida) {
+                        $flete = $fletesalida['totalflete'] - $fletesalida['totalfleteant'];
+                        if (Productonota::model()->registrarCorreccionFleteSalida($model->numero, $fletesalida['idproducto'], $model->id, $flete, self::$usuario)) {
+                            $modelProducto = Producto::model()->findBySql('select * from producto where id = ' . $fletesalida['idproducto']);
+                            $modelProducto->setScenario('correccionflete');
+                            $saldoanterior = $modelProducto->saldo * $modelProducto->ppp;
+                            $saldoimporte = $saldoanterior - abs($flete);
+                            $modelProducto->ppp = $saldoimporte / $modelProducto->saldo;
+                            $modelProducto->save();
+                        }
+                    }
+                }
+                unset(Yii::app()->session['var']);
+            }
+
+        } catch (Exception $exc) {
+            echo $exc->getTraceAsString();
+        }
+    }
+    
+    /**
+     * Registrar una nota por corrección de cantidad en compra
+     * @param array $dataService
+     * @soap
+     */
+    public function registrarNotaPorCorreccionCantidad($dataService) {
+        try {
+            $arrayProducto = isset($dataService['arrayProducto']) ? $dataService['arrayProducto'] : array();
+            $norden = isset($dataService['norden']) ? $dataService['norden'] : '';
+            $idorden = isset($dataService['idorden']) ? $dataService['idorden'] : '';
+            $arrayIngreso = array();
+            $arraySalida = array();
+            foreach ($arrayProducto as $tupla) {
+                $cantidad = $tupla['cantidad'] - $tupla['cantidadant'];
+                if ($cantidad > 0)
+                    $arrayIngreso[] = $tupla;
+                elseif($cantidad < 0)
+                    $arraySalida[] = $tupla;
+            }
+
+            if (count($arrayIngreso) > 0) {
+                $model = new Nota();
+                $model->setScenario('correccioncantidad');
+                $model->numero = Nota::model()->generarNumero();
+                $model->glosa = 'CORRECCION POR INGRESO DE CANTIDAD EN ORDEN Nº ' . $norden;
+                $model->idtipo = Tipo::model()->INGRESO;
+                $model->idorigen = Origen::model()->idOrigenCompra;
+                $model->idtipodocumento = Tipodocumento::model()->CORRECCIONCANTIDAD;
+                $model->iddocumento = $idorden;
+                //$model->usuario = self::$usuario;
+                Yii::app()->session['var'] = $dataService['usuario'];
+                if ($model->save()) {
+                    foreach ($arrayIngreso as $ingreso) {
+                        $cantidad = $ingreso['cantidad'] - $ingreso['cantidadant'];
+                        if (Productonota::model()->registrarCorreccionCantidadIngreso($model->numero, $ingreso['idproducto'], $model->id, $cantidad, self::$usuario)) {
+                            $modelProducto = Producto::model()->findBySql('select * from producto where id = ' . $ingreso['idproducto']);
+                            $modelProducto->setScenario('correccioncantidad');
+                            $saldoanterior = $modelProducto->saldo * $modelProducto->ppp;
+                            $saldoimporte = $saldoanterior;
+                            $modelProducto->ppp = $saldoimporte / $modelProducto->saldo;
+                            $modelProducto->save();
+                        }
+                    }
+                }
+            }
+            if (count($arraySalida) > 0) {
+                $model = new Nota();
+                $model->setScenario('correccioncantidad');
+                $model->numero = Nota::model()->generarNumero();
+                $model->glosa = 'CORRECCION POR SALIDA DE CANTIDAD EN ORDEN Nº ' . $norden;
+                $model->idtipo = Tipo::model()->SALIDA;
+                $model->idorigen = Origen::model()->idOrigenCompra;
+                $model->idtipodocumento = Tipodocumento::model()->CORRECCIONCANTIDAD;
+                $model->iddocumento = $idorden;
+                //$model->usuario = self::$usuario;
+                if ($model->save()) {
+                    foreach ($arraySalida as $salida) {
+                        $cantidad = $salida['cantidad'] - $salida['cantidadant'];
+                        if (Productonota::model()->registrarCorreccionCantidadSalida($model->numero, $salida['idproducto'], $model->id, $cantidad, self::$usuario)) {
+                            $modelProducto = Producto::model()->findBySql('select * from producto where id = ' . $salida['idproducto']);
+                            $modelProducto->setScenario('correccioncantidad');
+                            $saldoanterior = $modelProducto->saldo * $modelProducto->ppp;
+                            $saldoimporte = $saldoanterior;
+                            $modelProducto->ppp = $saldoimporte / $modelProducto->saldo;
+                            $modelProducto->save();
+                        }
+                    }
+                }
+                unset(Yii::app()->session['var']);
+            }
+        } catch (Exception $exc) {
+            echo $exc->getTraceAsString();
+        }
+    }
+
+    /**
+     * Registrar una nota por corrección de costo en compra
+     * @param array $dataService
+     * @soap
+     */
+    public function registrarNotaPorCorreccionCosto($dataService) {
+        try {
+            $arrayProducto = isset($dataService['arrayProducto']) ? $dataService['arrayProducto'] : array();
+            $norden = isset($dataService['norden']) ? $dataService['norden'] : '';
+            $idorden = isset($dataService['idorden']) ? $dataService['idorden'] : '';
+            
+            Yii::app()->session['var'] = $dataService['usuario'];
+            $arrayCostoIngreso = array();
+            $arrayCostoSalida = array();
+            foreach ($arrayProducto as $tupla) {
+                $costo = $tupla['total'] - $tupla['costoant'];
+                if ($costo > 0)
+                    $arrayCostoIngreso[] = $tupla;
+                elseif ($costo < 0)
+                    $arrayCostoSalida[] = $tupla;
+            }
+
+            if (count($arrayCostoIngreso) > 0) {
+                $model = new Nota();
+                $model->setScenario('correccioncosto');
+                $model->numero = Nota::model()->generarNumero();
+                $model->glosa = 'CORRECCION POR INGRESO DE COSTO EN ORDEN Nº ' . $norden;
+                $model->idtipo = Tipo::model()->INGRESO;
+                $model->idorigen = Origen::model()->idOrigenCompra;
+                $model->idtipodocumento = Tipodocumento::model()->CORRECCIONCOSTO;
+                $model->iddocumento = $idorden;
+                //$model->usuario = self::$usuario;
+                if ($model->save()) {
+                    foreach ($arrayCostoIngreso as $ingreso) {
+                        $costo = $ingreso['total'] - $ingreso['costoant'];
+                        if (Productonota::model()->registrarCorreccionCostoIngreso($model->numero, $ingreso['idproducto'], $model->id, $costo, self::$usuario)) {
+                            $modelProducto = Producto::model()->findBySql('select * from producto where id = ' . $ingreso['idproducto']);
+                            $modelProducto->setScenario('correccioncosto');
+                            $saldoanterior = $modelProducto->saldo * $modelProducto->ppp;
+                            $saldoimporte = $saldoanterior + $costo;
+                            $modelProducto->ppp = $saldoimporte / $modelProducto->saldo;
+                            $modelProducto->save();
+                        }
+                    }
+                }
+            }
+            if (count($arrayCostoSalida) > 0) {
+                $model = new Nota();
+                $model->setScenario('correccioncosto');
+                $model->numero = Nota::model()->generarNumero();
+                $model->glosa = 'CORRECCION POR SALIDA DE COSTO EN ORDEN Nº ' . $norden;
+                $model->idtipo = Tipo::model()->SALIDA;
+                $model->idorigen = Origen::model()->idOrigenCompra;
+                $model->idtipodocumento = Tipodocumento::model()->CORRECCIONCOSTO;
+                $model->iddocumento = $idorden;
+                $model->usuario = self::$usuario;
+                if ($model->save()) {
+                    foreach ($arrayCostoSalida as $salida) {
+                        $costo = $salida['total'] - $salida['costoant'];
+                        if (Productonota::model()->registrarCorreccionCostoSalida($model->numero, $salida['idproducto'], $model->id, $costo, self::$usuario)) {
+                            $modelProducto = Producto::model()->findBySql('select * from producto where id = ' . $salida['idproducto']);
+                            $modelProducto->setScenario('correccioncosto');
+                            $saldoanterior = $modelProducto->saldo * $modelProducto->ppp;
+                            $saldoimporte = $saldoanterior - abs($costo);
+                            $modelProducto->ppp = $saldoimporte / $modelProducto->saldo;
+                            $modelProducto->save();
+                        }
+                    }
+                }
+                unset(Yii::app()->session['var']);
+            }
+        } catch (Exception $exc) {
+            echo $exc->getTraceAsString();
+        }
+    }
+
+    /**
+     * Registra una nota (no notaborrador) en almacen desde el modulo de produccion cuando realiza una devolución
+     * @param integer $norden
+     * @param double $total
+     * @param string $nombrealmacen
+     * @param array $arrayProducto
+     * @param string $nomb
+     * @param array $datosOrden
+     * @soap
+     */
+    public function registrarNotaIngresoAlmacenPorDevolucion($norden, $total, $nombrealmacen, $arrayProducto, $nomb, $datosOrden) {
+        $model = new Nota;
+        $model->setScenario('produccion');
+
+
+$resultados = print_r($datosOrden, true); 
+
+        $identif=$datosOrden["identif"];
+        $numeroDevolucion=$datosOrden["numeroDevolucion"];
+
+
+        $mensaje = "INGRESO POR DEVOLUCIÓN Nº ".$numeroDevolucion;
+        $model->scenario = 'miUsuario';
+        Yii::app()->session['var'] = $nomb;
+
+
+
+        $model->glosa = $mensaje . ' DE O.P. Nº ' . $norden;
+
+
+        $model->idtipo = 1;
+        $model->idorigen = Origen::model()->idOrigenProduccion;
+        $model->total = $total;
+        $model->numero = Nota::model()->generarNumero();
+        $model->iddocumento = $identif;
+
+
+        $model->idtipodocumento = 4;
+        if ($model->save()) {
+            $cantidad = count($arrayProducto);
+
+
+
+            foreach ($arrayProducto as $valor) {
+                $productoModel=Producto::model()->findBySql("select * from producto where id=".$valor['id']);
+                
+                
+                $modelProductonotaborrador = new Productonota;
+                $modelProductonotaborrador->scenario = 'miUsuario';
+
+                $modelProductonotaborrador->glosa = $mensaje . ' DE O.P. Nº ' . $norden;
+                $modelProductonotaborrador->ingreso = round($valor['Devolver'], 4);
+                $modelProductonotaborrador->salida = 0;
+                $modelProductonotaborrador->saldo = (float) $productoModel->saldo;
+                $modelProductonotaborrador->saldoimporte = (float) $productoModel->ppp * (float) $valor['Devolver'];
+                
+
+                $modelProductonotaborrador->idproducto = $valor['id'];
+                $modelProductonotaborrador->idnota = $model->id;
+                if ((float) $valor['Devolver'] != 0)
+                {
+                    if($modelProductonotaborrador->save())
+                    {
+
+                        Producto::model()->findBySql("select * from producto where id=".$valor['id'])->actualizarSaldo($valor['Devolver']);
+                        
+
+                    }else{
+                        
+                    }
+
+                    
+                    
+                }
+            }
+
+            unset(Yii::app()->session['var']);
+        }
+    }
+
+    /**
+     * Registra una nota (no notaborrador) en almacen desde el modulo de produccion caundo realiza una entrega
+     * @param integer $norden
+     * @param array $productoNormal
+     * @param array $productosResiduales
+     * @param string $nomb
+     * @param integer $identif
+     * @param array $costos
+     * @soap
+     */
+    public function registrarNotaIngresoAlmacenPorEntrega($norden, $productoNormal, $productosResiduales, $nomb, $identif,$costos) {
+        //REGISTRO DE UN PRODUCTO NORMAL "PRODUCTO NO RESIDUAL"
+        if ($productoNormal["existeRegistro"]) {
+            $model = new Nota;
+            $model->setScenario('produccion');
+            $mensaje = "INGRESO POR ENTREGA";
+
+            $model->scenario = 'miUsuario';
+            Yii::app()->session['var'] = $nomb;
+
+            $model->glosa = $mensaje . ' DE O.P. Nº ' . $norden;
+
+            $model->idtipo = 1;
+            $model->idorigen = Origen::model()->idOrigenProduccion;
+            $model->total = round($productoNormal["total"], 2);
+            $model->numero = Nota::model()->generarNumero();
+            $model->iddocumento = $identif;
+            
+            if ((float) $productoNormal["total"] > 0 && $model->save()) {
+
+                $modelProductonotaborrador = new Productonota;
+                $modelProductonotaborrador->scenario = 'miUsuario';
+
+                $modelProductonotaborrador->glosa = $mensaje . ' DE O.P. Nº ' . $norden;
+                $modelProductonotaborrador->ingreso = round($productoNormal['cantidad'], 4);
+                $modelProductonotaborrador->salida = 0;
+                $modelProductonotaborrador->saldo = (float) $productoNormal['saldo'];
+                $modelProductonotaborrador->saldoimporte = (float) $productoNormal['ppp'] * (float) $productoNormal['cantidad'];
+
+                $costoEntrega=(float)$costos["manodeobra"]+(float)$costos["maquinas"]+(float)$costos["comun"]+(float)$costos["costodirecto"];
+                $modelProductonotaborrador->ingresoImporte = (round($productoNormal['cantidad'], 4)*(float) $productoNormal['ppp'])+$costoEntrega;
+                $modelProductonotaborrador->salidaImporte = 0;
+/*$myfile = fopen("newfile.txt", "w") or die("Unable to open file!");
+$txt = "mireg:".Producto::model()->findBySql("select * from producto where id=".$valor['id'])->id."\n";
+fwrite($myfile, $txt);
+fclose($myfile);*/
+                
+                
+                $modelProductonotaborrador->idproducto = $productoNormal['id'];
+                $modelProductonotaborrador->idnota = $model->id;
+                if ((float) $productoNormal['cantidad'] != 0)
+                {
+                    $modelProductonotaborrador->save();
+                    Producto::model()->findBySql("select * from producto where id=".$productoNormal['id'])->actualizarSaldo($productoNormal['cantidad']);
+                }
+
+
+                unset(Yii::app()->session['var']);
+            }
+        }
+
+        //REGISTRO DE NOTA PARA PRODUCTOS RESIDUALES
+        if (count($productosResiduales) > 0) {
+
+
+
+            foreach ($productosResiduales as $value) {
+
+
+                $model = new Nota;
+                $model->setScenario('produccion');
+                $mensaje = "INGRESO (PRODUCTO RESIDUAL) POR ENTREGA";
+
+                $model->scenario = 'miUsuario';
+                Yii::app()->session['var'] = $nomb;
+
+                $model->glosa = $mensaje . ' DE O.P. Nº ' . $norden;
+
+                $model->idtipo = 1;
+                $model->idorigen = Origen::model()->idOrigenProduccion;
+                $model->total = round($value["total"], 2);
+                $model->numero = Nota::model()->generarNumero();
+                $model->iddocumento = $identif;
+
+                if ((float) $value["total"] > 0 && $model->save()) {
+                    /*
+                      $myfile = fopen("newfile.txt", "w") or die("Unable to open file!");
+                      $txt = sprintf("Total: %g\n", round($value["total"],2));
+                      fwrite($myfile, $txt);
+                      fclose($myfile);
+                     */
+                    foreach ($value["productos"] as $valueResidual) {
+                        $modelProductonotaborrador = new Productonota;
+                        $modelProductonotaborrador->scenario = 'miUsuario';
+
+                        $modelProductonotaborrador->glosa = $mensaje . ' DE O.P. Nº ' . $norden;
+                        $modelProductonotaborrador->ingreso = round($valueResidual['cantidad'], 4);
+                        $modelProductonotaborrador->salida = 0;
+                        $modelProductonotaborrador->saldo = $valueResidual['saldo'];
+                        $modelProductonotaborrador->saldoimporte = (float) $valueResidual['ppp'] * (float) $valueResidual['cantidad'];
+
+                        $modelProductonotaborrador->idproducto = $valueResidual['id'];
+                        $modelProductonotaborrador->idnota = $model->id;
+                        if ((float) $valueResidual['cantidad'] != 0)
+                            $modelProductonotaborrador->save();
+                            Producto::model()->findBySql("select * from producto where id=".$valueResidual['id'])->actualizarSaldo($valueResidual['cantidad']);
+                    }
+                }
+                unset(Yii::app()->session['var']);
+            }
+        }
+    }
+
+    /**
+     * Registrar una nota para una salida de productos de almacen para una VENTA
+     * @param array $dataService
+     * @return array
+     * @soap
+     */
+    public function registrarNotaSalidaVenta($dataService){
+        
+        $products=isset($dataService['products'])?$dataService['products']:array() ;
+        $nota=isset($dataService['nota'])?$dataService['nota']:array() ;
+        self::$usuario=isset($dataService['usuario'])?$dataService['usuario']:'';
+        
+        $model = new Nota();
+        
+            $model->numero = Nota::model()->generarNumero();
+            $model->glosa = 'SALIDA VENTA Nº  ' . $nota['numero'];
+            $model->idtipo = Tipo::model()->SALIDA;
+            $model->idorigen = Origen::model()->VENTA;
+            $model->total = $nota['total'];
+            $model->idtipodocumento = Tipodocumento::model()->VENTA;
+            $model->iddocumento=$nota['iddocumento'];
+            $model->usuario=  self::$usuario;
+            
+            $model->scenario='salidaVenta';
+        try{    
+            if ($model->save()){
+                foreach ($products as $product) {
+                    //valores de productonota
+                    $modelProductonota = new Productonota();
+                    //$modelProductonota->scenario = 'miUsuario';
+                    $modelProductonota->usuario= self::$usuario;
+                    $modelProductonota->saldo = 0.0000;
+                    $modelProductonota->glosa = 'VENTA: SALIDA DE PRODUCTOS POR NOTA Nº ' . $model->numero;
+                    $modelProductonota->ingreso = 0.000;
+                    $modelProductonota->salida = $product['salida'];
+                    $modelProductonota->saldo = 0.0000;
+                    $modelProductonota->idproducto = $product['idproducto'];
+                    $modelProductonota->idnota = $model->id;
+                    
+                     $modelProductonota->ingresoimporte = 0.000;
+                     $modelProductonota->salidaimporte = $product['salidaimporte'];
+                     
+                     
+//                     self::$dataReturn=array('idproducto'=>$product['idproducto']);   
+//                     return self::getResponse();  
+//                     
+                       
+                     
+                     
+//                      $saldoanteriorimporte = Producto::model()->findByPk($product['idproducto'])->saldo * Producto::model()->findByPk($product['idproducto'])->ppp;
+//                      $modelProductonota->saldoimporte = $saldoanteriorimporte - $product['salidaimpote'];
+//                    
+                    if(!$modelProductonota->save()){
+                        self::$dataReturn=array('EERR'=>$modelProductonota->getErrors());   
+                       return self::getResponse();  
+                    }
+                     
+                    
+                }
+            }
+            
+        }catch (Exception $e){            
+                  self::$messageError = 'Excepción capturada WS: '.$e->getMessage();
+                  return self::getResponse();
+        }    
+            self::$dataReturn=array('idnota'=>$model->id);   
+        
+        
+        return self::getResponse();  
+    }
+    
+    /**
+     * Registrar  datos de Entrega/Despacho de nota (desde venta)
+     * @param array $dataService
+     * @return array
+     * @soap
+     */
+    public function registrarNotaRegistrarEntregadespacho($dataService){
+        
+         
+        $id=isset($dataService['idnota'])?$dataService['idnota']:null;
+        $cantidadcaja=isset($dataService['cantidadcaja'])?$dataService['cantidadcaja']:null;
+        $idchofer=isset($dataService['idchofer'])?$dataService['idchofer']:null;
+        $descripcion=isset($dataService['descripcion'])?$dataService['descripcion']:null;
+        self::$usuario=isset($dataService['usuario'])?$dataService['usuario']:'';
+        
+        return self::getResponse();
+        
+        $model=Nota::model()->findByPk($id);
+        $model->scenario = 'despacho';
+            $model->cantidadcaja = $cantidadcaja;
+            $model->idchofer = $idchofer;
+            $model->descripcion = $descripcion;
+            ;
+        try{
+            if(!$model->save()){
+                self::$messageError = '[Ver]'.$id.'Error validacion de modelo';
+                self::$modelError=$model->getErrors();
+            }
+        }catch (Exception $e){            
+                  self::$messageError = 'Excepción capturada WS: '.$e->getMessage();
+                  return self::getResponse();
+        }    
+            self::$dataReturn=array('idnota'=>$model->id);   
+        
+        
+        return self::getResponse();  
+    }
+    
+    /**
+     * Registrar una nota para una ingreso de productos  por ANULACION DE VENTA
+     * @param array $dataService
+     * @return array
+     * @soap
+     */
+    public function registrarNotaeIngresoVentaAnulacion($dataService){
+        
+        $products=isset($dataService['products'])?$dataService['products']:array() ;
+        $nota=isset($dataService['nota'])?$dataService['nota']:array() ;
+        self::$usuario=isset($dataService['usuario'])?$dataService['usuario']:'';
+        
+        $model = new Nota();
+        
+            $model->numero = Nota::model()->generarNumero();
+            $model->glosa = 'INGRESO POR ANULACION VENTA Nº  ' . $nota['numero'];
+            $model->idtipo = Tipo::model()->INGRESO;
+            $model->idorigen = Origen::model()->VENTA;
+            $model->total = $nota['total'];
+            $model->idtipodocumento = Tipodocumento::model()->VENTA;            
+            $model->iddocumento=$nota['iddocumento'];
+            $model->usuario=  self::$usuario;
+            $model->scenario='ingresoVenta';
+        try{    
+            if ($model->save()){
+                foreach ($products as $product){
+                    //valores de productonota
+                    $modelProductonota = new Productonota();
+                    $modelProductonota->usuario= self::$usuario;
+                    $modelProductonota->saldo = 0.0000;
+                    $modelProductonota->glosa = 'VENTA ANULACION: INGRESO POR NOTA Nº ' . $model->numero;
+                    $modelProductonota->ingreso = $product['ingreso'];
+                    $modelProductonota->salida = 0.0000;
+                    $modelProductonota->saldo = 0.0000;
+                    $modelProductonota->idproducto = $product['idproducto'];
+                    $modelProductonota->idnota = $model->id;
+                    
+                     $modelProductonota->ingresoimporte = $product['ingresoimporte'];
+                     $modelProductonota->salidaimporte = 0.000;
+                     
+                    if(!$modelProductonota->save()){
+                        self::$dataReturn=array('EERR'=>$modelProductonota->getErrors());   
+                        return self::getResponse();  
+                    }
+                     
+                    
+                }
+            }
+            
+        }catch (Exception $e){            
+                  self::$messageError = 'Excepción capturada WS: '.$e->getMessage();
+                  return self::getResponse();
+        }    
+            self::$dataReturn=array('idnota'=>$model->id);   
+        
+        
+        return self::getResponse();  
+    }
+}
+

@@ -1,0 +1,193 @@
+<?php
+
+/**
+ * This is the model class for table "productoproducto".
+ *
+ * The followings are the available columns in table 'productoproducto':
+ * @property string $fecha
+ * @property boolean $eliminado
+ * @property string $usuario
+ * @property integer $idproducto
+ * @property integer $idcomplementario
+ *
+ * The followings are the available model relations:
+ * @property Producto $idproducto0
+ * @property Producto $idcomplementario0
+ */
+class Productoproducto extends CActiveRecord
+{
+	/**
+	 * @return string the associated database table name
+	 */
+	public function tableName()
+	{
+		return 'productoproducto';
+	}
+
+	/**
+	 * @return array validation rules for model attributes.
+	 */
+	public function rules()
+	{
+		// NOTE: you should only define rules for those attributes that
+		// will receive user inputs.
+		return array(
+//			array('fecha', 'required'),
+//			array('idproducto, idcomplementario', 'numerical', 'integerOnly'=>true),
+			array('usuario', 'length', 'max'=>30),
+			array('idproducto,idcomplementario,eliminado', 'safe'),
+			// The following rule is used by search().
+			// @todo Please remove those attributes that should not be searched.
+			array('fecha, eliminado, usuario, idproducto, idcomplementario', 'safe', 'on'=>'search'),
+		);
+	}
+
+	/**
+	 * @return array relational rules.
+	 */
+	public function relations()
+	{
+		// NOTE: you may need to adjust the relation name and the related
+		// class name for the relations automatically generated below.
+		return array(
+			'idproducto0' => array(self::BELONGS_TO, 'Producto', 'idproducto'),
+			'idcomplementario0' => array(self::BELONGS_TO, 'Producto', 'idcomplementario'),
+		);
+	}
+
+	/**
+	 * @return array customized attribute labels (name=>label)
+	 */
+	public function attributeLabels()
+	{
+		return array(
+			'fecha' => 'Fecha',
+			'eliminado' => 'Eliminado',
+			'usuario' => 'Usuario',
+			'idproducto' => 'Idproducto',
+			'idcomplementario' => 'Idcomplementario',
+		);
+	}
+
+	/**
+	 * Retrieves a list of models based on the current search/filter conditions.
+	 *
+	 * Typical usecase:
+	 * - Initialize the model fields with values from filter form.
+	 * - Execute this method to get CActiveDataProvider instance which will filter
+	 * models according to data in model fields.
+	 * - Pass data provider to CGridView, CListView or any similar widget.
+	 *
+	 * @return CActiveDataProvider the data provider that can return the models
+	 * based on the search/filter conditions.
+	 */
+	public function search()
+	{
+		// @todo Please modify the following code to remove attributes that should not be searched.
+
+		$criteria=new CDbCriteria;
+
+		 if ($this->fecha != Null) {
+		$criteria->addCondition("t.fecha::date = '" . $this->fecha. "'");
+		 }
+		$criteria->compare('t.eliminado',$this->eliminado);
+		$criteria->addSearchCondition('t.usuario',$this->usuario,true,'AND','ILIKE');
+		$criteria->compare('t.idproducto',$this->idproducto);
+		$criteria->compare('t.idcomplementario',$this->idcomplementario);
+
+		return new CActiveDataProvider($this, array(
+                        'pagination'=>array(
+                            'pageSize'=> Yii::app()->user->getState('pageSize',Yii::app()->params['defaultPageSize']),
+                        ), 
+			'criteria'=>$criteria,
+		));
+	}
+
+	/**
+	 * @return CDbConnection the database connection used for this class
+	 */
+	public function getDbConnection()
+	{
+		return Yii::app()->almacen;
+	}
+
+	/**
+	 * Returns the static model of the specified AR class.
+	 * Please note that you should have this exact method in all your CActiveRecord descendants!
+	 * @param string $className active record class name.
+	 * @return Productoproducto the static model class
+	 */
+	public static function model($className=__CLASS__)
+	{
+		return parent::model($className);
+	}
+             
+  
+        /**
+         *
+         * Sentencias entes de ejecutar metodo save
+	 * Antes de guardar se cambia todos los campos  de tipo character
+         * varying y text a mayúsculas
+         * Si existe el campo fecha, este toma el valor de la fecha actual antes
+         * de almacenarse
+         * Si existe el campo usuario, toma el valor del usuario actual antes de
+         * almacenarse
+	 * 
+	 */
+        public function beforeSave() {
+		$this->fecha= new CDbExpression('NOW()');
+		$this->usuario= Yii::app()->user->getName();
+            return parent::beforeSave();            
+        }
+        
+        /**
+         * Permite registrar productos complementarios a partir de un array
+         * @param integer $id Id del producto a asignar complementarios
+         * @param array $complementario Contiene la lista de productos complementarios
+         * @param Productoproducto $modelo Contiene el modelo
+         */
+        public function registrarComplementario($id,$complementario,$modelo){ 
+            $modelo->deleteAll('idproducto ='.$id);
+            foreach ($complementario as $valor){
+            $modelo->idproducto=$id;
+            $modelo->idcomplementario=$valor;
+            $modelo->save();
+            $modelo=new Productoproducto;
+            }
+            
+        }
+  
+        /**
+     * Consultar productos complementarios de un producto
+     * @param integer id  Id del producto.
+     * @return array() que continene los productos complementarios de un producto
+     */
+    public function productoComplementario($id) {
+        $caracteristica = Productoproducto::model()->tableName();
+        $criteria = new CDbCriteria();
+        $criteria->select = "t.idcomplementario";
+        $criteria->compare('t.idproducto', $id);
+        $informacion = $this->findAll($criteria);
+        $dato = array();
+        $complementario=array();
+        if (count($informacion) > 0) {
+            foreach ($informacion as $i) {
+                array_push($dato, $i->attributes);
+            }
+            $cantidad = count($dato);
+            for ($i = 0; $i < $cantidad; $i++) {
+                foreach ($dato[$i] as $atributo => $valor) {
+                    if ($atributo == 'idcomplementario') {
+                        echo 'valor';
+                       echo $valor;
+                       $complementario[$i]=$valor;
+                    }
+                   
+                }
+            }
+        }
+        return $complementario;
+
+    }
+
+}

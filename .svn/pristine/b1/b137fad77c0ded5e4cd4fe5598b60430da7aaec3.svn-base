@@ -1,0 +1,212 @@
+<?php
+/* @var $this ClaseController */
+/* @var $model Clase */
+
+$pageSize = Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']);
+?>
+<div class="container">
+    <div class="offset-12">
+        <div id="content">
+            <h1>Administración de Clases</h1>
+            
+            <div class="form">
+
+                <?php
+                $form = $this->beginWidget('CActiveForm', array(
+                    'focus'=>'input:visible:enabled:first'  ,
+                    'id' => 'clase-form',
+                    // Please note: When you enable ajax validation, make sure the corresponding
+                    // controller action is handling ajax validation correctly.
+                    // There is a call to performAjaxValidation() commented in generated controller code.
+                    // See class documentation of CActiveForm for details on this.
+                    'enableAjaxValidation' => true,
+                    'enableClientValidation' => true,
+                    'clientOptions' => array(
+                        'validateOnSubmit' => true,
+                        'validateOnChange' => false,
+                    ),
+                ));
+                ?>
+
+                <?php echo $form->errorSummary($model); ?>
+                <p class="note"><span class="required">*</span> Campos requeridos.</p>
+                <div class="row">
+                    <div class="column">
+                        <?php echo $form->labelEx($model, 'codigo'); ?>
+                        <?php echo $form->textField($model, 'codigo', array('size' => 12, 'maxlength' => 3, 'style' => 'text-transform: uppercase', 'disabled' => $model->tieneProducto())); ?>
+                        <?php echo $form->error($model, 'codigo'); ?>
+                        <?php echo $form->hiddenField($model, 'id'); ?>
+                    </div>
+                    <div class="column">
+                        <?php echo $form->labelEx($model, 'nombre'); ?>
+                        <?php echo $form->textField($model, 'nombre', array('size' => 30, 'maxlength' => 30, 'style' => 'text-transform: uppercase')); ?>
+                        <?php echo $form->error($model, 'nombre'); ?>
+                    </div>
+                </div>
+                <div class="row">
+                    <?php echo TbHtml::button('', array('id' => 'btnNuevo', 'icon' => 'plus', 'title' => 'Nuevo', 'onclick' => 'habilitarNuevo();')) ?>
+                    <?php echo TbHtml::button('', array('id' => 'btnModificar', 'icon' => 'pencil', 'title' => 'Modificar', 'onclick' => 'habilitarModificar();')) ?>
+                    <?php
+                    echo TbHtml::ajaxSubmitButton('', TbHtml::normalizeUrl(array('clase/createAjax')), array(
+                        'dataType' => 'json',
+                        'type' => 'post',
+                        'success' => "function(data) {
+                                if(data.status=='success'){                                
+                                    resetAlGuardar();
+                                } else {
+                                    $.each(jQuery.parseJSON(data.mensaje), function(key, val) {
+                                        $('#clase-form #' + key + '_em_').text(val);                                                    
+                                        $('#clase-form #' + key + '_em_').show();
+                                    });
+                                }
+                            }"
+                            ), array(
+                        'id' => 'btnGuardar',
+                        'icon' => 'floppy-save',
+                        'title' => 'Guardar'
+                    ));
+                    ?>
+                    <?php echo TbHtml::button('', array('id' => 'btnCancelar', 'icon' => 'remove', 'title' => 'Cancelar', 'onclick' => 'cancelarRegistro();')) ?>
+                </div>
+
+                <?php $this->endWidget(); ?>
+
+            </div><!-- form -->
+            
+            <?php
+            $this->widget('yiiwheels.widgets.grid.WhGridView', array(
+                'fixedHeader' => true,
+                'responsiveTable' => true,
+                'id' => 'clase-grid',
+                'dataProvider' => $model->search(),
+                'filter' => $model,
+                'ajaxUpdate' => true,
+                'afterAjaxUpdate' => 'reinstallDatePicker',
+                'columns' => array(
+                    'codigo',
+                    'nombre',
+                    'usuario',
+                    array(
+                        'name' => 'fecha',
+                        'type' => 'datetime',
+                        'filter' => $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                            'model' => $model,
+                            'attribute' => 'fecha',
+                            'name' => 'clase[fecha]',
+                            'value' => $model->fecha,
+                            'language' => 'es',
+                            // additional javascript options for the date picker plugin
+                            'options' => array(
+                                'showAnim' => 'slideDown',
+                                'showButtonPanel' => true,
+                                'changeMonth' => true,
+                                'changeYear' => true,
+                                'dateFormat' => 'dd-mm-yy',
+                                'maxDate' => 'today',
+                            ),
+                            'htmlOptions' => array(
+                                'id' => 'clase_fecha',
+                                'size' => '10',
+                            ),
+                                ), true)
+                    ),
+                    array(
+                        'class' => 'bootstrap.widgets.TbButtonColumn',
+                        'header' => CHtml::dropDownList('pageSize', $pageSize, array(Yii::app()->params['1PageSize'] => Yii::app()->params['1PageSize'],
+                            Yii::app()->params['2PageSize'] => Yii::app()->params['2PageSize'],
+                            Yii::app()->params['3PageSize'] => Yii::app()->params['3PageSize'],
+                            Yii::app()->params['4PageSize'] => Yii::app()->params['4PageSize'],
+                            Yii::app()->params['5PageSize'] => Yii::app()->params['5PageSize'],
+                                ), array(
+                            'style' => 'width:70px; margin: 0 auto;',
+                            'onchange' => "$.fn.yiiGridView.update('clase-grid',{ data:{pageSize: $(this).val() }})",
+                                )
+                        ),
+                        'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                        'template' => '{delete}',
+                        'buttons' => array(
+                            'delete' => array('url' => 'array("delete","id"=>SeguridadModule::enc($data->getPrimaryKey()))')
+                        ),
+                    ),
+                ),
+                'selectableRows' => 1,
+                'selectionChanged' => 'cargarDatos',
+            ));
+
+            Yii::app()->clientScript->registerScript('re-install-date-picker', "
+                function reinstallDatePicker() {
+                     //se deben usar los mismos parámetros que en el widget para ser recargado
+                          $('#clase_fecha').datepicker(jQuery.extend(
+                            jQuery.datepicker.regional['es'],
+                            {'changeYear':true,
+                            'changeMonth':true,
+                            'showButtonPanel':true,
+                            'maxDate':'today',
+                            'dateFormat' : 'dd-mm-yy',
+                            'showAnim':'slideDown'}));
+                     }
+                ");
+            ?>
+            <script type="text/javascript">
+                $("#btnGuardar").prop("disabled", true);
+                $("#btnModificar").prop("disabled", true);
+                $("#btnCancelar").prop("disabled", true);
+                $("#Clase_nombre").prop("disabled", true);
+                $("#Clase_codigo").prop("disabled", true);
+                function cancelarRegistro(){
+                    $("#btnGuardar").prop("disabled", true);
+                    $("#btnCancelar").prop("disabled", true);
+                    $("#btnNuevo").prop("disabled", false);
+                    $("#Clase_nombre").prop("disabled", true);
+                    $("#Clase_codigo").prop("disabled", true);
+                    $("#btnModificar").prop("disabled", true);
+                }
+                function habilitarModificar() {
+                    $("#btnNuevo").prop("disabled", true);
+                    $("#btnModificar").prop("disabled",true);
+                    $("#btnGuardar").prop("disabled", false);
+                    $("#btnCancelar").prop("disabled", false);
+                    $("#Clase_nombre").prop("disabled", false);
+                    $("#Clase_codigo").prop("disabled", false);
+                    $("#Clase_codigo").focus();
+                };
+                function cancelarModificar() {
+                    $("#btnNuevo").prop("disabled", false);
+                    $("#btnModificar").prop("disabled",false);
+                    $("#btnGuardar").prop("disabled", true);
+                    $("#btnCancelar").prop("disabled", true);
+                    $("#Clase_nombre").prop("disabled", true);
+                    $("#Clase_codigo").prop("disabled", true);
+                };
+                function habilitarNuevo() {
+                    $("#btnModificar").prop("disabled", true);
+                    $("#btnNuevo").prop("disabled", true);
+                    $("#btnGuardar").prop("disabled", false);
+                    $("#btnCancelar").prop("disabled", false);
+                    $("#Clase_nombre").prop("disabled", false);
+                    $("#Clase_codigo").prop("disabled", false);
+                    $("#clase-form")[0].reset();
+                    $("#Clase_id").val('');
+                    $("#Clase_codigo").focus();
+                };
+                function resetAlGuardar() {
+                    $('#clase-form')[0].reset();
+                    $('#Clase_nombre').val('');
+                    $('#Clase_codigo').val('');
+                    $('#Clase_id').val('');
+                    $.fn.yiiGridView.update('clase-grid');
+                };
+                function cargarDatos(id) {
+                    $('#btnModificar').prop('disabled', false);
+                    var idSeleccionado = $.fn.yiiGridView.getSelection(id);
+                    var codigo = getGridViewSelectedColValue('clase-grid',0);
+                    var nombre = getGridViewSelectedColValue('clase-grid',1);
+                    $('#Clase_id').val(idSeleccionado);
+                    $('#Clase_codigo').val(codigo);
+                    $('#Clase_nombre').val(nombre);
+                    cancelarModificar();
+                }
+            </script>
+        </div>
+    </div>
+</div>

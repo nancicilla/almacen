@@ -1,0 +1,81 @@
+var admSolicitud = new Object();
+admSolicitud.__proto__ = SystemSearch;
+
+//declare var
+admSolicitud.nameView = "admSolicitud";
+admSolicitud.url = "solicitud/admin";
+admSolicitud.idContainer = "";
+admSolicitud.eventRow = "THIS.update();";
+admSolicitud.nextView = "Solicitud";
+//functions
+admSolicitud.init = function () {
+    try {
+
+    } catch (err) {
+        alert('Error al cargar admSolicitud.init()');
+    }
+
+
+};
+
+admSolicitud.options = function () {
+    var afterFunction = '';
+    var updateFunction = 'THIS.search(Solicitud.idKeySend());';
+    //para actualizar la lista si actualiza/borrar/crea un formulario
+    var idKey = SGridView.getSelected('id');
+    var varsSend = "";
+    var url = "";
+    var nameContainer = "";
+
+    var options = {
+        idKey: idKey,
+        afterFunction: afterFunction,
+        updateFunction: updateFunction,
+        varsSend: varsSend
+    };
+
+    return options;
+
+};
+
+admSolicitud.generarcotizacion = function () {
+    Cotizacion.generarcotizacion(this.getOptions());
+};
+
+admSolicitud.reutilizarcotizacion = function () {
+    Cotizacion.reutilizarcotizacion(this.getOptions());
+};
+
+admSolicitud.reutilizarcotizacionOrden = function () {
+    Cotizacion.reutilizarcotizacionOrden(this.getOptions());
+};
+
+admSolicitud.anular = function () {
+    this._options = this.options();
+    var idKey = this._options.idKey;
+    var varSend = '';
+
+    var url = (this.url == null) ? '' : this.url;
+
+    url = url.split('/');
+    url = url[0] + '/anularSolicitud';
+    varSend = 'id=' + idKey + this.getSearch();
+
+    var idContainer = this.nameView + 'Response';
+    //this.load() actualiza los eventos de los botones del grid
+    var afterFunction = this.nameView + '.load();';
+
+    var options = {
+        url: url,
+        idContainer: idContainer,
+        afterFunction: afterFunction,
+        divContainer: 'div.gridContainer',
+        type: 'get',
+        varSend: varSend
+    };
+    this.process(options);
+};
+
+admSolicitud.registrarseguimiento = function () {
+    Controlseguimiento.registrarseguimientos(this.getOptions());
+};

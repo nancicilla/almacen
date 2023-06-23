@@ -1,0 +1,196 @@
+<?php
+
+/**
+ * This is the model class for table "almacen".
+ *
+ * The followings are the available columns in table 'almacen':
+ * @property integer $id
+ * @property integer $codigo
+ * @property string $nombre
+ * @property string $descripcion
+ * @property string $fecha
+ * @property string $usuario
+ * @property integer $idalmacen
+ *
+ * The followings are the available model relations:
+ * @property Almacen $idalmacen0
+ * @property Almacen[] $almacens
+ * @property Almacenproducto[] $almacenproductos
+ */
+class Almacen extends CActiveRecord
+{
+    /**
+	 * @return string the associated database table name
+	 */
+	public function tableName()
+	{
+		return 'almacen';
+	}
+
+	/**
+	 * @return array validation rules for model attributes.
+	 */
+	public function rules()
+	{
+		// NOTE: you should only define rules for those attributes that
+		// will receive user inputs.
+		return array(
+			array('codigo, nombre', 'required'),
+			array('codigo, idalmacen', 'numerical', 'integerOnly'=>true),
+                        array('codigo', 'unique','on'=>array('insert','update')),
+			array('nombre', 'length', 'max'=>20),
+			array('usuario', 'length', 'max'=>30),
+			array('descripcion', 'safe'),
+			// The following rule is used by search().
+			// @todo Please remove those attributes that should not be searched.
+			array('id, codigo, nombre, descripcion, fecha, usuario, idalmacen', 'safe', 'on'=>'search'),
+		);
+	}
+
+	/**
+	 * @return array relational rules.
+	 */
+	public function relations()
+	{
+		// NOTE: you may need to adjust the relation name and the related
+		// class name for the relations automatically generated below.
+		return array(
+			'idalmacen0' => array(self::BELONGS_TO, 'Almacen', 'idalmacen'),
+			'almacens' => array(self::HAS_MANY, 'Almacen', 'idalmacen'),
+			'almacenproductos' => array(self::HAS_MANY, 'Almacenproducto', 'idalmacen'),
+		);
+	}
+
+	/**
+	 * @return array customized attribute labels (name=>label)
+	 */
+	public function attributeLabels()
+	{
+		return array(
+			'id' => 'ID',
+			'codigo' => 'Codigo',
+			'nombre' => 'Nombre',
+			'descripcion' => 'Descripcion',
+			'usuario' => 'Usuario',
+			'idalmacen' => 'Almacen Padre',
+		);
+	}
+
+	/**
+	 * Retrieves a list of models based on the current search/filter conditions.
+	 *
+	 * Typical usecase:
+	 * - Initialize the model fields with values from filter form.
+	 * - Execute this method to get CActiveDataProvider instance which will filter
+	 * models according to data in model fields.
+	 * - Pass data provider to CGridView, CListView or any similar widget.
+	 *
+	 * @return CActiveDataProvider the data provider that can return the models
+	 * based on the search/filter conditions.
+	 */
+	public function search()
+	{
+		// @todo Please modify the following code to remove attributes that should not be searched.
+
+		$criteria=new CDbCriteria;
+                $criteria->with=array('idalmacen0');
+		$criteria->compare('t.id',$this->id);
+		$criteria->compare('t.codigo',$this->codigo);
+		$criteria->addSearchCondition('t.nombre',$this->nombre,true,'AND','ILIKE');
+                $criteria->addSearchCondition('t.descripcion',$this->descripcion,true,'AND','ILIKE');
+		 if ($this->fecha != Null) {
+		$criteria->addCondition("t.fecha::date = '" . $this->fecha. "'");
+		 }
+                $criteria->addSearchCondition('t.usuario',$this->usuario,true,'AND','ILIKE');            
+		$criteria->compare('t.idalmacen',$this->idalmacen);
+                if (Yii::app()->getRequest()->getParam('idalmacen') !== null) {
+                   $criteria->compare('idalmacen0.nombre', $this->idalmacen0->nombre, true);
+                }
+		return new CActiveDataProvider($this, array(
+			'criteria'=>$criteria,
+                    'sort'=>array(
+                 'defaultOrder' => 't.codigo asc',
+        
+    ),
+));
+	}
+         
+
+	/**
+	 * @return CDbConnection the database connection used for this class
+	 */
+	public function getDbConnection()
+	{
+		return Yii::app()->almacen;
+	}
+
+	/**
+	 * Returns the static model of the specified AR class.
+	 * Please note that you should have this exact method in all your CActiveRecord descendants!
+	 * @param string $className active record class name.
+	 * @return Almacen the static model class
+	 */
+	public static function model($className=__CLASS__)
+	{
+		return parent::model($className);
+	}      
+        
+        /**
+	 * Verifica si un almacen puede ser eliminado o no, dependerá que no 
+         * tenga asociado ningun producto, ni almacen, ni se haya hecho la
+         * parametrización a una cuenta contable.
+	 * @param string $pid id del almacen a verificar
+	 * @return resultado de la funcion, devuelve true o false
+	 */
+        public function isEliminable($pid) {
+        $command = Yii::app()->almacen->createCommand("select almacen_es_eliminable(:pid)");
+        $command->bindValue(":pid", $pid, PDO::PARAM_INT);
+        return $command->queryScalar();
+    }
+
+     /**
+     * Verifica si el codigo  de un almacen puede ser modificado, para eso no 
+     * deben existir productos asociados a el, de ser asi devuelve false
+     * @param string $pid id del almacen a verificar
+     * @return resultado de la funcion, devuelve true o false
+     */
+    public function isModificable($pid) {
+        $command = Yii::app()->almacen->createCommand("select almacen_es_modificable(:pid)");
+        $command->bindValue(":pid", $pid, PDO::PARAM_INT);
+        return $command->queryScalar();
+    }
+       
+    /** 
+     * Antes de guardar se cambia todas las cadenas a mayúsculas
+     */
+    public function beforeSave() {        
+        $this->nombre = strtoupper($this->nombre);
+        $this->descripcion = strtoupper($this->descripcion);
+        $this->fecha= new CDbExpression('NOW()');
+	$this->usuario= Yii::app()->user->getName();
+        return parent::beforeSave();
+    } 
+    
+    /** 
+     * Antes de borrar verificar que el almacen no tenga asociado productos, otros
+     * almacenes o cuentas contables, en caso de no cumplir con las condiciones
+     * se muestra una excepción y no se lleva a cabo la eliminación.
+     */
+    protected function beforeDelete() {
+        if ($this->isEliminable($this->id)) {
+            return parent::beforeDelete();
+        } else {
+            throw new CrugeException('El Almacen no puede ser eliminado,'
+            . ' otros almacenes, productos o cuentas contables'
+                    . ' dependen de él.', 482);
+        }
+    }
+    
+    /**
+     * Concatena el codigo y nombre del almacen    
+     * @return string Nombre Completo
+     */
+    protected function getNombreCompleto(){
+        return $this->nombre.' ('.$this->codigo.')';
+    }
+}

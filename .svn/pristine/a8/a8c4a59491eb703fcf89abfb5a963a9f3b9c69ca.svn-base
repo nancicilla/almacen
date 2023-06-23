@@ -1,0 +1,43 @@
+<?php
+
+/* @var $this UnidadController */
+/* @var $model Unidad */
+echo System::Search(array(
+    'title' => 'Administración de Unidades',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model,), true),
+    'heightSearch' => 525,
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admUnidad',
+        'dataProvider' => $model->search(),
+        'height' => 525,
+        'columns' => array(
+            array(
+                'name' => 'nombre',
+                'width' => 30,
+            ),
+            array(
+                'name' => 'simbolo',
+                'width' => 20),
+            array(
+                'name' => 'usuario',
+                'width' => 20
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'datetime',
+                'width' => 20,
+            ),
+            array('typeCol' => 'buttons',
+                'width' => 10,
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'buttons' => array(
+                    'delete' => array('url' => 'array("delete","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'click' => 'function(){resetAlEliminar();}')
+                ),
+            ),
+        )
+            )
+    )
+        )
+);
+?>
+

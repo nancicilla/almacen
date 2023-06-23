@@ -1,0 +1,106 @@
+<?php
+    echo SGridView::widget('TGridView', array(
+        'id' => 'ProductonotaValorado',
+        'dataProvider' => $productonota,
+        'buttonText' => '+',
+        'height' => 210,
+        'eventAfterEditionAutomatic' => true,
+        'columns' => array(
+            array(
+                'name' => 'id',
+                'typeCol' => 'hidden',
+            ),
+            array(
+                'name' => 'fecha',
+                'width' => 10,
+                'type' => 'datetime',
+                'typeCol' => 'uneditable',
+                'align' => 'left',
+            ),
+            array(
+                'name' => 'tipo',
+                'width' => 3,
+                'value' => '($data->idnota0->idtipo==1)? "ING.":"SAL."',
+                'typeCol' => 'uneditable',
+                'align' => 'left',
+            ),
+            array(
+                'name' => 'numero',
+                'value' => '$data->idnota0->numero',
+                'header' => 'Nº Nota',
+                'width' => 5,
+                'typeCol' => 'uneditable',
+                'align' => 'center',
+            ),
+            array(
+                'name' => 'glosa',
+                'width' => 34,
+                'align' => 'left',
+                'typeCol' => 'uneditable',
+            ),
+            array(
+                'name' => 'ingreso',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'left',
+                'type' => 'number', // le da el formato de número decimal
+                'align' => 'right',//(9,4)
+                'footer'=>array('function'=>'sum','idfooter'=>'totalingreso'),
+            ),
+            array(
+                'name' => 'salida',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+                'footer'=>array('function'=>'sum','idfooter'=>'totalsalida'),
+            ),
+            array(
+                'name' => 'saldo',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'name' => 'ingresoimporte',
+                'header' => 'Debe',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+                'footer'=>array('function'=>'sum'),
+            ),
+            array(
+                'name' => 'salidaimporte',
+                'header' => 'Haber',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+                'footer'=>array('function'=>'sum'),
+            ),            
+            array(
+                'name' => 'saldoimporte',
+                'header' => 'Saldo',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'header' => 'Costo unit.',
+                'width' => 6,
+                'type' => 'number',
+                'value' => '($data->ingreso+$data->salida<>0)? ($data->ingresoimporte+$data->salidaimporte)/'
+                . '($data->ingreso+$data->salida):"err"',
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'name' => 'precioPromedioPonderado',
+                'header' => 'PPP',
+                'type' => 'number',
+                'align' => 'right',
+                'typeCol' => 'uneditable',
+                'width' => 6,
+                'value' => '$data->saldo == 0 ? ($data->ingresoimporte-$data->salidaimporte)/($dataingreso-$data->salida) : $data->saldoimporte/$data->saldo',
+            ),
+        )
+    ));
+?>

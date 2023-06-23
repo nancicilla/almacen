@@ -1,0 +1,73 @@
+<div class="row">
+    <?php
+    if ($model->idestado== Estadotpv::TRASPASO){
+        $addRow = true;
+    }else{
+        $addRow = false;
+    }
+    echo SGridView::widget('TGridView', array(
+        'id' => 'gridTraspasoproducto',
+        'dataProvider' => $gridSolicitudProducto,
+        'buttonAdd' => true,
+        'ableAddRow'=>$addRow,
+        'buttonText' => '+',
+        'height' => 210,
+//        'eventAfterEdition' => 'Traspaso.verificarGrid();',
+        //'eventAfterEdition' => $modelOrden->scenario == 'view'? null : 'Orden.calcularTotalItems();',
+        'eventAfterEditionAutomatic' => true,
+        'columns' => array(
+            array(
+                'name' => 'id',
+                'typeCol' => 'hidden'
+            ),
+            array(
+                'name' => 'idproducto',
+                'key' => true,
+                'value' => '($data->idproducto == null) ? "" : $data->idproducto',
+                'typeCol' => 'hidden'
+            ),
+            array(
+                'header' => 'Item',
+                'name' => 'nombre',
+                'searchUrl' => 'producto/BuscarProducto',
+                'searchHeight' => 150,
+                'searchWidth' => 650,
+                'width' => 82,
+                'background' => Yii::app()->params['mainColor']['almacen']['light'],
+                'searchCopyCol' => 'id,idproducto,idunidad,saldoDisponible',
+            ),
+            array(
+                'header' => 'Udd',
+                'name' => 'idunidad',
+                'width' => 7,
+                'value' => '($data->idunidad == null) ? "" : $data->idunidad',
+                'typeCol' => 'uneditable',
+                'align' => 'center',
+            ),
+            array(
+                'name' => 'saldoDisponible',
+                'header' => 'Disponible',
+                'value' => '$data->saldo - $data->reserva',
+                'type' => 'number(10, 8)',
+                'typeCol' => 'hidden',
+                'align' => 'right',
+            ),
+            array(
+                'header' => 'Cantidad Enviada',
+                'name' => 'cantidadenviada',
+                'width' => 8,
+                'align' => 'right',
+                'type' => 'number(10,2)',
+                'value' => '($data->cantidadenviada == null) ? "" : $data->cantidadenviada',
+                'background' => Yii::app()->params['mainColor']['almacen']['light'],
+                'footer' => array('idfooter' => 'totalCantidadPedido', 'function' => 'sum'),
+            ),
+            array(
+                'typeCol' => 'buttons',
+                'width' => 3,
+                'buttons' => array('')
+            )
+        )
+    ));
+    ?>
+</div>

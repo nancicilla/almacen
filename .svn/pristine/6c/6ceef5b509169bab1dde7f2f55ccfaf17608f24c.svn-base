@@ -1,0 +1,242 @@
+var NotaSinOrdencompra = new Object();
+NotaSinOrdencompra.__proto__ = SystemWindow;
+//variables
+NotaSinOrdencompra.nameView = "NotaSinOrdencompra";
+NotaSinOrdencompra.url = "nota";
+NotaSinOrdencompra.init = function () {
+    try {
+        if (this.action !== 'verNota')
+        {
+            if (this.action === 'update') {
+                this.buttonChange({id: 'save', label: 'Guardar', key: 'G'});
+            }
+            if (this.action === 'create') {
+                $('label[for="'+ NotaSinOrdencompra.Id('iddetallenota')+'"]').css('visibility','hidden');
+                $('#' + NotaSinOrdencompra.Id('iddetallenota')).css('visibility','hidden');
+                this.buttonChange({id: 'save', label: 'Registrar', key: 'R'});
+                
+            }
+            if (this.action === 'verNota') {
+                this.buttonChange({id: 'save', label: 'Cerrar', key: 'C'});
+            }
+
+            this.gridSearchVars('Productonota', '&idalmacn=' + $('#' + this.Id("idalmacen")).val());
+            $('#' + this.Id("idalmacen")).live('change', function (e)
+            {
+                NotaSinOrdencompra.gridReset('Productonota');
+                NotaSinOrdencompra.gridSearchVars('Productonota', '&idalmacn=' + $(this).val());
+            });
+
+            this.gridEventClickRow('Productonota', 'NotaSinOrdencompra.showDisponible();');
+            this.gridEventBlur('Productonota', 'NotaSinOrdencompra.hiddenDisponible();');
+        }
+    } catch (err) {
+        alert('Error al cargar NotaSinOrdencompra.init()');
+    }
+}
+
+NotaSinOrdencompra.options = function () {
+    this.setActions('createSinOrdencompra', {
+        WindowTitle: 'Crear Nota Sin Orden de Compra',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {
+        WindowTitle: 'Modificar Nota',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('despachar', {
+        WindowTitle: 'Despachar Nota',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('verNota', {
+        layerHeight: 356,
+        WindowWidth: 740,
+        WindowHeight: 363,
+        WindowTitle: 'Ver Nota',
+        initButtons: 'back',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Nota',
+        WindowWidth: 725,
+        WindowHeight: 460,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+
+NotaSinOrdencompra.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    return error;
+}
+NotaSinOrdencompra.afterCreate = function () {
+    NotaSinOrdencompra.reload();
+    this.print();
+}
+
+NotaSinOrdencompra.beforeUpdate = function () {
+    var error = false;//false es no existe error antes de actulizar formulario
+    return error;
+}
+NotaSinOrdencompra.afterUpdate = function () {
+    NotaSinOrdencompra.closeWindow();
+}
+
+NotaSinOrdencompra.beforeDelete = function () {
+    var error = false;//false es no existe error antes de eliminar formulario
+    return error;
+}
+
+NotaSinOrdencompra.despacho = function (options) {
+    this.action = 'despachar';
+    var updateFunction = (options['updateFunction'] != null) ? options['updateFunction'] : '';
+    var idKey = (options['idKey'] != null) ? options['idKey'] : '';
+    var options = this.options();
+    options['WindowTitle'] = (this.layer[this.action] != null && this.layer[this.action]['WindowTitle'] != null) ? this.layer[this.action]['WindowTitle'] : this.action;
+    options['WindowWidth'] = 260,
+            options['WindowHeight'] = 305,
+            options.url = this.url + '/despachar';
+    options.varSend = 'id=' + idKey;
+    options.idKey = idKey;
+    options.updateFunction = updateFunction;
+    this.open(options);
+}
+
+NotaSinOrdencompra.afterDespachar = function () {
+    NotaSinOrdencompra.closeWindow();
+    admNotaSinOrdencompra.showMessage("El despacho se registró correctamente!");
+}
+
+NotaSinOrdencompra.print = function () {
+    var url = 'ReporteNota?id=' + this.idKey();
+    this.openUrl(url);
+};
+
+NotaSinOrdencompra.showDisponible = function () {
+    var divSaldo = this.ById('divSaldo');
+    var grid = this.getSGridView('Productonota');
+
+    var saldodisponible = grid.rowSelected().get('disponible');
+
+    if (grid.rowSelected().get('idproducto') != '') {
+        var disponibleTotal = NotaSinOrdencompra.cantidadTotalProductoNota(grid.rowSelected().get('idproducto'));
+        divSaldo.innerHTML = parseFloat(saldodisponible - disponibleTotal).toFixed(4);
+        divSaldo.parentElement.style.visibility = 'visible';
+    } else {
+        divSaldo.innerHTML = '';
+        divSaldo.parentElement.style.visibility = 'hidden';
+    }
+}
+
+NotaSinOrdencompra.hiddenDisponible = function () {
+    var divSaldo = this.ById('divSaldo');
+    divSaldo.parentElement.style.visibility = 'hidden';
+}
+
+/**
+ * Suma la cantidad propducto de la nota, para el caluclo de la disponibilidad del mismo
+ * @returns float
+ */
+NotaSinOrdencompra.cantidadTotalProductoNota = function (idproducto) {
+    var grid = NotaSinOrdencompra.getSGridView('Productonota');
+    var cantidatotal = 0;
+    for (var f = 1; f <= grid.rows; f++)
+    {
+        if (grid.row(f).get('idproducto') == idproducto) {
+            cantidatotal += grid.row(f).get('cantidad');
+        }
+    }
+    return cantidatotal;
+}
+
+NotaSinOrdencompra.verificarGridInsumos = function () {
+    var grid = this.getSGridView('Productonota');
+
+    var idtipodocumento = this.get("idtipodocumento");
+    var ingresoSalida;
+
+    if (idtipodocumento != null)
+    {
+        var action = 'almacen/nota/devuelveIdtipo?idtipodocumento=' + idtipodocumento;
+        $.getJSON(action, function (listaJson) {
+            $.each(listaJson, function (key, documento) {
+                ingresoSalida = documento.idtipo;
+                if (ingresoSalida == 2) // SALIDA
+                {
+                    for (var f = 1; f <= grid.rows; f++)
+                    {
+                        var disponible = grid.row(f).get('disponible');
+                        var cantidad = grid.row(f).get('cantidad');
+                        var disponibleTotal = NotaSinOrdencompra.cantidadTotalProductoNota(grid.row(f).get('idproducto'));
+
+                        if (disponibleTotal > disponible)
+                            grid.row(f).attributes('cantidad', {validate: false, tooltip: 'Excede la cantidad disponible'});
+                        else
+                            grid.row(f).attributes('cantidad', {validate: true, tooltip: ''});
+
+                        if (cantidad == 0)
+                            grid.row(f).attributes('cantidad', {validate: false, tooltip: 'La cantidad debe ser mayor a CERO!'});
+                    }
+                }
+                else
+                {
+                    for (var f = 1; f <= grid.rows; f++)
+                    {
+                        grid.row(f).attributes('cantidad', {validate: true, tooltip: ''});
+
+                        var cantidad = grid.row(f).get('cantidad');
+                        if (cantidad == 0)
+                            grid.row(f).attributes('cantidad', {validate: false, tooltip: 'La cantidad debe ser mayor a CERO!'});
+                    }
+                }
+
+            });
+        });
+    }
+    NotaSinOrdencompra.calcularCostoUnitarioCostoTotal(grid.rowSelected());
+}
+/*
+ * Recalcula el grid del formulario
+ * Si ingresa el costo unitario debe calcularse el costo total
+ * si ingresa el costo total debe calcularse el costo unitario
+ */
+NotaSinOrdencompra.calcularCostoUnitarioCostoTotal=function(fila){
+    
+        //fila.attributes('cantidad', {validate: true, tooltip: ''});
+
+        var cantidad = fila.get('cantidad');
+        if (cantidad == 0){            
+            //grid.row(f).attributes('cantidad', {validate: false, tooltip: 'La cantidad debe ser mayor a CERO!'});
+            return;
+        }
+        var costounitario = fila.get('costo');
+        var costototal = fila.get('costototal');
+        if(fila.isFocus('costo'))
+        if(parseFloat(costounitario)!=0){
+            fila.set('costototal',(parseFloat(cantidad)*parseFloat(costounitario)))           
+        }
+        if(fila.isFocus('costototal'))
+        if(parseFloat(costototal)!=0){
+            fila.set('costo',(parseFloat(costototal)/parseFloat(cantidad)))     
+        }
+    
+}
+
+NotaSinOrdencompra.create = function(options){
+    this.action = 'createSinOrdencompra';
+    this.open(this.getOptions(options));
+}

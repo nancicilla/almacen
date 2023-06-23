@@ -1,0 +1,111 @@
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+
+Yii::app()->clientScript->registerScript('search', "
+$('.search-button').click(function(){
+	$('.search-form').toggle();
+	return false;
+});
+$('.search-form form').submit(function(){
+	$('#stock-grid').yiiGridView('update', {
+		data: $(this).serialize()
+	});
+	return false;
+});
+");
+$pageSize = Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']);
+?>
+<div class="container">
+    <div class="offset-12">
+        <div id="content">
+            <h1>Stock de productos</h1>
+<?php echo CHtml::link('Busqueda Avanzada','#',array('class'=>'search-button')); ?>
+            <div class="search-form" style="display:none">
+                <?php
+                $this->renderPartial('_search_stock', array(
+                    'model' => $model,
+                ));
+                ?>    
+            </div><!-- search-form -->
+
+            <div id="flash-msgs">
+                    <?php if (Yii::app()->user->hasFlash("error")): ?>
+                    <div class="flash-error">
+                    <?php echo Yii::app()->user->getFlash("error"); ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <form target="_blank" style="text-align: right; margin-bottom: 5px">
+                <?php
+                echo TbHtml::submitButton('Imprimir', array(
+                    'submit' => array('producto/reporteProductoStock'),
+                ));
+                ?>
+            </form>
+            <?php
+            $this->widget('bootstrap.widgets.TbGridView', array(
+                'id' => 'stock-grid',
+                'dataProvider' => $model->searchStock(),
+                'filter' => $model,
+                'rowCssClassExpression' => '($data->stockminimo > $data->saldo)?"error":"odd"',
+                'ajaxUpdate' => 'flash-msgs',
+                'columns' => array(
+                    'codigo',
+                    'nombre',
+                    array(
+                        'name' => 'idalmacen',
+                        'header' => 'Almacen',
+                        'value' => '$data->idalmacen0->nombre',
+                        'filter' => CHtml::activeDropDownList($model, 'idalmacen', CHtml::listData(
+                                        Almacen::model()->findAll(
+                                                array(
+                                                    'order' => 'codigo')
+                                        ), 'id', 'nombre'), array(
+                            'onchange' =>
+                            ' document.getElementById("Almacen_id").value = ;',
+                                )
+                        )
+                    ),
+                    array(
+                        'name' => 'stockminimo',
+                        'htmlOptions' => array('style' => 'text-align: right;'),
+                        'type' => 'number', // le da el formato de número decimal
+                        'filter' => CHtml::activeTextField($model, 'stockminimo')
+                    ),
+                    array(
+                        'name' => 'saldo',
+                        'htmlOptions' => array('style' => 'text-align: right;'),
+                        'type' => 'number', // le da el formato de número decimal
+                        'filter' => CHtml::activeTextField($model, 'saldo')
+                        . CHtml::activeHiddenField($model, 'id')
+                    ),
+                    array(
+                        'class' => 'bootstrap.widgets.TbButtonColumn',
+                        'template' => '',
+                        'header' => CHtml::dropDownList('pageSize', $pageSize, array(Yii::app()->params['1PageSize'] => Yii::app()->params['1PageSize'],
+                            Yii::app()->params['2PageSize'] => Yii::app()->params['2PageSize'],
+                            Yii::app()->params['3PageSize'] => Yii::app()->params['3PageSize'],
+                            Yii::app()->params['4PageSize'] => Yii::app()->params['4PageSize'],
+                            Yii::app()->params['5PageSize'] => Yii::app()->params['5PageSize'],
+                                ), array(
+                            'style' => 'width:70px; margin: 0 auto;',
+                            'onchange' => "$.fn.yiiGridView.update('stock-grid',{ data:{pageSize: $(this).val() }})",
+                                )
+                        ),
+                    ),
+                ),
+                    )
+            );
+            ?>
+            <form target="_blank" style="text-align: right; ">
+            <?php
+            echo TbHtml::submitButton('Imprimir', array(
+                'submit' => array('producto/reporteProductoStock'),
+                    )
+            );
+            ?>
+            </form>
+        </div>
+    </div>
+</div>

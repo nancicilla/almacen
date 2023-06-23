@@ -1,0 +1,314 @@
+<?php
+
+/*
+ * TraspasotpvController.php
+ *
+ * Version 0.$Rev: 286 $
+ *
+ * Creacion: 01/11/2017
+ *
+ * Ultima Actualizacion: $Date: 2015-10-13 09:08:14 -0400 (mar 13 de oct de 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+
+class TraspasotpvController extends Controller {
+    /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+
+    /*
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+
+    public function filters() {
+        return array_merge(
+                array(
+                    'accessControl',
+                    array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+                )
+        );
+    }
+
+    /*
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+
+    private function _publicActionsList() {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',
+        );
+    }
+
+    public function accessRules() {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+
+    /**
+     * Creates a new model.
+     */
+    public function actionCreate() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Traspasotpv;
+
+        if (isset($_POST['Traspasotpv'])) {
+            $model->attributes = $_POST['Traspasotpv'];
+            if ($model->save()) {
+                echo System::dataReturn('Creación exitosa!', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('create', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Updates a particular model.
+     * @param integer $id the ID of the model to be updated
+     */
+    public function actionUpdate($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = $this->loadModel(SeguridadModule::dec($id));
+        $model->scenario = 'update';
+        $gridSolicitudProducto = Traspasotpv::model()->obtenerProductosDeTraspaso(SeguridadModule::dec($id));
+        $estadoanterior = $model->idestado;
+
+        if (isset($_POST['Traspasotpv'])) {
+            //--- init control value --
+            $sinreserva = true;
+            $reserva = false;
+            $cambioEstado = false;
+
+            $disponible = $_POST['Traspasotpv']['disponible'];
+            $model->attributes = $_POST['Traspasotpv'];
+
+            if ($model->save()) {
+                $productos = $_POST['gridTraspasoproducto'];
+                $gridSolicitudProducto = $gridSolicitudProducto->getData();
+                $cantidad = count($productos);
+
+                for ($i = 1; $i <= $cantidad; $i++) {
+                    $x = $i - 1;
+                    if ($estadoanterior == Estadotpv::BORRADOR && $model->idestado == Estadotpv::SOLICITUD) {
+                        $reserva = true;
+                        $sinreserva = false;
+                        $cambioEstado = true;
+                    }
+                    if ($estadoanterior == Estadotpv::SOLICITUD && $model->idestado == Estadotpv::BORRADOR) {
+                        $reserva = false;
+                        $sinreserva = false;
+                        $cambioEstado = true;
+                    }
+                    $dato = $productos[$i];
+                    $modelTraspasoProducto = Traspasoproductotpv::model()->findByPk($dato['id']);
+                    if ($modelTraspasoProducto->cantidadenviada != $dato['cantidadenviada']) {
+                        if ($cambioEstado || $model->idestado == Estadotpv::SOLICITUD) {
+                            Producto::model()->quitarReservaSolicitud($dato['idproducto'], $modelTraspasoProducto->cantidadsolicitada);
+                            $sinreserva = true;
+                        }
+                        $modelTraspasoProducto->cantidadenviada = $dato['cantidadenviada'];
+                        $modelTraspasoProducto->save();
+                    }
+                    if ($reserva) {
+                        if ($disponible == 1) {
+                            Producto::model()->actualizaReservaSolicitud($dato['idproducto'], $dato['cantidadenviada']);
+                        }
+                    } else {
+                        if (!$sinreserva) {
+                            Producto::model()->quitarReservaSolicitud($dato['idproducto'], $modelTraspasoProducto->cantidadsolicitada);
+                        }
+                    }
+                }
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('update', array(
+            'model' => $model,
+            'gridSolicitudProducto' => $gridSolicitudProducto,
+                ), false, true);
+    }
+
+    /**
+     * Deletes safely a particular model.
+     * If deletion is successful, the browser will be redirected to the 'admin' page.
+     * @param integer $id the ID of the model to be deleted
+     */
+    public function actionDelete($id) {
+        $this->loadModel(SeguridadModule::dec($id))->safeDelete();
+        self::actionAdmin();
+    }
+
+    /**
+     * Manages all models.
+     */
+    public function actionAdmin() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Traspasotpv('search');
+        $model->unsetAttributes();  // clear any default values
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Traspasotpv'])) {
+            $model->attributes = $_GET['Traspasotpv'];
+            if (!$model->validate()) {
+                echo System::hasErrorSearch($model);
+                return;
+            }
+        }
+
+        $this->renderPartial('admin', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return Traspasotpv the loaded model
+     * @throws CHttpException
+     */
+    public function loadModel($id) {
+        $model = Traspasotpv::model()->findByPk($id);
+        if ($model === null)
+            throw new CHttpException(404, 'The requested page does not exist.');
+        return $model;
+    }
+
+    /**
+     * Performs the AJAX validation.
+     * @param Traspasotpv $model the model to be validated
+     */
+    protected function performAjaxValidation($model) {
+        if (isset($_POST['ajax']) && $_POST['ajax'] === 'traspasotpv-form') {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+    }
+
+    /**
+     * Confirma las Solicitudes y genera las notas de salida correspondiente, y quita la reserva y actualiza saldo
+     * @param integer $id el id de la nota borrador a confirmarse
+     */
+    public function actionConfirmar($id) {
+        $idTraspaso = SeguridadModule::dec($id);
+        $model = $this->loadModel($idTraspaso);
+        $productos = Traspasoproductotpv::model()->obtenerTraspasoproducto($idTraspaso)->getData();
+        $arrayParametros = array(
+            'productosorigen' => $productos,
+            'glosa' => 'TRASPASO ENTRE ALMACENES POR SOLICITUD N° ' . $model->numero . ' - ',
+            'idtraspaso' => $idTraspaso,
+        );
+
+        $erroresSalida = $this->registroSalidaTraspasoAlmacenes($arrayParametros);
+
+        if ($erroresSalida['error']) {
+            echo System::hasErrors($erroresSalida['mensaje']);
+            return;
+        }
+
+        $model->idestado = Estadotpv::TRASPASO;
+        $productoTraspaso = Traspasotpv::model()->obtenerProductosDeTraspaso($idTraspaso)->getData();
+        foreach ($productoTraspaso as $producto):
+            Producto::model()->quitarReservaSolicitud($producto->idproducto, $producto->cantidadenviada);
+            $modelTraspasoProducto = Traspasoproductotpv::model()->findByPk($producto->id);
+            $modelTraspasoProducto->cantidadrecibida = $producto->cantidadenviada;
+            $modelTraspasoProducto->save();
+//            Producto::model()->actualizaSaldoSolicitud($producto->idproducto, $producto->cantidadenviada);
+        endforeach;
+        if ($model->save()) {
+
+            echo System::dataReturn("Se registró correctamente", array());
+            return;
+        } else {
+            echo System::hasErrors('error al confirmar', $model);
+            return;
+        }
+    }
+
+    /**
+     * Registro de la nota y productonota al realizar el traspaso, este registro ocurre por salida del almacen destino
+     * @param type $idalmacenorigen
+     * @param type $idalmacendestino
+     * @param type $productosorigen
+     * @param type $productosdestino
+     * @param type $glosa
+     * @return array
+     */
+    public function registroSalidaTraspasoAlmacenes($arrayParametros) {
+        $productos = $arrayParametros['productosorigen'];
+        $glosa = $arrayParametros['glosa'];
+        $idtraspaso = $arrayParametros['idtraspaso'];
+
+        $nota = new Notatpv;
+        $nota->scenario = 'Traspaso';
+        $nota->idtipo = Tipo::model()->SALIDA; //INGRESO
+        $nota->idtipodocumento = Tipodocumentotpv::TRASPASO;
+        $nota->glosa = $glosa;
+        $nota->numero = $nota->generarNumero();
+        $nota->setScenario("TraspasoEntreAlmacenes");
+        $idcuenta = FtblMoodleCuentasespeciales::TRANSITO;
+        $nota->idcontracuenta = Yii::app()->tpv->createCommand("select idcuenta from ftbl_moodle_cuentasespeciales where id = " . $idcuenta)->queryScalar();
+        $nota->iddocumento = $idtraspaso;
+        $nota->idestado = Estadotpv::VIGENTE;
+
+        $nota->total = 0;
+        for ($k = 1; $k <= count($productos); $k++) {
+            $nota->total += $productos[$k - 1]['cantidadenviada'];
+        }
+
+        if ($nota->save()) {
+            Productonotatpv::model()->registrarProductoNota_TraspasoEntreAlmacenes($nota->id, $productos, $nota->numero, Tipo::model()->SALIDA, Tipodocumentotpv::TRASPASO, $glosa);
+            return array('mensaje' => 'Sin errores', 'numeroNota' => $nota->numero, 'error' => false, 'idnota' => $nota->id);
+        } else {
+            print_r($nota->getErrors());
+            return array('mensaje' => 'No se pudo guardar la nota', 'error' => true);
+        }
+    }
+
+}

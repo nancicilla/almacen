@@ -1,0 +1,78 @@
+<?php
+/* @var $this NotaController */
+/* @var $model Nota */
+
+echo System::Search(array(
+    'title' => 'Administración de Notas',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model,), true),
+    'buttons' => array(
+        array('name' => 'print', 'icon' => 'print', 'widthLinks' => 100,
+            'links' => array(
+                array('icon' => 'print', 'url' => 'reporteNotaLote', 'title' => 'Lote'),
+            )
+        ),
+    ),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admNota',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'numero',
+                'width' => 10
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'datetime',
+                'width' => 10
+            ),
+            array(
+                'name' => 'idorigen',
+                'header' => 'Origen',
+                'value' => '$data->idorigen0->nombre',
+                'width' => 10),
+            array(
+                'name' => 'notaTipo',
+                'header' => 'Tipo',
+                'value' => '$data->idtipo0->nombre',
+                'width' => 10
+            ),
+            array(
+                'name' => 'idestado',
+                'header' => 'Estado',
+                'value' => '$data->idestado0->nombre',
+                'width' => 10
+            ),
+            array(
+                'name' => 'glosa',
+                'width' => 30),
+            array(
+                'name' => 'usuario',
+                'width' => 10),
+            array('typeCol' => 'buttons',
+                'width' => 10,
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'buttons' => array(
+                    'imprimir' => array('icon' => 'print',
+                        'url' => 'array("reporteNota","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'options' => array("target" => "_blank")),
+                    'update' => array('label' => 'Modificar'),
+                    'despachar' => array(
+                        'label' => 'Realizar despacho',
+                        'icon' => 'road',
+//                        'visible' => true,
+                        'click' => 'function(){
+                            SGridView.selectRow(this);
+                            admNota.despacho();
+                            return false;
+                       }',
+                    ),
+                    'delete' => array('label' => 'Eliminar'),
+                ),
+            ),
+        ),
+            )
+    )
+        )
+);
+

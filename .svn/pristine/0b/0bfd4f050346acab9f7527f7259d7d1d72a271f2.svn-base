@@ -1,0 +1,89 @@
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+
+echo System::Search(array(
+    'title' => 'Administración de Productos',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model,), true),
+    'buttons' => array(
+        array('name' => 'print', 'icon' => 'print', 'widthLinks' => 100,
+            'links' => array(
+                array('icon' => 'print', 'url' => 'reporteProductoLote', 'title' => 'Lote'),
+                array('icon' => 'print', 'url' => 'reporteProductoLista', 'title' => 'Lista'),
+            )
+        ),
+    ),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],    
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admProducto',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'codigo',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'coduniversal',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'nombre',
+                'width' => 34,
+            ),
+            array(
+                'name' => 'idunidad',
+                'width' => 4,
+                'header' => 'Udd',
+                'value' => '$data->idunidad0->simbolo',
+            ),
+            array(
+                'name' => 'idalmacen',
+                'width' => 9,
+                'header' => 'Almacén',
+                'value' => '$data->idalmacen0->nombre',
+               
+            ),
+            array(
+                'name' => 'idestadofichatecnica',
+                'width' => 10,
+                'split' => false,
+                'value' => ' ($data->idestadofichatecnica == Estadofichatecnica::VIGENTE?"<span style=\'color: white\' class=\'label label-info\'>".$data->idestadofichatecnica0->nombre."</span>" : '
+                         . ' ($data->idestadofichatecnica == Estadofichatecnica::APROBADO?"<div style=\'color: white\' data-html=\'true\' class=\'label label-success\'>".$data->idestadofichatecnica0->nombre."</div>" : '
+                         . ' $data->idestadofichatecnica0->nombre) )',
+            ),
+            array(
+                'name' => 'usuario',
+                'width' => 7,
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'date',
+                'width' => 9,
+            ),
+            array('typeCol' => 'buttons',
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'width' => 7,
+                'buttons' => array(
+                    'imprimir' => array('icon' => 'print', 'url' => 'array("reporteProductoDetalle","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'options' => array("target" => "_blank")),
+                    'update' => array(
+                        'visible' => Yii::app()->user->checkAccess('action_almacen_producto_update'),
+                        'url' => 'array("update","id"=>SeguridadModule::enc($data->getPrimaryKey()))',                        
+                        ),
+                    'eliminar' => array(
+                        'visible' => Yii::app()->user->checkAccess('action_almacen_producto_delete'),
+                        'label' => 'Eliminar',
+                        'icon' => 'trash',                       
+                        'click' => 'function(){
+                            SGridView.selectRow(this);
+                            admProducto.eliminar();
+                            return false;
+                       }',
+                    ),
+                ),
+            ),
+        ),
+            )
+    )
+        )
+);

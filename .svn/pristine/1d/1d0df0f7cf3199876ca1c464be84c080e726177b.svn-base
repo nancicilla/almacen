@@ -1,0 +1,61 @@
+var Vigencia = new Object();
+Vigencia.__proto__ = SystemWindow;
+//variables
+Vigencia.nameView = "Vigencia";
+Vigencia.url = "vigencia";
+
+Vigencia.init = function(){
+    try{
+        if (this.action === 'update') {
+        this.buttonChange({id:'save', label: 'Salir', key: 'G'});
+    }
+    }catch (err) {
+        alert('Error al cargar Vigencia.init()');
+    }
+}
+
+Vigencia.options = function () { 
+    
+    this.setActions('create', {
+        WindowTitle: 'Parametrización',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {        
+        WindowTitle: 'Parametrización',
+        initButtons: 'save',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Vigencia',
+        WindowWidth: 300,
+        WindowHeight: 255,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+
+Vigencia.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    return error;
+}
+Vigencia.afterCreate = function () {
+   Vigencia.closeWindow();
+}
+
+Vigencia.beforeUpdate = function () {
+    var error = false;//false es no existe error antes de actulizar formulario
+    return error;
+}
+Vigencia.afterUpdate = function () {
+    Vigencia.closeWindow();
+}

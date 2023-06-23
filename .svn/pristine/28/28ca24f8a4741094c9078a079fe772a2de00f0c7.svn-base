@@ -1,0 +1,56 @@
+<?php
+/* @var $this AlmacenproductoController */
+/* @var $model Almacenproducto */
+/* @var $form CActiveForm */
+?>
+
+<div class="wide form">
+
+<?php $form=$this->beginWidget('CActiveForm', array(
+    'focus'=>'input:visible:enabled:first'  ,
+	'action'=>Yii::app()->createUrl($this->route),
+	'method'=>'get',
+)); ?>
+	<div class="row">
+		<?php echo $form->label($model,'stockminimo'); ?>
+		<?php echo $form->textField($model,'stockminimo'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'stockreposicion'); ?>
+		<?php echo $form->textField($model,'stockreposicion'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'stockmaximo'); ?>
+		<?php echo $form->textField($model,'stockmaximo'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'usuario'); ?>
+		<?php echo $form->textField($model,'usuario',array('size'=>30,'maxlength'=>30)); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'idalmacen'); ?>
+		<?php echo $form->textField($model,'idalmacen'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'idproducto'); ?>
+		<?php echo $form->textField($model,'idproducto'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'saldo'); ?>
+		<?php echo $form->textField($model,'saldo'); ?>
+	</div>
+
+   
+	<div class="row buttons">
+		<?php echo TbHtml::submitButton('Buscar'); ?>
+	</div>
+
+<?php $this->endWidget(); ?>
+
+</div><!-- search-form -->

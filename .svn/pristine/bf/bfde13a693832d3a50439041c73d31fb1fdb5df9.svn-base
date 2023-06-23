@@ -1,0 +1,13 @@
+<div  class="row">
+<?php
+    echo "<div id='".System::Id('divDetallePago')."'>";
+    echo $this->renderPartial('_caracteristicasDetalle',
+            array(
+                //'form' => $form,
+                'productoCaracteristica' => $productoCaracteristica,
+                //'model' => $model,
+            ), true
+    );
+    echo "</div>";
+?>           
+</div>

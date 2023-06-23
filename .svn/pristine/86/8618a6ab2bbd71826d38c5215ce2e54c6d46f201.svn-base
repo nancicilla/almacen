@@ -1,0 +1,81 @@
+<?php
+
+/* @var $this TraspasoController */
+/* @var $model Traspaso */
+
+echo System::Search(array(
+    'title' => 'Administración de Traspasos',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight']-30,
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admTraspaso',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight']-30,
+        'columns' => array(
+		array(
+		'name' => 'numero',
+		'width' => 8,
+		),
+                array(
+                'name'=>'fecha',
+                'type' => 'datetime', 
+                'width'=> 10,
+                ), 
+		array(
+		'name' => 'tipo',
+		'width' => 8,
+		),
+		array(
+		'name' => 'estado',
+		'width' => 10,
+		),
+		array(
+		'name' => 'cliente',
+		'width' => 23,
+		),
+		array(
+		'name' => 'almacen',
+		'width' => 10,
+		),
+		array(
+		'name' => 'usuario',
+		'width' => 8,
+		),
+		array(
+		'name' => 'numeropedido',
+		'width' => 8,                    
+                'align'=>'center',
+		),
+		array(
+		'name' => 'total',
+                'header'=>'Total (Bs)',    
+		'width' => 8,
+                'type'=>'number(2)',
+                'align'=>'right',
+                'footer'=>'sum'    
+		),
+		/*   
+                   
+		*/
+                array('typeCol' => 'buttons',
+                    'width' => 7,
+                    'deleteConfirmation'=>'¿Seguro que desea eliminar este elemento?',
+                    'buttons' => 	array(
+                                    'ver' => array('label' => 'Ver','icon' => 'eye-open',
+                                                   'click' => 'function(){SGridView.selectRow(this);admTraspaso.view();return false;}',
+                                        ),
+                                    'Anular' => array(
+                                        'click' => 'function() {
+                                           SGridView.selectRow(this);
+                                           alert("No Tiene permisos");
+                                           //admTraspaso.anular();
+                                           return false;
+                                          }',
+                                    'icon' => 'remove'),
+                        
+                                    ),
+		),
+	),
+    ))
+));
+

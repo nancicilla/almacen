@@ -1,0 +1,71 @@
+<?php
+/* @var $this AlmacenproductoController */
+/* @var $model Almacenproducto */
+
+Yii::app()->clientScript->registerScript('search', "
+$('.search-button').click(function(){
+	$('.search-form').toggle();
+	return false;
+});
+$('.search-form form').submit(function(){
+	$('#almacenproducto-grid').yiiGridView('update', {
+		data: $(this).serialize()
+	});
+	return false;
+});
+");
+?>
+<div class="container">
+    <div class="offset-12">
+        <div id="content">
+            <h1>Administración de Almacenproductos</h1>
+
+            <?php echo CHtml::link('Busqueda Avanzada', '#', array('class' => 'search-button')); ?>
+            <div class="search-form" style="display:none">
+                <?php
+                $this->renderPartial('_search', array(
+                    'model' => $model,
+                ));
+                ?>
+            </div><!-- search-form -->
+
+            <?php
+            $this->widget('yiiwheels.widgets.grid.WhGridView', array(
+                'fixedHeader' => true,
+                'responsiveTable' => true,
+                'id' => 'almacenproducto-grid',
+                'dataProvider' => $model->search(),
+                'filter' => $model,
+                'ajaxUpdate' => true,
+                'afterAjaxUpdate' => 'reinstallDatePicker',
+                'columns' => array(
+                    'stockminimo',
+                    'stockreposicion',
+                    'stockmaximo',
+                    'usuario',
+                    'idalmacen',
+                    /*
+                      'idproducto',
+                      'saldo',
+                     */
+                    array(
+                        'class' => 'bootstrap.widgets.TbButtonColumn',
+                        'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                        'buttons' => array(
+                            'view' => array('url' => 'array("view","id"=>SeguridadModule::enc($data->getPrimaryKey()))'),
+                            'update' => array('url' => 'array("update","id"=>SeguridadModule::enc($data->getPrimaryKey()))'),
+                            'delete' => array('url' => 'array("delete","id"=>SeguridadModule::enc($data->getPrimaryKey()))')
+                        ),
+                    ),
+                ),
+            ));
+
+            Yii::app()->clientScript->registerScript('re-install-date-picker', "
+function reinstallDatePicker() {
+     //se deben usar los mismos parámetros que en el widget para ser recargado
+     }
+");
+            ?>
+        </div>
+    </div>
+</div>

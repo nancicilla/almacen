@@ -1,0 +1,105 @@
+<?php
+/* @var $this NotaController */
+/* @var $model Nota */
+
+echo System::Search(array(
+    'title' => 'Administración de Notas',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model,), true),
+    'buttons' => array(
+        array('name' => 'print', 'icon' => 'print', 'widthLinks' => 100,
+            'links' => array(
+                array('icon' => 'print', 'url' => 'reporteNotaLote', 'title' => 'Lote'),
+                array('icon' => 'tag', 'url' => 'reporteNotaValoradaLote', 'title' => 'Valorada Lote'),
+
+            )
+        ),
+    ),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admNota',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'numero',
+                'width' => 6,
+                'align'=>'left',
+                'width' => 6
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'datetime',
+                'split'=> false,
+                'width' => 10
+            ),
+            array(
+                'name' => 'idorigen',
+                'header' => 'Origen',
+                'value' => '$data->idorigen0->nombre',
+                'width' => 10
+            ),
+            array(
+                'name' => 'notaTipo',
+                //'header' => 'Tipo',
+                'value' => '$data->idtipo0->nombre',
+                'width' => 8
+            ),
+            array(
+                'name' => 'idtipodocumento',
+                'value' => '$data->idtipodoc0->nombre',
+                'width' => 9
+            ),
+//            array(
+//                'name' => 'idestado',
+//                'header' => 'Estado',
+//                'value' => '$data->idestado0->nombre',
+//                'width' => 8
+//            ),
+            array(
+                'name' => 'glosa',
+                'width' => 25),
+            array(
+                'name' => 'idalmacen',
+                'value' => '$data->idalmacen0->nombre',
+                'width' => 15
+            ),
+            array(
+                'name' => 'usuario',
+                'width' => 10),
+            array('typeCol' => 'buttons',
+                'width' => 8,
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'buttons' => array(
+                    'Seguimiento' => array('click' => 'function() {SGridView.selectRow(this); admNota.registrarseguimiento(); return false;}', 'icon' => 'icon-share-alt', 'label' => 'Registrar Seguimiento', 'visible' => Yii::app()->user->checkAccess('action_almacen_controlseguimiento_registrarseguimientonota')),
+                    'imprimir' => array('icon' => 'print',
+                        'url' => 'array("reporteNota","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'options' => array("target" => "_blank")),
+                    'imprimirValorada' => array('icon' => 'tag',
+                        'url' => 'array("reporteNotaValorada","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'options' => array("target" => "_blank")),
+                    'despachar' => array(
+                        'label' => 'Realizar despacho',
+                        'icon' => 'road',
+                        'click' => 'function(){
+                            SGridView.selectRow(this);
+                            admNota.despacho();
+                            return false;
+                       }',
+                    ),
+                    'verNota' => array(
+                        'label' => 'Ver',
+                        'icon' => 'eye-open',
+                        'click' =>'                                                        
+                        function(){
+                                SGridView.selectRow(this);
+                                admNota.verNota();
+                                return false;
+                        }',
+                    ),
+//                    'delete' => array('label' => 'Eliminar'),
+                ),
+            ),
+        ),
+            )
+    )
+        )
+);
+

@@ -1,0 +1,84 @@
+<?php
+/* @var $this DevoluciontpvController */
+/* @var $model Devoluciontpv */
+/* @var $form CActiveForm */
+?>
+
+<div class="form">
+
+<?php $form=$this->beginWidget('CActiveForm', array(
+	'action'=>Yii::app()->createUrl($this->route),
+	'method'=>'get',
+        'id'=>'admDevoluciontpv',
+)); ?>
+	<div class="row">
+		<?php echo $form->label($model,'numero'); ?>
+		<?php echo $form->textField($model,'numero'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'glosa'); ?>
+		<?php echo $form->textField($model,'glosa'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'idestado'); ?>
+		<?php echo $form->textField($model,'idestado'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'idalmacenorigen'); ?>
+		<?php echo $form->textField($model,'idalmacenorigen'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'idalmacendestino'); ?>
+		<?php echo $form->textField($model,'idalmacendestino'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'usuario'); ?>
+		<?php echo $form->textField($model,'usuario',array('maxlength'=>30)); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'idalmacen'); ?>
+		<?php echo $form->textField($model,'idalmacen'); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'idtransaccion'); ?>
+		<?php echo $form->textField($model,'idtransaccion'); ?>
+	</div>
+
+        <div class="row">
+		<?php echo $form->label($model, 'fecha'); ?>
+                <?php echo $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                'model'=>$model, 
+                'attribute'=>'fecha',
+                'name' => 'devoluciontpv[fecha]',
+                'value' => $model->fecha,
+                'language' => 'es',
+                // additional javascript options for the date picker plugin
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'showButtonPanel' => true,
+                    'changeMonth' => true,
+                    'changeYear' => true,
+                    'dateFormat' => 'dd-mm-yy',
+                    'maxDate' => 'today',
+                    'onClose' => 'js:function(selectedDate) {admDevoluciontpv.search()}'
+
+                ),
+                'htmlOptions' => array(
+                    'id' => 'Devoluciontpv_fecha',
+                ),
+                    ), true)  
+                    ?>
+
+                    </div>
+   
+
+<?php $this->endWidget(); ?>
+
+</div><!-- search-form -->

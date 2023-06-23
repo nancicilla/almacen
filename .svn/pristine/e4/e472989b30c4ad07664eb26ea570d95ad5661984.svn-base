@@ -1,0 +1,34 @@
+
+<?php
+if($model->idalmacen == 3)
+    echo '<div class="column" style="width: 795px;">';
+else
+    echo '<div class="row">';
+?>
+<?php
+    echo "<div id='".System::Id('divDetallePago')."'>";
+    echo $this->renderPartial('_caracteristicasDetalle',
+            array(
+                'productoCaracteristica' => $productoCaracteristica,
+            ), true
+    );
+    echo "</div>";
+?>           
+</div>
+
+<?php
+if($model->idalmacen == 3)
+{
+?>
+    <div class="column" style="width: 240px;">
+        <?php
+            echo $form->labelEx($model, 'nutricional'); 
+            echo $form->textArea($model, 'nutricional', 
+            array(
+                'style' => 'width: 240px;', 'rows' => 12,
+            ));
+        ?>
+    </div>
+<?php
+}
+?>

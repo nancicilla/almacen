@@ -1,0 +1,223 @@
+<?php
+
+/**
+ * This is the model class for table "inventario".
+ *
+ * The followings are the available columns in table 'inventario':
+ * @property integer $id
+ * @property string $descripcion
+ * @property string $fechainicio
+ * @property string $fechafin
+ * @property boolean $cerrado
+ * @property boolean $eliminado
+ * @property string $usuario
+ *
+ * The followings are the available model relations:
+ * @property Almacenproductoinventario[] $almacenproductoinventarios
+ */
+class Inventario extends CActiveRecord
+{
+        public $idAlmacen;// almacen al que pertenece el producto
+        public $almacen;
+
+	/**
+	 * @return string the associated database table name
+	 */
+	public function tableName()
+	{
+		return 'inventario';
+	}
+
+	/**
+	 * @return array validation rules for model attributes.
+	 */
+	public function rules()
+	{
+		// NOTE: you should only define rules for those attributes that
+		// will receive user inputs.
+		return array(
+			array('descripcion', 'required'),
+                        array('fechainicio', 'type', 'type' => 'date', 'dateFormat'=>Yii::app()->locale->getDateFormat('medium'),'on'=>'create'),
+//                        array('idAlmacen','readOnly'=>true, 'on'=>'update'),
+			array('usuario', 'length', 'max'=>30),
+			array('idAlmacen,descripcion, fechafin, cerrado, eliminado', 'safe'),
+			// The following rule is used by search().
+			// @todo Please remove those attributes that should not be searched.
+			array('almacen,id, descripcion, fechainicio, fechafin, cerrado, eliminado, usuario', 'safe', 'on'=>'search'),
+		);
+	}
+
+	/**
+	 * @return array relational rules.
+	 */
+	public function relations()
+	{
+		// NOTE: you may need to adjust the relation name and the related
+		// class name for the relations automatically generated below.
+		return array(
+			'almacenproductoinventarios' => array(self::HAS_MANY, 'Almacenproductoinventario', 'idinventario'),
+		);
+	}
+
+	/**
+	 * @return array customized attribute labels (name=>label)
+	 */
+	public function attributeLabels()
+	{
+		return array(
+			'id' => 'ID',
+			'descripcion' => 'Descripcion',
+			'fechainicio' => 'Fecha Inicio',
+			'fechafin' => 'Fechafin',
+			'cerrado' => 'Cerrado',
+			'eliminado' => 'Eliminado',
+			'usuario' => 'Usuario',
+                        'idAlmacen'=>'Almacén',
+		);
+	}
+
+	/**
+	 * Retrieves a list of models based on the current search/filter conditions.
+	 *
+	 * Typical usecase:
+	 * - Initialize the model fields with values from filter form.
+	 * - Execute this method to get CActiveDataProvider instance which will filter
+	 * models according to data in model fields.
+	 * - Pass data provider to CGridView, CListView or any similar widget.
+	 *
+	 * @return CActiveDataProvider the data provider that can return the models
+	 * based on the search/filter conditions.
+	 */
+	public function search()
+	{
+		// @todo Please modify the following code to remove attributes that should not be searched.
+
+		$criteria=new CDbCriteria;
+                $criteria->with = array(
+                    'almacenproductoinventarios');
+                    
+//                    'secondTable_relation'=>array('select'=>'secondfield')
+                    
+//$criteria->select = 't.id';
+//$criteria->group='t.id';
+                $criteria->together=true;
+               
+                $criteria->compare('id',$this->id);
+
+                                if ($this->almacen != Null) {
+//                    $criteria->addCondition("almacenproductoinventarios.idalmacen = " .(int)$this->almacen . "");
+                                }
+
+		$criteria->compare('descripcion',$this->descripcion,true);
+		 if ($this->fechainicio != Null) {
+		$criteria->addCondition("fechainicio::date = '" . $this->fechainicio. "'");
+		 }
+		 if ($this->fechafin != Null) {
+		$criteria->addCondition("fechafin::date = '" . $this->fechafin. "'");
+		 }
+
+		$criteria->compare('cerrado',$this->cerrado);
+		$criteria->compare('eliminado',$this->eliminado);
+		$criteria->compare('usuario',$this->usuario,true);
+
+		return new CActiveDataProvider($this, array(
+		    'criteria'=>$criteria,
+                    'sort'=>array(
+                    'defaultOrder' => 'fechainicio desc',
+//                        'attributes'=>array(
+//                        'id'=>array(
+//                            'asc'=>'idproducto0.codigo',
+//                            'desc'=>'idproducto0.codigo DESC',
+//                        ),
+//                        
+//                        '*',
+//                    ),
+                ),
+		));
+//            $id=46;
+//            $count=91;
+////                $count=Yii::app()->db->createCommand('SELECT COUNT(*) FROM  inventario')->queryScalar();
+////                SELECT (select nombre from almacen where id=47) as almacen,"t"."id" AS "t0_c0", "t"."descripcion" AS "t0_c1", "t"."fechainicio" AS "t0_c2", "t"."fechafin" AS "t0_c3",
+//// "t"."cerrado" AS "t0_c4", "t"."eliminado" AS "t0_c5", "t"."usuario" AS "t0_c6"
+//// FROM "inventario" "t"  inner join almacenproductoinventario ap on t.id=ap.idinventario
+////WHERE (ap.idalmacen = 47) group by t.id order by t.id
+//                $sql='SELECT (select nombre from almacen where id='.$id.') as almacen,
+//                    "t"."id" AS "t0_c0", "t"."descripcion" AS "t0_c1", "t"."fechainicio" AS "t0_c2", "t"."fechafin" AS "t0_c3",
+// "t"."cerrado" AS "t0_c4", "t"."eliminado" AS "t0_c5", "t"."usuario" AS "t0_c6"
+// FROM "inventario" "t"  inner join almacenproductoinventario ap on t.id=ap.idinventario
+//WHERE (ap.idalmacen ='.$id.') group by t.id order by t.id';
+//                $dataProvider=new CSqlDataProvider($sql, array(
+//                                'totalItemCount'=>$count,
+//                                'sort'=>array(
+//                                                'attributes'=>array(
+//                                                                'almacen', 't0_c0', 'descripcion', 'fechainicio',
+//                                                ),
+//                                ),
+//                                'pagination'=>array(
+//                                                'pageSize'=>10,
+//                                ),
+//                ));
+//                
+//                return $dataProvider->getData();
+	}
+
+	/**
+	 * @return CDbConnection the database connection used for this class
+	 */
+	public function getDbConnection()
+	{
+		return Yii::app()->almacen;
+	}
+
+	/**
+	 * Returns the static model of the specified AR class.
+	 * Please note that you should have this exact method in all your CActiveRecord descendants!
+	 * @param string $className active record class name.
+	 * @return Inventario the static model class
+	 */
+	public static function model($className=__CLASS__)
+	{
+		return parent::model($className);
+	}
+             
+  
+        /**
+         *
+         * Sentencias entes de ejecutar metodo save
+	 * Antes de guardar se cambia todos los campos  de tipo character
+         * varying y text a mayúsculas
+         * Si existe el campo fecha, este toma el valor de la fecha actual antes
+         * de almacenarse
+         * Si existe el campo usuario, toma el valor del usuario actual antes de
+         * almacenarse
+	 * 
+	 */
+        public function beforeSave() {
+		$this->descripcion=strtoupper($this->descripcion);
+		$this->usuario= Yii::app()->user->getName();
+                if ($this->scenario == 'create')
+                $this->fechainicio=new CDbExpression('NOW()');               
+            return parent::beforeSave();            
+        }
+        
+        /**
+	 * Crea la relacion almacenproducto con inventario
+	 * @param int $pidinventario id del inventario
+         * @param int $pidalmacen id del almacen	 
+	 */
+        public function aniadirProductosInventario($pidinventario,$pidalmacen) {
+            $commond = Yii::app()->almacen->createCommand("select inventario_aniadir_productos(:pidinventario,:pidalmacen)");
+            $commond->bindValue(":pidinventario", $pidinventario, PDO::PARAM_INT);
+            $commond->bindValue(":pidalmacen", $pidalmacen, PDO::PARAM_INT);
+            $commond->execute();
+        }
+        
+        public function getIdAlmacen() {
+            $almacenProductoInventario=  Almacenproductoinventario::model()->
+            findByAttributes(array ('idinventario'=>$this->id));
+            $almacen=Almacen::model()->findByAttributes(array ('id'=>$almacenProductoInventario->idalmacen));
+            return $almacen->id;
+        }
+
+
+}

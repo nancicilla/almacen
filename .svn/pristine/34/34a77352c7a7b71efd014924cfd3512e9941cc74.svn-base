@@ -1,0 +1,152 @@
+<?php
+    echo SGridView::widget('TGridView', array(
+        'id' => 'ProductonotaValorado',
+        'dataProvider' => $productonota,
+        'buttonText' => '+',
+        'height' => 440,
+        'eventAfterEditionAutomatic' => true,
+        'columns' => array(
+            array(
+                'name' => 'id',
+                'typeCol' => 'hidden',
+            ),
+            array(
+                'name' => 'idnota',
+                'typeCol' => 'hidden',
+            ),
+            array(
+                'name' => 'fecha',
+                'width' => 10,
+                'typeCol' => 'uneditable',
+                'align' => 'left',
+            ),
+            array(
+                'name' => 'tipo',
+                'width' => 3,
+                'value' => '($data->idnota0->idtipo==1)? "ING.":"SAL."',
+                'typeCol' => 'uneditable',
+                'align' => 'left',
+            ),
+            array(
+                'name' => 'numero',
+                'header' => 'Nº Nota',
+                'width' => 5,
+                'typeCol' => 'uneditable',
+                'align' => 'center',
+            ),
+            array(
+                'name' => 'glosa',
+                'width' => 22,
+                'align' => 'left',
+                'typeCol' => 'uneditable',
+            ),
+            array(
+                'name' => 'ingreso',
+                'width' => 6,
+                'typeCol' => 'editable',
+                'align' => 'left',
+                'type' => 'number', // le da el formato de número decimal
+                'align' => 'right',//(9,4)
+                'background' => '#EAADA0',
+                'footer'=>array('function'=>'sum','idfooter'=>'totalingreso'),
+            ),
+            array(
+                'name' => 'salida',
+                'width' => 6,
+                'typeCol' => 'editable',
+                'align' => 'right',
+                'background' => '#EAADA0',
+                'footer'=>array('function'=>'sum','idfooter'=>'totalsalida'),
+            ),
+            array(
+                'name' => 'saldo',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'header' => 'Saldo Correcto',
+                'name' => 'saldoCantidadCorrecto',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'name' => 'ingresoimporte',
+                'header' => 'Debe',
+                'width' => 6,
+                'typeCol' => 'editable',
+                'align' => 'right',
+                'background' => '#EAADA0',
+                'footer'=>array('function'=>'sum'),
+            ),
+            array(
+                'header' => 'Haber',
+                'name' => 'salidaimporte',
+                'width' => 6,
+                'typeCol' => 'editable',
+                'align' => 'right',
+                'background' => '#EAADA0',
+                'footer'=>array('function'=>'sum'),
+            ),
+            array(
+                'header' => 'Saldo',
+                'name' => 'saldoimporte',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'header' => 'Saldo I. Correcto',
+                'name' => 'saldoImporteCorrecto',
+                'width' => 6,
+                'typeCol' => 'uneditable',
+                'align' => 'right',
+            ),
+            array(
+                'header' => 'Precio',
+                'name' => 'precioPromedioPonderado',
+                'type' => 'number',
+                'align' => 'right',
+                'typeCol' => 'uneditable',
+                'width' => 6,
+            ),
+            array(
+                'typeCol' => 'buttons',
+                'width' => 6,
+                'buttons' => array(
+                    'cambiar' => array(
+                        'click' => 'function() {
+                            SGridView.selectRow(this);
+                            Producto.cambiarMovimiento();
+                            return false;
+                        }',
+                        'icon' => 'edit',
+                        'label' => 'Cambiar',
+                    ),
+                    'corregir' => array(
+                        'click' => 'function() {
+                            SGridView.selectRow(this);
+                            Producto.corregirUnMovimiento();
+                            return false;
+                        }',
+                        'icon' => 'ok',
+                        'label' => 'Corregir',
+                    ),
+                    'corregirDesde' => array(
+                        'click' => 'function() {
+                            SGridView.selectRow(this);
+                            Producto.corregirVariosMovimientos();
+                            return false;
+                        }',
+                        'icon' => 'arrow-down',
+                        'label' => 'Corregir Desde aquí',
+                    ),
+                )
+            )
+        )
+    ));
+?>
+<?php
+echo '<img id="' . System::Id('imagenLoading') . '" src="images/loading.gif" style="left: 150px; position: absolute; width: 900px; height: 20px;">';
+?>

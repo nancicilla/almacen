@@ -1,0 +1,354 @@
+<?php
+
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+/**
+ * Description of WSNota
+ *
+ * @author acollazos
+ */
+class WSNota {
+    
+    protected static $success = true;
+    protected static $messageError = '';
+    protected static $modelError = array();
+    protected static $usuario = '';
+    protected static $dataReturn = array();
+    
+    public static function getResponse() {
+        if (self::$messageError != '')
+            self::$success = false;
+
+        return array('success' => self::$success,
+            'messageError' => self::$messageError == '' ? '' : 'ERROR EN EJECUCION [WSNotaController]: ' . PHP_EOL . self::$messageError,
+            'modelError' => self::$modelError,
+            'dataReturn' => self::$dataReturn
+        );
+    }
+
+    /**
+     * Registra una nota (no notaborrador) en almacen desde el modulo de produccion
+     * @param integer $norden
+     * @param double $total
+     * @param integer $idcontracuenta
+     * @param array $arrayProducto
+     * @param string $usuario
+     * @param integer $idalmacen
+     * @param integer $iddocumento
+     * @param string $mensaje
+     * @soap
+     */
+    public function registrarNotaIngresoAlmacenPorDevolucion($norden, $total, $idcontracuenta, $arrayProducto, $usuario, $idalmacen, $iddocumento, $mensaje) {
+        $model = new AlmacenNota;
+        $model->setScenario('devolucion');
+        Yii::app()->session['var'] = $usuario;
+
+        $model->numero = AlmacenNota::model()->generarNumero();
+        $model->glosa = $mensaje . $norden . ' ';
+        $model->idtipo = AlmacenTipo::model()->INGRESO;
+        $model->idorigen = AlmacenOrigen::model()->idOrigenProduccion;
+        $model->total = $total;
+        $model->idtipodocumento = AlmacenTipodocumento::model()->DEVOLUCION;
+
+
+        $model->iddocumento = $iddocumento;
+        $idAlmacenProductosEnProceso = AlmacenAlmacen::model()->idAlmacenProductosEnProceso;
+        //$model->idcontracuenta = Almacen::model()->findBySql('select idcuenta from almacen where id = ' . $idAlmacenProductosEnProceso)->idcuenta;
+        $model->idcontracuenta = $idcontracuenta;
+
+        $model->idalmacen = $idalmacen;
+        if ($model->save()) {
+            $cantidad = count($arrayProducto);
+            foreach ($arrayProducto as $valor) {
+                $modelProducto = AlmacenProducto::model()
+                        ->findBySql("select * from producto where id = " . $valor['id']);
+
+                $modelProductonotaborrador = new AlmacenProductonota;
+                $modelProductonotaborrador->scenario = 'miUsuario';
+                $modelProductonotaborrador->glosa = $mensaje . $norden . ' ';
+                if (isset($valor['Devolver'])) {
+                    if ($valor['Devolver'] > 0)
+                        $modelProductonotaborrador->ingreso = round($valor['Devolver'], 4);
+                }
+
+
+                $modelProductonotaborrador->salida = 0;
+                $modelProductonotaborrador->saldo = (float) $modelProducto->saldo + $modelProductonotaborrador->ingreso;
+                $modelProductonotaborrador->idproducto = $valor['id'];
+                $modelProductonotaborrador->idnota = $model->id;
+
+
+                /* if ($modelProducto->costo == 0 || $modelProducto->costo == null) {
+                  if ($modelProducto->saldo <= 0 || $modelProducto->saldoimporte <= 0)
+                  $modelProductonotaborrador->ingresoimporte = $modelProducto->ultimoppp * $modelProductonotaborrador->ingreso;
+                  else
+                  $modelProductonotaborrador->ingresoimporte = ((float) $modelProducto->saldoimporte / (float) $modelProducto->saldo) * $modelProductonotaborrador->ingreso;
+                  } else {
+                  $modelProductonotaborrador->ingresoimporte = $modelProducto->costo * round($modelProductonotaborrador->ingreso, 4);
+                  } */
+                $modelProductonotaborrador->ingresoimporte = $valor['preciounitario'] * $modelProductonotaborrador->ingreso;
+
+                $modelProductonotaborrador->saldoimporte = (float) $modelProducto->saldoimporte + $modelProductonotaborrador->ingresoimporte;
+                $modelProductonotaborrador->salidaimporte = 0;
+                if (isset($valor['Devolver'])) {
+                    if ($valor['Devolver'] > 0) {
+                        if ($modelProductonotaborrador->save()) {
+                            $modelProducto->setScenario('actualizarsaldo');
+                            $modelProducto->saldo = $modelProducto->saldo + $modelProductonotaborrador->ingreso;
+                            $modelProducto->saldoimporte = $modelProducto->saldoimporte + $modelProductonotaborrador->ingresoimporte;
+                            $modelProducto->save();
+                        }
+                    }
+                }
+            }
+            unset(Yii::app()->session['var']);
+        }
+    }
+
+    /**
+     * Registra una nota (no notaborrador) en almacen desde el modulo de produccion caundo realiza una entrega
+     * @param array $dataService
+     * @return array
+     * @soap
+     */
+    public function registrarNotaIngresoAlmacenPorEntrega($dataService) {
+        $norden = $dataService['norden'];
+        $productoNormal = $dataService['productoNormal']; //array
+        $productosResiduales = $dataService['productosResiduales']; //array
+        $usuario = $dataService['usuario'];
+        $iddocumento = $dataService['iddocumento'];
+        $iddocumentoproductoventa = isset($dataService['iddocumentoproductoventa']) ? $dataService['iddocumentoproductoventa'] : null;
+        //REGISTRO DE UN PRODUCTO NORMAL "PRODUCTO NO RESIDUAL"
+        if ($productoNormal["existeRegistro"]) {
+            $transaction = Yii::app()->db->beginTransaction();
+            try {
+                $model = new AlmacenNota;
+                $model->setScenario('produccion');
+                // ----------- Descripción de la orden de producción -----------
+                $modelOrdenreceta = Ordenreceta::model()->find('id = ' . $iddocumento);
+                $descripcionOrdenReceta = trim($modelOrdenreceta->descripcion) == '' ? '' : ' ' . trim($modelOrdenreceta->descripcion);
+
+                $mensaje = 'INGRESO POR ENTREGA DE O.P. Nº ' . $norden . $descripcionOrdenReceta . ' - ' . $productoNormal['productoProducido'];
+                $model->scenario = 'miUsuario';
+                Yii::app()->session['var'] = $usuario;
+                $model->glosa = $mensaje;
+                $model->idtipo = AlmacenTipo::model()->INGRESO;
+                $model->idorigen = AlmacenOrigen::model()->idOrigenProduccion;
+                $model->total = round($productoNormal["total"], 2);
+                $model->numero = AlmacenNota::model()->generarNumero();
+                $model->idtipodocumento = AlmacenTipodocumento::model()->INGRESO;
+                $model->iddocumento = $iddocumento;
+                $idAlmacenProductosEnProceso = AlmacenAlmacen::model()->idAlmacenProductosEnProceso;
+                $model->idcontracuenta = AlmacenAlmacen::model()->findBySql('select idcuenta from almacen where id = ' . $idAlmacenProductosEnProceso)->idcuenta;
+                $model->idalmacen = AlmacenProducto::model()->findBySql('select * from producto where id = ' . $productoNormal['id'])->idalmacen;
+                if ((float) $productoNormal["total"] > 0 && $model->save()) {
+                    if ((float) $productoNormal['cantidad'] != 0) {
+                        $modelProductonota = new AlmacenProductonota;
+                        $modelProducto = AlmacenProducto::model()->findBySql('select * from producto where id = ' . $productoNormal['id']);
+                        $modelProductonota->scenario = 'miUsuario';
+                        $modelProductonota->glosa = $mensaje;
+                        $modelProductonota->ingreso = round($productoNormal['cantidad'], 4);
+                        $modelProductonota->salida = 0;
+                        $modelProductonota->saldo = $modelProducto->saldo + (float) $productoNormal['cantidad'];
+
+                        if ($modelProducto->costo == 0 || $modelProducto->costo == null) {
+                            if ($modelProducto->saldo <= 0 || $modelProducto->saldoimporte <= 0) {
+                                $modelProductonota->ingresoimporte = $modelProducto->ultimoppp * round($productoNormal['cantidad'], 4);
+                            } else {
+                                $modelProductonota->ingresoimporte = ($modelProducto->saldoimporte / $modelProducto->saldo) * round($productoNormal['cantidad'], 4);
+                            }
+                        } else {
+                            $modelProductonota->ingresoimporte = $modelProducto->costo * round($productoNormal['cantidad'], 4);
+                        }
+                        $modelProductonota->salidaimporte = 0;
+                        $modelProductonota->saldoimporte = $modelProducto->saldoimporte + $modelProductonota->ingresoimporte;
+                        $modelProductonota->idproducto = $productoNormal['id'];
+                        $modelProductonota->idnota = $model->id;
+                        $modelProductonota->idalmacen = $modelProducto->id;
+
+                        if ($modelProductonota->save()) {
+                            $modelProducto->saldoIncrementar = $productoNormal['cantidad'];
+                            $modelProducto->saldoimporteIncrementar = $modelProductonota->ingresoimporte;
+                            if ($iddocumentoproductoventa != null)
+                                $modelProducto->reservaIncrementar = $productoNormal['cantidad'];
+                            $modelProducto->updateSaldoReserva();
+                        }
+                    }
+                    unset(Yii::app()->session['var']);
+                }
+                $transaction->commit();
+            } catch (Exception $exc) {
+                $transaction->rollback();
+            }
+        }
+        self::$dataReturn = array('respuesta' => true, 'idproductonota' => $modelProductonota->id);
+        return self::getResponse();
+    }
+
+    /**
+     * Registra una nota (no notaborrador) en almacen desde el modulo de produccion de los residuales
+     * @param integer $norden
+     * @param double $total
+     * @param array $arrayProducto
+     * @param string $usuario
+     * @param integer $idalmacen
+     * @param integer $iddocumento
+     * @param string $mensaje
+     * @param boolean $residual
+     * @soap
+     */
+    public function registrarResidualNotaIngresoPorAlmacen($norden, $total, $arrayProducto, $usuario, $idalmacen, $iddocumento, $mensaje, $residual) {
+        $model = new AlmacenNota;
+        $model->setScenario('subproductos');
+        Yii::app()->session['var'] = $usuario;
+
+        $model->numero = AlmacenNota::model()->generarNumero();
+        $model->glosa = $mensaje . $norden;
+        $model->idtipo = AlmacenTipo::model()->INGRESO;
+        $model->idorigen = AlmacenOrigen::model()->idOrigenProduccion;
+        $model->total = $total;
+        if ($residual) {
+            $model->idtipodocumento = AlmacenTipodocumento::model()->INGRESO_RESIDUAL;
+        } else {
+            $model->idtipodocumento = AlmacenTipodocumento::model()->DEVOLUCION;
+        }
+
+        $model->iddocumento = $iddocumento;
+        $idAlmacenProductosEnProceso = AlmacenAlmacen::model()->idAlmacenProductosEnProceso;
+        $model->idcontracuenta = AlmacenAlmacen::model()->findBySql('select idcuenta from almacen where id = ' . $idAlmacenProductosEnProceso)->idcuenta;
+        //$model->idcontracuenta = $idcontracuenta;
+
+        $model->idalmacen = $idalmacen;
+        if ($model->save()) {
+            $cantidad = count($arrayProducto);
+            foreach ($arrayProducto as $valor) {
+                $modelProducto = AlmacenProducto::model()
+                        ->findBySql("select * from producto where id = " . $valor['id']);
+
+                $modelProductonotaborrador = new AlmacenProductonota;
+                $modelProductonotaborrador->scenario = 'miUsuario';
+                $modelProductonotaborrador->glosa = $mensaje . $norden;
+
+                $modelProductonotaborrador->ingreso = round($valor['cantidad'], 4);
+                $modelProductonotaborrador->salida = 0;
+                $modelProductonotaborrador->saldo = (float) $modelProducto->saldo + $modelProductonotaborrador->ingreso;
+                $modelProductonotaborrador->idproducto = $valor['id'];
+                $modelProductonotaborrador->idnota = $model->id;
+                $modelProductonotaborrador->salidaimporte = 0;
+
+
+                if ($modelProducto->saldo <= 0 || $modelProducto->saldoimporte <= 0)
+                    $modelProductonotaborrador->ingresoimporte = round(($modelProducto->ultimoppp * (float) round($valor['cantidad'], 4)), 2);
+                else
+                    $modelProductonotaborrador->ingresoimporte = round((((float) $modelProducto->saldoimporte / (float) $modelProducto->saldo) * (float) round($valor['cantidad'], 4)), 2);
+
+                $modelProductonotaborrador->saldoimporte = $modelProducto->saldoimporte + $modelProductonotaborrador->ingresoimporte;
+                if ((float) $valor['cantidad'] > 0) {
+                    if ($modelProductonotaborrador->save()) {
+                        Entrega::model()->updateByPk($valor['identrega'], array('idproductonota' => $modelProductonotaborrador->id));
+
+                        $modelProducto->setScenario('actualizarsaldo');
+                        $modelProducto->saldo = $modelProducto->saldo + $modelProductonotaborrador->ingreso;
+                        $modelProducto->saldoimporte = $modelProducto->saldoimporte + $modelProductonotaborrador->ingresoimporte;
+                        $modelProducto->save();
+                    }
+                }
+            }
+            unset(Yii::app()->session['var']);
+        }
+    }
+   
+         /**
+     * Registra una nota (no notaborrador) en almacen desde el modulo de produccion caundo realiza una entrega
+     * @param array $dataService
+     * @return array
+     * @soap
+     */
+    public function registrarNotaEgresoAlmacenPorEntregaAnulada($dataService){
+        $norden=$dataService['norden'];
+        $productoNormal=$dataService['productoNormal']; //array
+        $usuario=$dataService['usuario'];
+        $iddocumento=$dataService['iddocumento'];
+        $iddocumentoproductoventa=isset($dataService['iddocumentoproductoventa'])?$dataService['iddocumentoproductoventa']:null;
+            
+        //REGISTRO DE UN PRODUCTO NORMAL "PRODUCTO NO RESIDUAL"
+        if ($productoNormal["existeRegistro"]) {
+            $transaction = Yii::app()->db->beginTransaction();
+            
+            try{
+                $model = new AlmacenNota;
+                $model->setScenario('produccion');
+                $mensaje = 'SALIDA POR ANULACION DE ENTREGA DE O.P. Nº ' . $norden . ' - ' . $productoNormal['productoProducido'];
+                $model->scenario = 'miUsuario';
+                Yii::app()->session['var'] = $usuario;
+                $model->glosa = $mensaje;
+                $model->idtipo = AlmacenTipo::model()->SALIDA;
+                $model->idorigen = AlmacenOrigen::model()->idOrigenProduccion;
+                $model->total = round($productoNormal["total"], 2);
+                $model->numero = AlmacenNota::model()->generarNumero();
+                $model->idtipodocumento = AlmacenTipodocumento::model()->SALIDA;
+                $model->iddocumento = $iddocumento;
+                $idAlmacenProductosEnProceso = AlmacenAlmacen::model()->idAlmacenProductosEnProceso;
+                $model->idcontracuenta = AlmacenAlmacen::model()->findBySql('select idcuenta from almacen where id = ' . $idAlmacenProductosEnProceso)->idcuenta;
+                $model->idalmacen = AlmacenProducto::model()->findBySql('select * from producto where id = ' . $productoNormal['id'])->idalmacen;
+                //$model->gestionschemaorden = $dataService['gestionschema'];
+                if ((float) $productoNormal["total"] > 0 && $model->save()) {
+                    if ((float) $productoNormal['cantidad'] != 0) {
+                        $modelProductonota = new AlmacenProductonota;
+                        $modelProducto = AlmacenProducto::model()->findBySql('select * from producto where id = ' . $productoNormal['id']);
+                        $modelProductonota->scenario = 'miUsuario';
+                        $modelProductonota->glosa = $mensaje;
+                        $modelProductonota->salida = round($productoNormal['cantidad'], 4);
+                        $modelProductonota->ingreso = 0;
+                        $modelProductonota->saldo = $modelProducto->saldo - (float) $productoNormal['cantidad'];
+
+                        if ($modelProducto->costo == 0 || $modelProducto->costo == null) {
+                            if ($modelProducto->saldo <= 0 || $modelProducto->saldoimporte <= 0) {
+                                $modelProductonota->ingresoimporte = $modelProducto->ultimoppp * round($productoNormal['cantidad'], 4);
+                            } else {
+                                $modelProductonota->ingresoimporte = ($modelProducto->saldoimporte / $modelProducto->saldo) * round($productoNormal['cantidad'], 4);
+                            }
+                        } else {
+                            $modelProductonota->ingresoimporte = $modelProducto->costo * round($productoNormal['cantidad'], 4);
+                        }
+
+                        $modelProductonota->salidaimporte = 0;
+                        $modelProductonota->saldoimporte = $modelProducto->saldoimporte + $modelProductonota->ingresoimporte;
+                        $modelProductonota->idproducto = $productoNormal['id'];
+                        $modelProductonota->idnota = $model->id;
+                        $modelProductonota->idalmacen = $modelProducto->id;
+                        
+                        if ($modelProductonota->save()) {
+                            $modelProducto->saldoDecrementar =  $productoNormal['cantidad'];
+                            $modelProducto->saldoimporteDecrementar =$modelProductonota->ingresoimporte;
+                            if($iddocumentoproductoventa!=null)$modelProducto->reservaDecrementar =  $productoNormal['cantidad'];
+                            $modelProducto->updateSaldoReserva();
+                        }
+                    }
+                    unset(Yii::app()->session['var']);
+                }
+            
+                $idnota = Yii::app()->almacen->createCommand('select id from nota where iddocumento = '.$iddocumento.' and idtipodocumento = 1 order by fecha DESC limit 1')->queryScalar();
+                
+                $nota = AlmacenNota::model()->findByPk($idnota);
+                $nota->scenario = 'miUsuario';
+                Yii::app()->session['var'] = $usuario;
+                $nota->usuario = $usuario;
+                $nota->idtipodocumento = AlmacenTipodocumento::model()->ENTREGAANULADA;
+                $guardo =$nota->update();
+                unset(Yii::app()->session['var']);
+                
+            $transaction->commit();
+
+            } catch (Exception $exc) {
+            $transaction->rollback();
+            }
+        }
+        self::$dataReturn = array('respuesta'=>true,'idproductonota' => $modelProductonota->id,'guardo'=>$guardo);
+        return self::getResponse();
+    }   
+}

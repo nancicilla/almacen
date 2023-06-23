@@ -1,0 +1,11 @@
+<div  class="row">
+<?php
+    echo "<div id='".System::Id('divDetallePago')."'>";
+    echo $this->renderPartial('_caracteristicasDetalle',
+            array(
+                'productoCaracteristica' => $productoCaracteristica,
+            ), true
+    );
+    echo "</div>";
+?>           
+</div>

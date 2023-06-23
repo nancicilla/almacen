@@ -1,0 +1,265 @@
+var Productonota = new Object();
+Productonota.__proto__ = SystemWindow;
+//ACCIONES DE FORMULARIO [this.action=create/update/delete/show/annul]
+//variables
+Productonota.nameView = "Productonota";
+Productonota.url = "Productonota";
+Productonota.deleteConfirmation = 'Seguro de eliminar ?';
+Productonota.idproductoGridKardex = 0; // Al hacer click en el Grid de items del formulario "kardex" va ser asignado a esta variable
+Productonota.idproductoGridKardexValorado = 0; // Al hacer click en el Grid de items del formulario "kardexvalorado" va ser asignado a esta variable
+
+//funciones
+Productonota.init = function () {
+    try {
+        var THIS = this;
+        this.showWarning = false;
+        
+        if (this.action == 'Kardex')
+        {
+            $('#' + this.Id('producto')).attr('disabled', true);
+            $('#btnBuscarProductos').attr('disabled', true);
+            
+            $('#' + Productonota.Id("idalmacen")).change(function () {
+                if($(this).val() == '')
+                {
+                    $('#' + Productonota.Id('producto')).attr('disabled', true);
+                    $('#btnBuscarProductos').attr('disabled', true);
+                }
+                else
+                {
+                    $('#' + Productonota.Id('producto')).attr('disabled', false);
+                    $('#btnBuscarProductos').attr('disabled', false);
+                }
+                $('#' + Productonota.Id('producto')).val('');
+                Productonota.cargarProductos($(this).val(), '');
+            });
+
+            $('#'+this.Id('producto')).keyup(function(e){
+                var k = (document.all) ? e.keyCode : e.which;
+                if(k == 13) {
+                    var idalmacen = $('#' + Productonota.Id('idalmacen')).val();
+                    var producto = $(this).val();
+                    Productonota.cargarProductos(idalmacen, producto);
+                    Productonota.cargarProductoNota();
+                }
+            });
+
+            $('#btnBuscarProductos').click(function(){
+                var idalmacen = $('#' + Productonota.Id('idalmacen')).val();
+                var producto = $('#' + Productonota.Id('producto')).val();
+                Productonota.cargarProductos(idalmacen, producto);
+                Productonota.cargarProductoNota();
+            });
+        }
+        
+        
+        if (this.action == 'KardexValorado')
+        {
+            $('#' + Productonota.Id('productoValorado')).attr('disabled', true);
+            $('#btnBuscarProductosValorado').attr('disabled', true);
+                    
+            $('#' + Productonota.Id("idalmacenValorado")).change(function () {
+                if($(this).val() == '')
+                {
+                    $('#' + Productonota.Id('productoValorado')).attr('disabled', true);
+                    $('#btnBuscarProductosValorado').attr('disabled', true);
+                }
+                else
+                {
+                    $('#' + Productonota.Id('productoValorado')).attr('disabled', false);
+                    $('#btnBuscarProductosValorado').attr('disabled', false);
+                }
+                $('#' + Productonota.Id('productoValorado')).val('');
+                Productonota.cargarProductosValorado($(this).val(), '');
+            });
+
+            $('#'+this.Id('productoValorado')).keyup(function(e){
+                var k = (document.all) ? e.keyCode : e.which;
+                if(k == 13) {
+                    var idalmacen = $('#' + Productonota.Id('idalmacenValorado')).val();
+                    var producto = $(this).val();
+                    Productonota.cargarProductosValorado(idalmacen, producto);
+                    Productonota.cargarValoradoProductoNota();
+                }
+            });
+            
+            $('#btnBuscarProductosValorado').click(function(){
+                var idalmacen = $('#' + Productonota.Id('idalmacenValorado')).val();
+                var producto = $('#' + Productonota.Id('productoValorado')).val();
+                Productonota.cargarProductosValorado(idalmacen, producto);
+                Productonota.cargarValoradoProductoNota();
+            });
+        }
+        
+    } catch (err) {
+        alert('Error al cargar Productonota.init()');
+    }
+};
+     
+Productonota.options = function () {
+    var afterFunction = '';
+    var idKey = SGridView.getSelected('id');
+    var varsSend = "";
+    var url = "";
+    var nameContainer = "";
+
+    this.setActions('Kardex', {layerHeight: 356,
+            WindowWidth: 1270,
+            WindowHeight: 575,
+            WindowTitle: 'Kardex',
+            ayerEndOn: false,
+            ableBackWindow: true,
+            initButtons: 'back',
+        });
+        
+    this.setActions('KardexValorado', {layerHeight: 356,
+            WindowWidth: 1270,
+            WindowHeight: 575,
+            WindowTitle: 'Kardex Valorado',
+            ayerEndOn: false,
+            ableBackWindow: true,
+            initButtons: 'back',
+        });
+
+    var options = {
+        idKey: idKey,
+        varsSend: varsSend
+    };
+    return options;
+}
+
+// -----------------------------------------------------------------------------
+// -------------------------------- KARDEX -------------------------------------
+Productonota.Kardex = function (options) {
+    this.action = 'Kardex';
+    this.open(this.getOptions(options));
+};
+
+Productonota.cargarProductos = function(idalmacen, producto) {
+    var url = this.urlIni+this.url+'/loadProductos';
+    var THIS = this;
+    var data = 'idalmacen=' + idalmacen + '&producto=' + producto + 
+                '&groupForm=' + this.groupForm;
+    var container = 'kardex'+'container';
+    
+    SystemLoad.start();
+    jQuery.ajax({
+        url: url, 
+        type:'get',
+        data:data,
+        success: function (data) {
+           SystemLoad.done();
+          THIS.ById(container).innerHTML=data;
+          THIS.runScriptAjax(data);
+        },
+        error: function (jqXHR, status) {  
+           SystemLoad.done();
+            alert('error! ');
+        }
+      });
+};
+
+Productonota.cargarProductoNota = function() {
+    var fechaInicio = $('#' + Productonota.Id('fechaInicio')).val();
+    var fechaFin = $('#' + Productonota.Id('fechaFin')).val();
+    var grid = this.getSGridView('Productos');
+    var idproducto = grid.rowSelected().get('id');
+    
+    if(Productonota.idproductoGridKardex == 0)
+        Productonota.idproductoGridKardex = idproducto;
+    if(Productonota.idproductoGridKardex > 0)
+        idproducto = Productonota.idproductoGridKardex;
+    
+    var url = this.urlIni+this.url+'/loadProductoNota';
+    var THIS = this;
+    var data = 'idproducto=' + idproducto + '&fechaInicio=' + fechaInicio +
+               '&fechaFin=' + fechaFin + '&groupForm=' + this.groupForm;
+    var container = 'divProductoNota';
+    
+    if(idproducto > 0)
+    {
+        SystemLoad.start();
+        jQuery.ajax({
+            url: url, 
+            type:'get',
+            data:data,
+            success: function (data) {
+               SystemLoad.done();
+              THIS.ById(container).innerHTML=data;
+              THIS.runScriptAjax(data);
+            },
+            error: function (jqXHR, status) {  
+               SystemLoad.done();
+                alert('error! ');
+            }
+        });
+    }
+};
+
+// -----------------------------------------------------------------------------
+// -------------------------- KARDEX VALORADO ----------------------------------
+Productonota.KardexValorado = function (options) {
+    this.action = 'KardexValorado';
+    this.open(this.getOptions(options));
+};
+
+Productonota.cargarProductosValorado = function(idalmacen, producto) {
+    var url = this.urlIni+this.url+'/loadProductosValorado';
+    var THIS = this;
+    var data = 'idalmacen=' + idalmacen + '&producto=' + producto + 
+                '&groupForm=' + this.groupForm;
+    var container = 'kardexValorado'+'container';    
+    
+    SystemLoad.start();
+    jQuery.ajax({
+        url: url, 
+        type:'get',
+        data:data,
+        success: function (data) {
+           SystemLoad.done();
+          THIS.ById(container).innerHTML=data;
+          THIS.runScriptAjax(data);
+        },
+        error: function (jqXHR, status) {  
+           SystemLoad.done();
+            alert('error! ');
+        }
+      });
+};
+
+Productonota.cargarValoradoProductoNota = function() {
+    var fechaInicio = $('#' + Productonota.Id('fechaInicio')).val();
+    var fechaFin = $('#' + Productonota.Id('fechaFin')).val();
+    var grid = this.getSGridView('Productos');
+    var idproducto = grid.rowSelected().get('id');
+    
+    if(Productonota.idproductoGridKardexValorado == 0)
+        Productonota.idproductoGridKardexValorado = idproducto;
+    if(Productonota.idproductoGridKardexValorado > 0)
+        idproducto = Productonota.idproductoGridKardexValorado;
+    
+    var url = this.urlIni+this.url+'/loadProductoNotaValorado';
+    var THIS = this;
+    var data = 'idproducto=' + idproducto + '&fechaInicio=' + fechaInicio +
+               '&fechaFin=' + fechaFin + '&groupForm=' + this.groupForm;
+    var container = 'divProductoNota';
+    
+    if(idproducto > 0)
+    {
+        SystemLoad.start();
+        jQuery.ajax({
+            url: url, 
+            type:'get',
+            data:data,
+            success: function (data) {
+               SystemLoad.done();
+              THIS.ById(container).innerHTML=data;
+              THIS.runScriptAjax(data);
+            },
+            error: function (jqXHR, status) {  
+               SystemLoad.done();
+                alert('error! ');
+            }
+        });
+    }
+};

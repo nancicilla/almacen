@@ -1,0 +1,338 @@
+<?php
+
+/*
+ * Orden.php
+ *
+ * Version 0.$Rev: 244 $
+ *
+ * Creacion: 14/10/2015
+ *
+ * Ultima Actualizacion: $Date: 2015-03-17 10:26:19 -0400 (mar, 17 mar 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+
+ * This is the model class for table "orden".
+ *
+ * The followings are the available columns in table 'orden':
+ * @property integer $id
+ * @property integer $numero
+ * @property string $fechaplanificada
+ * @property string $duracion
+ *
+ * The followings are the available model relations:
+ * @property Ordenestado[] $ordenestados
+ * @property Ordenreceta $id0
+ * @property Seguimiento[] $seguimientos
+ * @property Entrega[] $entregas
+ */
+
+class Orden extends CActiveRecord {
+
+    public $producto;
+    public $idproducto;
+    public $codigo;
+    public $cantidad;
+    public $idestado;
+    public $idingrediente;
+    public $ingrediente;
+    public $ultimoEstado;
+    public $fechaDel;
+    public $fechaAl;
+    public $descripcionOrdenReceta;
+    public $usuario;
+    //variables para la busqueda por cantidad
+    public $cantidadHasta;
+    public $cantidadDesde;
+    public $idunidad;
+
+    /**
+     * Crea un ámbito por defecto que permite añadir condiciones al modelo
+     */
+    public function defaultScope() {
+        return array(
+            'condition' => $this->getTableAlias(false, false) .
+            '.eliminado = false'
+            . ' and ' . $this->getTableAlias(false, false) .
+            '.idalmacen in (select unnest(\'{' . CrugeModule::checkAccessAlmacen() . '}\'::int[]))',
+        );
+    }
+
+    public function getUltimoEstado() {
+
+        $estado = Estado::model()->findByPk($this->idultimoestado);
+
+        if ($estado == null) {
+            return "";
+        } else {
+            return $estado->nombre;
+        }
+    }
+
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName() {
+        return 'orden';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules() {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            array('id, numero', 'numerical', 'integerOnly' => true),
+            array('duracion', 'length', 'max' => 12),
+            array('fechaplanificada', 'safe'),
+            // The following rule is used by search().
+            // @todo Please remove those attributes that should not be searched.
+            array('id,cantidadDesde,cantidadHasta,codigo,fechaDel,idingrediente,ingrediente,idestado,descripcionOrdenReceta,usuario,idproducto,producto,fechaAl, numero,idunidad, fechaplanificada', 'safe', 'on' => 'search'),
+        );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations() {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+            'ordenestados' => array(self::HAS_MANY, 'Ordenestado', 'idorden'),
+            'idultimoestado0' => array(self::BELONGS_TO, 'Estadoproduccion', 'idultimoestado'),
+            'id0' => array(self::BELONGS_TO, 'Ordenreceta', 'id'),
+        );
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels() {
+        return array(
+            'id' => 'ID',
+            'numero' => 'Nº',
+            'fechaplanificada' => 'Fecha Planificada',
+            'duracion' => 'Duración',
+            'ultimoEstado' => 'Estado',
+            'fechaDel' => 'Fecha Desde',
+            'fechaAl' => 'Fecha Hasta',
+            'idproducto' => 'Producto',
+            'producto' => 'Producto',
+            'descripcionOrdenReceta' => 'Descripción',
+            'usuario' => 'Usuario',
+            'idingrediente' => 'Ingredientes',
+            'descripcion' => 'Descripción',
+            'codigo' => 'Código',
+            'nombre' => 'nombre',
+            'idordenreceta' => 'idordenreceta',
+            'idempleado' => 'idempleado',
+            'cantidadDesde' => 'Desde',
+            'cantidadHasta' => 'Hasta',
+            'cantidadRegistradaOrden' => 'Cantidad',
+            'cantidadRegistradaOrdenPorcentaje' => '%',
+            'cantidadOrden' => 'Cantidad',
+            'cantidadOrdenPorcentaje' => '%',
+            'idunidad' => 'Unidad',
+        );
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function search() {
+        // @todo Please modify the following code to remove attributes that should not be searched.
+
+        $criteria = new CDbCriteria;
+        $criteria->with = array('id0', 'id0.idproducto0', 'id0.idproducto0.idunidad0', 'idultimoestado0');
+
+        $criteria->together = true;
+        //$criteria->addCondition('(SELECT fecha from ordenestado where idorden=t.id ORDER BY fecha DESC LIMIT 1) = ordenestados.fecha ');
+
+        $criteria->compare('t.id', $this->id);
+
+        $criteria->compare('idproducto0.idunidad', $this->idunidad);
+
+        if ($this->codigo != Null)
+            $criteria->addCondition("upper(idproducto0.codigo) LIKE '%" . strtoupper($this->codigo) . "%'");
+
+        if ($this->numero != Null)
+            $criteria->addCondition("CAST(t.numero AS text) LIKE '%" . $this->numero . "%'");
+        //1:cantidadDesde!=null y cantidadHasta!=null;mostramos rango de cantidades
+        //2:cantidadDesde!=null y cantidadHasta==null;mostramos cantidades mayores a fechaDesde inclusive, hasta el final
+        //3:cantidadDesde==null y cantidadHasta!=null;mostramos cantidades menores a fechaHasta inclusive, hasta el principio
+        $casoCriteriaCantidad = ($this->cantidadDesde != Null && $this->cantidadHasta != Null) * 1 +
+                ($this->cantidadDesde != Null && $this->cantidadHasta == Null) * 2 +
+                ($this->cantidadDesde == Null && $this->cantidadHasta != Null) * 3;
+        switch ($casoCriteriaCantidad) {
+            case 1:
+                $criteria->addBetweenCondition("id0.cantidadproducir", $this->cantidadDesde, $this->cantidadHasta);
+                break;
+            case 2:
+                $criteria->addCondition("id0.cantidadproducir >= '" . $this->cantidadDesde . "'");
+                break;
+            case 3:
+                $criteria->addCondition("id0.cantidadproducir <= '" . $this->cantidadHasta . "'");
+                break;
+            default :
+        }
+        //1:fechaDel!=null y fechaAl!=null;mostramos rango de fechas
+        //2:fechaDel!=null y fechaAl==null;mostramos fechas mayores a fechaDel inclusive, hasta el final
+        //3:fechaDel==null y fechaAl!=null;mostramos fechas menores a fechaAl inclusive, hasta el principio
+        $casoCriteria = ($this->fechaDel != Null && $this->fechaAl != Null) * 1 +
+                ($this->fechaDel != Null && $this->fechaAl == Null) * 2 +
+                ($this->fechaDel == Null && $this->fechaAl != Null) * 3;
+        switch ($casoCriteria) {
+            case 1:
+                $criteria->addBetweenCondition("id0.fecha::date", $this->fechaDel, $this->fechaAl);
+                break;
+            case 2:
+                $criteria->addCondition("id0.fecha::date >= '" . $this->fechaDel . "'");
+                break;
+            case 3:
+                $criteria->addCondition("id0.fecha::date <= '" . $this->fechaAl . "'");
+                break;
+            default :
+        }
+        if ($this->idestado != Null) {
+            $criteria->addCondition("t.idultimoestado = '" . $this->idestado . "'");
+        }
+        if ($this->producto != Null) {
+            //$criteria->compare('al.idalmacen',null);
+
+            $productval = strtoupper($this->producto);
+
+            $criteria->addCondition("upper(idproducto0.nombre) LIKE '%$productval%'");
+        }
+        if ($this->descripcionOrdenReceta != Null) {
+
+            $criteria->addCondition("id0.descripcion LIKE '%" . strtoupper($this->descripcionOrdenReceta) . "%'");
+        }
+
+        if ($this->usuario != Null) {
+
+            $criteria->addCondition("upper(id0.usuario) LIKE '%" . strtoupper($this->usuario) . "%'");
+        }
+
+        if ($this->ingrediente != Null) {
+            $criteria->join = "INNER JOIN ordenrecetaproducto orp ON orp.idordenreceta = t.id INNER JOIN producto projoin ON projoin.id=orp.idproducto";
+            $paringr = strtoupper($this->ingrediente);
+            $criteria->addCondition(
+                    "upper(projoin.codigo) LIKE '%$paringr%' OR upper(projoin.nombre) LIKE '%$paringr%'");
+        }
+
+        if ($this->fechaplanificada != Null) {
+            $criteria->addCondition("t.fechaplanificada::date = '" . $this->fechaplanificada . "'");
+        }
+
+        $criteria->addSearchCondition('t.duracion', $this->duracion, true, 'AND', 'ILIKE');
+
+        Yii::app()->session['reporteOrdenLoteAlm'] = $criteria;
+
+        return new CActiveDataProvider($this, array(
+            'pagination' => array(
+                'pageSize' => Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']),
+            ),
+            'criteria' => $criteria,
+            'sort' => array(
+                'defaultOrder' => 'id0.fecha::date desc',
+                'attributes' => array(
+                    'numero' => array(
+                        'asc' => 't.numero',
+                        'desc' => 't.numero DESC',
+                    ),
+                    'fecha' => array(
+                        'asc' => 'id0.fcha::date',
+                        'desc' => 'id0.fecha::date DESC',
+                    ),
+                    'ultimoEstado' => array(
+                        'asc' => 'idultimoestado0.nombre',
+                        'desc' => 'idultimoestado0.nombre DESC',
+                    ),
+                    'producto' => array(
+                        'asc' => 'idproducto0.nombre',
+                        'desc' => 'idproducto0.nombre DESC',
+                    ),
+                    'codigo' => array(
+                        'asc' => 'idproducto0.codigo',
+                        'desc' => 'idproducto0.codigo DESC',
+                    ),
+                    'descripcionOrdenReceta' => array(
+                        'asc' => 'id0.descripcion',
+                        'desc' => 'id0.descripcion DESC',
+                    ),
+                    'cantidad' => array(
+                        'asc' => 'id0.cantidadproducir',
+                        'desc' => 'id0.cantidadproducir DESC',
+                    ),
+                    'usuario' => array(
+                        'asc' => 'id0.usuario',
+                        'desc' => 'id0.usuario DESC',
+                    ),
+                    'idunidad' => array(
+                        'asc' => 'idunidad0.simbolo',
+                        'desc' => 'idunidad0.simbolo DESC',
+                    ),
+                    '*',
+                ),
+            ),
+        ));
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection() {
+        return Yii::app()->produccion;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Orden the static model class
+     */
+    public static function model($className = __CLASS__) {
+        return parent::model($className);
+    }
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+        return parent::beforeSave();
+    }
+
+    /*
+     * Esta función le indica al boton de registrar entrega en la vista admin si estrá visible o no
+     * @param string indica el ultimo estado en el que se encuentra la orden para determinar la visibilidad del boton
+     */
+
+    public function mostrarBotonRegistrarEntrega($estado) {
+        if ($estado == "EN PROCESO" || $estado == "ENTREGA PARCIAL")
+            return true;
+    }
+
+}

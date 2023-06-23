@@ -1,0 +1,131 @@
+<script type = "text/javascript">
+    function verificarAutocomplete() {
+        //verifica que exista un producto seleccionado a partir del autocomplete
+        //en el textfield nombreProducto, de no ser asi, setea el id por defecto
+        //-1 para que no muestre nada en el cgridviewProducto[nombreCompletoProducto]
+        var nombreAutocomplete = document.getElementById("Producto_codigo").value;
+        var nombreCorrecto = document.getElementById("Producto_auxiliarCodigo").value;
+        if (nombreAutocomplete.trim() === "" || (nombreAutocomplete !== nombreCorrecto)) {
+            document.getElementById("Producto_id").value = null;
+        }
+    }
+</script>
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+/* @var $form CActiveForm */
+?>
+<?php
+$nombreCodigo = "";
+$nombreProducto = "";
+?>
+
+
+<div class="wide form">
+    <?php
+    $form = $this->beginWidget('CActiveForm', array(
+        'focus'=>'input:visible:enabled:first'  ,
+        'action' => Yii::app()->createUrl($this->route),
+        'method' => 'get',
+    ));
+    ?>
+
+    <div class="row">
+        <?php echo $form->labelEx($model, 'idalmacen'); ?>              
+        <?php
+        echo $form->dropDownList(
+                $model, 'idalmacen', CHtml::listData(Almacen::model()->findAll(array('order' => 'codigo')), 'id', 'nombreCompleto'), array(
+            'onchange' =>
+            ' document.getElementById("Producto_id").value = null;' .
+            ' document.getElementById("Producto_nombre").value = "";',
+                )
+        );
+        ?>       
+    </div>
+
+    <div class="row">
+        <?php echo $form->label($model, 'nombre'); ?>
+<?php
+$this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+    'model' => $model,
+    'attribute' => 'nombre',
+    'source' => 'js: function(request, response) {
+                                $.ajax({
+                                    url: "' . $this->createUrl('producto/autocompleteNombre') . '",
+                                    dataType: "json",
+                                    data: {
+                                        term: request.term,
+                                        idalmacen: $("#Producto_idalmacen").val()
+                                    },
+                                    success: function (data) {
+                                            response(data);
+                                    }
+                                })
+                             }',
+    'options' => array(
+        'showAnim' => 'slideDown',
+        'delay' => '0',
+        'autoFocus' => 'true',
+        'focus' => "js:function(event, ui) {
+                                          $('#Producto_auxiliarNombre').val(ui.item.nombre);
+                                        }",
+        'select' => "js:function(event, ui) {
+                                          $('#Producto_auxiliarNombre').val(ui.item.nombre);
+                                        }"
+    ),
+    'htmlOptions' => array(
+        'style' => 'height:20px;',
+        'value' => $nombreProducto,
+    ),
+));
+?>
+    </div>   
+    <div class="row">
+        <div class="column">
+        <?php echo $form->label($model, 'stockminimode'); ?>
+<?php echo $form->textField($model, 'stockminimode', array('size' => 12, 'maxlength' => 12)); ?>
+        </div>
+        <div class="column">
+            <?php echo $form->label($model, 'a'); ?>
+            <?php echo $form->textField($model, 'stockminimoa', array('size' => 12, 'maxlength' => 12)); ?>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+<?php echo $form->label($model, 'stockmaximode'); ?>
+<?php echo $form->textField($model, 'stockmaximode', array('size' => 12, 'maxlength' => 12)); ?>
+        </div>
+        <div class="column">
+            <?php echo $form->label($model, 'a'); ?>
+            <?php echo $form->textField($model, 'stockmaximoa', array('size' => 12, 'maxlength' => 12)); ?>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="column">
+<?php echo $form->label($model, 'puntopedidode'); ?>
+<?php echo $form->textField($model, 'puntopedidode', array('size' => 12, 'maxlength' => 12)); ?>
+        </div>
+        <div class="column">
+            <?php echo $form->label($model, 'a'); ?>
+            <?php echo $form->textField($model, 'puntopedidoa', array('size' => 12, 'maxlength' => 12)); ?>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+<?php echo $form->label($model, 'stockde'); ?>
+<?php echo $form->textField($model, 'stockde', array('size' => 12, 'maxlength' => 12)); ?>
+        </div>
+        <div class="column">
+            <?php echo $form->label($model, 'a'); ?>
+            <?php echo $form->textField($model, 'stocka', array('size' => 12, 'maxlength' => 12)); ?>
+        </div>
+    </div>
+
+
+    <div class="row buttons">
+<?php echo TbHtml::submitButton('Buscar', array('onclick' => 'verificarAutocomplete()')); ?>    </div>
+
+<?php $this->endWidget(); ?>
+
+</div>

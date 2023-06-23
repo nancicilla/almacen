@@ -1,0 +1,33 @@
+<?php
+/* @var $this NotaController */
+/* @var $data Nota */
+?>
+
+<div class="view">
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('numero')); ?>:</b>
+	<?php echo CHtml::encode($data->numero); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('glosa')); ?>:</b>
+	<?php echo CHtml::encode($data->glosa); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('fecha')); ?>:</b>
+	<?php echo CHtml::encode(Yii::app()->format->datetime(strtotime($data->fecha))); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('eliminado')); ?>:</b>
+	<?php echo CHtml::encode($data->eliminado); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('usuario')); ?>:</b>
+	<?php echo CHtml::encode($data->usuario); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('idtipo')); ?>:</b>
+	<?php echo CHtml::encode($data->idtipo); ?>
+	<br />
+
+
+</div>

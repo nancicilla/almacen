@@ -1,0 +1,52 @@
+
+var Caracteristica = new Object();
+Caracteristica.__proto__ = SystemWindow;
+//variables
+Caracteristica.nameView = "Caracteristica";
+Caracteristica.url = "caracteristica";
+
+Caracteristica.options = function () {
+    this.setActions('create', {
+        WindowTitle: 'Crear Caracteristica',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {        
+        WindowTitle: 'Modificar Caracteristica',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Caracteristica',
+        WindowWidth: 255,
+        WindowHeight: 200,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+
+Caracteristica.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    return error;
+}
+Caracteristica.afterCreate = function () {
+    var idgenero=this.get('idgenero');
+    Caracteristica.reload('idgenero='+idgenero);
+}
+
+Caracteristica.beforeUpdate = function () {
+    var error = false;//false es no existe error antes de actulizar formulario
+    return error;
+}
+Caracteristica.afterUpdate = function () {
+    Caracteristica.closeWindow();
+}

@@ -1,0 +1,259 @@
+<?php
+
+class NotaController extends Controller {
+    /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+
+    /*
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+
+    public function filters() {
+        return array_merge(
+                array(
+                    'accessControl',
+                    array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+                )
+        );
+    }
+
+    /*
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+
+    private function _publicActionsList() {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',
+        );
+    }
+
+    public function accessRules() {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+
+    /**
+     * Creates a new model.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     */
+    public function actionCreate() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Nota;
+
+        // Uncomment the following line if AJAX validation is needed
+        // $this->performAjaxValidation($model);
+
+        if (isset($_POST['Nota'])) {
+            $model->attributes = $_POST['Nota'];
+            if ($model->save()) {
+                echo System::dataReturn('Creación exitosa!', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Error al crear! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('create', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Updates a particular model.
+     * If update is successful, the browser will be redirected to the 'view' page.
+     * @param integer $id the ID of the model to be updated
+     */
+    public function actionUpdate($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = $this->loadModel(SeguridadModule::dec($id));
+
+        // Uncomment the following line if AJAX validation is needed
+        // $this->performAjaxValidation($model);
+
+        if (isset($_POST['Nota'])) {
+            $model->attributes = $_POST['Nota'];
+            if ($model->save()) {
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Error al modificar! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('update', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Deletes a particular model.
+     * If deletion is successful, the browser will be redirected to the 'admin' page.
+     * @param integer $id the ID of the model to be deleted
+     */
+    public function actionDelete($id) {
+        $this->loadModel(SeguridadModule::dec($id))->delete();
+        self::actionAdmin();
+    }
+
+    /**
+     * Lists all models.
+     */
+    public function actionIndex() {
+        $dataProvider = new CActiveDataProvider('Nota');
+        $this->render('index', array(
+            'dataProvider' => $dataProvider,
+        ));
+    }
+
+    /**
+     * Manages all models.
+     */
+    public function actionAdmin() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Nota('search');
+        $model->unsetAttributes();  // clear any default values
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Nota']))
+            $model->attributes = $_GET['Nota'];
+        if (!$model->validate()) {
+            $errors = '';
+            foreach ($model->attributeNames() as $attr) {
+                $errors .= $model->hasErrors($attr) ? $model->getError($attr) . ' ' : '';
+            }
+            $errors .= $model->hasErrors('fechaInicio') ? $model->getError('fechaInicio') . ' ' : '';
+            $errors .= $model->hasErrors('fechaFin') ? $model->getError('fechaFin') . ' ' : '';
+            Yii::app()->user->setFlash('error', $errors);
+        }
+        $this->renderPartial('admin', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return Nota the loaded model
+     * @throws CHttpException
+     */
+    public function loadModel($id) {
+        $model = Nota::model()->findByPk($id);
+        if ($model === null)
+            throw new CHttpException(404, 'The requested page does not exist.');
+        return $model;
+    }
+
+    /**
+     * Performs the AJAX validation.
+     * @param Nota $model the model to be validated
+     */
+    protected function performAjaxValidation($model) {
+        if (isset($_POST['ajax']) && $_POST['ajax'] === 'nota-form') {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+    }
+
+    /**
+     * Genera el reporte en formato pdf de las notas de  movimientos de 
+     * productos, en caso de contener paginas se muestra una excepción
+     */
+    public function actionReporteNota($id) {
+        $re = new JasperReport('/reports/Almacen/nota', JasperReport::FORMAT_PDF, array(
+            'pId' => SeguridadModule::dec($id),
+            'pUsuario' => Yii::app()->user->getName(),
+            'pFormatoNumero' => Yii::app()->params['formatNumberAlm'],
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+
+        $re->exec();
+
+        if ($re->getPages() > 0) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+
+    /**
+     * Genera el reporte en formato pdf de las notas en lote
+     */
+    public function actionReporteNotaLote() {
+
+        $re = new JasperReport('/reports/Almacen/notaLote', JasperReport::FORMAT_PDF, array(
+            'pIds' => SWUtil::aRtoArrayReport(Yii::app()->session['notaLote'], 'id'),
+            'pUsuario' => Yii::app()->user->getName(),
+            'pFormatoNumero' => Yii::app()->params['formatNumberAlm'],
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+
+        $re->exec();
+
+        if ($re->getPages() > 0) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+
+    /**
+     * Registra y actualiza la información de despacho, solo valido para notas 
+     * traspaso (IDTIPOTRASPASO) y venta (IDTIPOVENTA)
+     */
+    public function actionDespachar($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = $this->loadModel(SeguridadModule::dec($id));
+        $model->scenario = 'despacho';
+        if (isset($_POST['Nota'])) {
+            $model->attributes = $_POST['Nota'];
+            if ($model->idtipo == $model->IDTIPOTRASPASO || $model->idtipo == $model->IDTIPOTRASPASO) {
+                if ($model->save()) {
+                    echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                    return;
+                } else {
+                    echo System::hasErrors('Error al modificar! ', $model);
+                    return;
+                }
+            }
+        }
+
+        $this->renderPartial('despacho', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+}

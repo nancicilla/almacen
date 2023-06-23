@@ -1,0 +1,312 @@
+<?php
+/*
+ * Productocaracteristica.php
+ *
+ * Version 0.$Rev$
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date$:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ *
+ * This is the model class for table "productocaracteristica".
+ *
+ * The followings are the available columns in table 'productocaracteristica':
+ * @property string $valor
+ * @property string $fecha
+ * @property boolean $eliminado
+ * @property string $usuario
+ * @property integer $idcaracteristica
+ * @property integer $idproducto
+ * @property string $archivo
+ *
+ * The followings are the available model relations:
+ * @property Producto $idproducto0
+ * @property Caracteristica $idcaracteristica0
+ */
+class Productocaracteristica extends CActiveRecord {
+
+    public  $directorioImagen = 'productocaracteristica';
+    
+    /**
+     * Crea un ámbito por defecto que permite añadir condiciones al modelo
+     */
+    public function defaultScope() {
+        return array(
+            'condition' => $this->getTableAlias(false, false) .
+            '.eliminado = false',
+        );
+    }
+
+    public function primaryKey() {
+        //IMPORTANTE! en este orden se obtienen los ids en $keyvalue de 
+        //la extension.
+        return array('idproducto');
+    }
+
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName() {
+        return 'productocaracteristica';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules() {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            array('idcaracteristica, idproducto', 'numerical', 'integerOnly' => true),
+            array('usuario', 'length', 'max' => 30),
+            array('valor, archivo,eliminado, archivo,idproducto,idcaracteristica', 'safe'),
+//                                array('archivo', 'file', 'types'=>'jpg, gif, png'),
+            // The following rule is used by search().
+            // @todo Please remove those attributes that should not be searched.
+            array('valor, archivo, fecha, eliminado, usuario, idcaracteristica, idproducto, archivo', 'safe', 'on' => 'search'),
+        );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations() {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+            'idproducto0' => array(self::BELONGS_TO, 'Producto', 'idproducto'),
+            'idcaracteristica0' => array(self::BELONGS_TO, 'Caracteristica', 'idcaracteristica'),
+        );
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels() {
+        return array(
+            'valor' => 'Valor',
+            'fecha' => 'Fecha',
+            'eliminado' => 'Eliminado',
+            'usuario' => 'Usuario',
+            'idcaracteristica' => 'Idcaracteristica',
+            'idproducto' => 'Idproducto',
+            'archivo' => 'Archivo',
+        );
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection() {
+        return Yii::app()->almacen;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Productocaracteristica the static model class
+     */
+    public static function model($className = __CLASS__) {
+        return parent::model($className);
+    }
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+        $this->valor = strtoupper($this->valor);
+        $this->fecha = new CDbExpression('NOW()');
+        $this->usuario = Yii::app()->user->getName();
+        return parent::beforeSave();
+    }
+
+    /**
+     * Consultar características de un producto
+     * @param integer id  Id del producto.
+     * @return array() que continene las características de tipo imagen de un 
+     * producto
+     */
+    public function cargarCaracteristicaImagen($id) {
+        $caracteristica = Caracteristica::model()->tableName();
+        $criteria = new CDbCriteria();
+        $criteria->select = "t.valor,t.idcaracteristica,t.idproducto,CONCAT('uploads/',t.archivo)as archivo,ca.idgenero";
+        $criteria->join = 'INNER JOIN ' . $caracteristica . ' ca ON ca.id = t.idcaracteristica';
+        $criteria->compare('t.idproducto', $id);
+        $criteria->compare('ca.idgenero', Genero::model()->GENEROARCHIVO);
+        $informacion = $this->findAll($criteria);
+        $dato = array();
+        if (count($informacion) > 0) {
+            foreach ($informacion as $i) {
+                array_push($dato, $i->attributes);
+            }
+        }
+        return $dato;
+    }
+
+    /**
+
+      /**
+     * 
+     * Recorre y almacena valores de un array que contenga las caracteristicas
+     * asignando a un producto específico
+     * @param integer idProducto Id del producto al que pertenece
+     * @param model modelo Modelo en el que se almacenaran los datos
+     * @param array caracteristica Array con los valores
+     */
+    public function registrarGeneral($idProducto, $caracteristica) {
+        $modelo = new Productocaracteristica;
+        if ($idProducto != Null && isset($caracteristica)) {
+            $modelo->attributes = $caracteristica;
+            $modelo->idproducto = $idProducto;
+            $cantidad = count($caracteristica);
+            for ($i = 1; $i <= $cantidad; $i++) {
+                foreach ($caracteristica[$i] as $atributo => $dato) {
+                    if ($atributo == 'idcaracteristica') {
+                        $modelo->idcaracteristica = $dato;
+                    }
+                    if ($atributo == 'idsubcaracteristica') {
+                        if ($dato != Null) {
+                            $modelo->idcaracteristica = $dato;
+                        }
+                    }
+                    if ($atributo == 'valor') {
+                        $modelo->valor = $dato;
+                        if ($modelo->save()) {
+                            $modelo = new Productocaracteristica;
+                            $modelo->attributes = $caracteristica;
+                            $modelo->idproducto = $idProducto;
+                        }
+                    }
+                }
+            }
+        } else {
+            echo 'Error al registrar caracteristicas!';
+        }
+    }
+
+    /**
+     * 
+     * Recorre y almacena valores de un array que contenga las rutas de imagenes
+     * asignando a un producto específico
+     * @param integer idProducto Id del producto al que pertenece
+     * @param model modelo Modelo en el que se almacenaran los datos
+     * @param array imagen Array con los valores
+     * @param string directorioTemporal directorio temporal donde se encuentran 
+     * las imagenes a subirse
+     * @param string directorioDestino donde se copiaran las imagenes  
+     */
+    public function registrarImagen($idProducto, $imagen, $directorioTemporal) {
+        
+        $swFtp = new SWFTP();
+        $connectionId = $swFtp->getConnectionId();
+
+
+        $modelo = new Productocaracteristica;
+        try {
+            if ($idProducto != Null && isset($imagen)) {
+                $modelo->attributes = $imagen;
+                $modelo->idproducto = $idProducto;
+                $productoCaracteristica = $imagen;
+                $cantidad = count($imagen);
+                $swFtp->createDirectory($this->tableName());
+                ftp_chdir($connectionId, $this->tableName());
+                $swFtp->createDirectory($idProducto);
+                ftp_chdir($connectionId, $idProducto);
+                $swFtp->emptyDirectory();
+
+                if ($cantidad > 0) {
+                    for ($i = 1; $i <= $cantidad; $i++) {
+                        foreach ($productoCaracteristica[$i] as $atributo => $dato) {
+                            if ($atributo == 'idcaracteristica') {
+                                $modelo->idcaracteristica = $dato;
+                            }
+                            if ($atributo == 'archivo') {
+                                $ruta = explode("/", $dato);
+                                if (count($ruta) > 1) {
+                                    $nombreArchivo = $ruta['1'];
+                                    if ($dato != Null) {
+                                        $modelo->archivo = $nombreArchivo;
+                                        if ($modelo->save()) {
+                                            ftp_put($connectionId, $nombreArchivo,$directorioTemporal . '/' . $dato,FTP_BINARY);
+                                            ftp_chmod($connectionId, 0705, $nombreArchivo);
+                                            $modelo = new Productocaracteristica;
+                                            $modelo->attributes = $imagen;
+                                            $modelo->idproducto = $idProducto;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    exec("rm -rf " . escapeshellarg($directorioTemporal));
+                }
+            }
+            ftp_close($connectionId);
+        } catch (Exception $ex) {
+            throw new CrugeException('Error al registrar caracteristicas ', 483);
+        }
+    }
+
+    /**
+     * 
+     * Prepara las imagenes en un directorio temporal
+     * @param integer idProducto Id del producto al que pertenece	 
+     * @param string directorioTemporal directorio temporal donde se copiaran las imagenes          
+     */
+    public function prepararImagen($idProducto, $directorioTemporal) {
+        $swFtp = new SWFTP();
+        $connectionId = $swFtp->getConnectionId();
+        ftp_chdir($connectionId, $this->tableName());
+        ftp_chdir($connectionId, $idProducto);
+        try {
+            if ($idProducto != Null && $directorioTemporal != Null) {
+                $swFtp->downloadDirectoryContent($directorioTemporal . "/uploads");
+            }
+        } catch (Exception $ex) {
+            throw new CrugeException('Error al preparar imagen ', 483);
+        }
+        ftp_close($connectionId);
+    }
+
+
+    /**
+     * Obtener características genro archivo de un producto
+     * @param integer $id id del producto
+     * @return array() que contiene las características de un producto
+     */
+    public function getCaracteristicaArchivoProducto($id) {
+        $caracteristica = Caracteristica::model()->tableName();
+        $tipo = Tipo::model()->tableName();
+        $criteria = new CDbCriteria();
+        $criteria->select = "t.idcaracteristica,t.valor,t.archivo";
+        $criteria->join = 'INNER JOIN ' . $caracteristica . ' ca ON ca.id = t.idcaracteristica';
+        $criteria->addCondition("ca.idgenero = " . Genero::model()->GENEROARCHIVO);
+        $criteria->addCondition("t.idproducto = " . $id);
+        $informacion = $this->findAll($criteria);
+        $dato = array();
+        if (count($informacion) > 0) {
+            foreach ($informacion as $value) {
+                array_push($dato, $value->attributes);
+            }
+        }
+        return $dato;
+    }
+
+}

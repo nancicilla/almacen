@@ -1,0 +1,91 @@
+<?php
+
+/* @var $this TraspasotpvController */
+/* @var $model Traspasotpv */
+
+echo System::Search(array(
+    'title' => 'Administración de Traspasos Punto de Venta',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admTraspasotpv',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+		array(
+                'header' => 'Número',
+                'name' => 'numero',
+                'width' => 7,
+            ),
+            array(
+                'name' => 'glosa',
+                'width' => 34,
+            ),
+            array(
+                'header' => 'Estado',
+                'name' => 'idestado',
+                'value' => '$data->idestado0->nombre',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'idalmacenorigen',
+                'value' => '$data->idalmacenorigen0->nombre',
+                'width' => 13,
+            ),
+            array(
+                'name' => 'idalmacendestino',
+                'value' => '$data->idalmacendestino0->nombre',
+                'width' => 19,
+            ),
+            array(
+                'name' => 'usuario',
+                'width' => 8,
+            ),
+            /*  array(
+              'name' => 'idalmacen',
+              'width' => 30,
+              ),
+             */
+            /*
+              array(
+              'name'=>'fecha',
+              'type' => 'datetime',
+              'width'=> 30,
+              ),
+             */
+            array('typeCol' => 'buttons',
+                'width' => 10,
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'buttons' => array(
+                    'update' => array('label' => 'Modificar'),
+                    'confirmar' => array('url' => 'array("confirmar","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+                        'icon' => 'check',
+                        'click' => 'function(){
+                            SGridView.selectRow(this); 
+                            var href = $(this).attr("href");
+                            
+                            bootbox.confirm("¿Está seguro que desea confirmar la Solicitud?",
+                                function(confirmed){
+                                    if (confirmed){
+                                        $.ajax({
+                                            type: "post",
+                                            url: href,
+                                            success: function(data) {
+                                                if ($.trim(data)){
+                                                    bootbox.alert(data);
+                                                }
+                                                admNotaBorrador.search();
+                                            }
+                                        });
+                                    }
+                                }
+                            ); 
+                        return false;}',
+                    ),
+//                    'delete' => array('label' => 'Eliminar'),
+                ),
+            ),
+	),
+    ))
+));
+

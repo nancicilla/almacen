@@ -1,0 +1,61 @@
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+
+
+//            <form target="_blank" style="text-align: right; margin-bottom: 5px">
+//                <?php
+//                echo TbHtml::submitButton('Imprimir', array(
+//                    'submit' => array('producto/reporteProductoStock'),
+//                ));
+?>
+<!--</form>-->
+<?php
+echo System::Search(array(
+    'title' => 'Stock de Productos',
+    'formSearch' => $this->renderPartial('_searchStock', array('model' => $model,), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admStock',
+        'dataProvider' => $model->searchStock(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'codigo',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'nombre',
+                'width' => 40,
+            ),
+            array(
+                'width' => 10,
+                'name' => 'idalmacen',
+                'header' => 'Almacen',
+                'value' => '$data->idalmacen0->nombre',
+            ),
+            array(
+                'width' => 10,
+                'name' => 'stockminimo',
+'align'=> 'right',                'type' => 'number', // le da el formato de número decimal
+            ),
+            array(
+                'width' => 10,
+                'name' => 'stockmaximo',
+'align'=> 'right',                'type' => 'number', // le da el formato de número decimal
+            ),
+            array(
+                'width' => 10,
+                'name' => 'puntopedido',
+                'align'=> 'right',
+                'type' => 'number', // le da el formato de número decimal
+            ),
+            array(
+                'width' => 10,
+                'name' => 'saldo',
+'align'=> 'right',                'type' => 'number', // le da el formato de número decimal
+            ),
+        ),
+            )
+)));
+?>

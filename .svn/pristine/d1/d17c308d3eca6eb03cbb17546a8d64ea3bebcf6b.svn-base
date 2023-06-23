@@ -1,0 +1,80 @@
+var Notaborrador = new Object();
+Notaborrador.__proto__ = SystemWindow;
+//variables
+Notaborrador.nameView = "Notaborrador";
+Notaborrador.url = "notaborrador";
+
+Notaborrador.init = function () {
+    try {
+       
+        if (this.action === 'verNotaBorrador') {
+            this.buttonChange({id: 'save', label: 'Cerrar', key: 'G'});
+        }        
+    } catch (err) {
+        //alert('Error al cargar Notaborrador.init()');
+    }
+}
+
+Notaborrador.options = function () {
+    this.setActions('create', {
+        WindowTitle: 'Crear Notaborrador',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {        
+        WindowTitle: 'Modificar Notaborrador',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    
+    this.setActions('verNotaBorrador', {
+            layerHeight: 356,
+            WindowWidth: 740,
+            WindowHeight: 363,
+            WindowTitle: 'Ver Nota Borrador',
+            initButtons: 'back',
+            layerEndOn: false,
+            ableBackWindow: true
+    });
+
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Notaborrador',
+        WindowWidth: 250,
+        WindowHeight: 255,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+
+Notaborrador.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    return error;
+}
+Notaborrador.afterCreate = function () {
+    Notaborrador.reload();
+}
+
+Notaborrador.beforeUpdate = function () {
+    var error = false;//false es no existe error antes de actulizar formulario
+    return error;
+}
+Notaborrador.afterUpdate = function () {
+    Notaborrador.closeWindow();
+}
+
+Notaborrador.verNotaBorrador = function(id) {
+    this.action='verNotaBorrador';
+    this.open(this.getOptions(id));
+};
+
+Notaborrador.afterVerNotaBorrador = function() {
+    Notaborrador.closeWindow();
+};

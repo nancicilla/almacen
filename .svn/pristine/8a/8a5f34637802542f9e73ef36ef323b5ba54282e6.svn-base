@@ -1,0 +1,73 @@
+<?php
+/* @var $this AlmacenproductonotaController */
+/* @var $model Almacenproductonota */
+/* @var $form CActiveForm */
+?>
+
+<div class="form">
+
+<?php $form=$this->beginWidget('CActiveForm', array(
+	'id'=>'almacenproductonota-form',
+	// Please note: When you enable ajax validation, make sure the corresponding
+	// controller action is handling ajax validation correctly.
+	// There is a call to performAjaxValidation() commented in generated controller code.
+	// See class documentation of CActiveForm for details on this.
+	'enableAjaxValidation'=>false,
+)); ?>
+
+	<p class="note"><span class="required">*</span> Campos requeridos.</p>
+
+	<?php echo $form->errorSummary($model); ?>
+
+	<div class="row">
+		<?php echo $form->labelEx($model,'glosa'); ?>
+		<?php echo $form->textArea($model,'glosa',array('rows'=>6, 'cols'=>50,'style' => 'text-transform: uppercase')); ?>
+		<?php echo $form->error($model,'glosa'); ?>
+	</div>
+	<div class="row">
+		<?php echo $form->labelEx($model,'costo'); ?>
+		<?php echo $form->textField($model,'costo'); ?>
+		<?php echo $form->error($model,'costo'); ?>
+	</div>
+	<div class="row">
+		<?php echo $form->labelEx($model,'precio'); ?>
+		<?php echo $form->textField($model,'precio'); ?>
+		<?php echo $form->error($model,'precio'); ?>
+	</div>
+	<div class="row">
+		<?php echo $form->labelEx($model,'ingreso'); ?>
+		<?php echo $form->textField($model,'ingreso'); ?>
+		<?php echo $form->error($model,'ingreso'); ?>
+	</div>
+	<div class="row">
+		<?php echo $form->labelEx($model,'salida'); ?>
+		<?php echo $form->textField($model,'salida'); ?>
+		<?php echo $form->error($model,'salida'); ?>
+	</div>
+	<div class="row">
+		<?php echo $form->labelEx($model,'saldo'); ?>
+		<?php echo $form->textField($model,'saldo'); ?>
+		<?php echo $form->error($model,'saldo'); ?>
+	</div>
+	<div class="row">
+		<?php echo $form->labelEx($model,'idalmacen'); ?>
+		<?php echo $form->textField($model,'idalmacen'); ?>
+		<?php echo $form->error($model,'idalmacen'); ?>
+	</div>
+	<div class="row">
+		<?php echo $form->labelEx($model,'idproducto'); ?>
+		<?php echo $form->textField($model,'idproducto'); ?>
+		<?php echo $form->error($model,'idproducto'); ?>
+	</div>
+	<div class="row">
+		<?php echo $form->labelEx($model,'idnota'); ?>
+		<?php echo $form->textField($model,'idnota'); ?>
+		<?php echo $form->error($model,'idnota'); ?>
+	</div>
+	<div class="row buttons">
+		<?php echo TbHtml::submitButton($model->isNewRecord ? 'Crear' : 'Guardar'); ?>
+	</div>
+
+<?php $this->endWidget(); ?>
+
+</div><!-- form -->

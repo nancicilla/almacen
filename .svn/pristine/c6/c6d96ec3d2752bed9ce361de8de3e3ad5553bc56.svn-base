@@ -1,0 +1,27 @@
+<?php
+/* @var $this CausaController */
+/* @var $model Causa */
+
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Ver Causa</h1>
+
+<?php $this->widget('zii.widgets.CDetailView', array(
+	'data'=>$model,
+	'attributes'=>array(
+		'nombre',
+		'descripcion',
+		'editable',
+		'idtipo',
+		'usuario',
+		'eliminado',
+		array(
+			 'name' => 'fecha',
+			 'value'=>Yii::app()->format->datetime(strtotime($model->fecha)),
+		),
+	),
+)); ?>		</div>
+	</div>
+</div>

@@ -1,0 +1,135 @@
+<?php
+/* @var $this ProductonotaController */
+/* @var $model Productonota */
+
+Yii::app()->clientScript->registerScript('search', "
+$('.search-button').click(function(){
+	$('.search-form').toggle();
+	return false;
+});
+$('.search-form form').submit(function(){
+	$('#productonota-grid').yiiGridView('update', {
+		data: $(this).serialize()
+	});
+	return false;
+});
+");
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Kardex de Productos</h1>
+
+<div class="search-form" >
+    
+<?php $this->renderPartial('_search',array(
+	'model'=>$model,
+)); ?>    
+</div><!-- search-form -->
+<div id="flash-msgs">
+<?php if(Yii::app()->user->hasFlash("error")): ?>
+<div class="flash-error">
+<?php echo Yii::app()->user->getFlash("error"); ?>
+</div>
+<?php endif; ?>
+</div>
+<?php $this->widget('bootstrap.widgets.TbGridView', array(
+	'id'=>'productonota-grid',
+	'dataProvider'=>$model->search(),
+	'filter'=>$model,
+        'ajaxUpdate' => 'flash-msgs',
+        'afterAjaxUpdate' => 'reinstallDatePicker',
+	'columns'=>array(
+		array(
+                'name'=>'fecha',
+                'type' => 'datetime',
+                'filter' =>$this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                    'model'=>$model, 
+                    'attribute'=>'fecha',
+                    'name' => 'almacenproductonota[fecha]',
+                    'value' => $model->fecha,
+                    'language' => 'es',
+                // additional javascript options for the date picker plugin
+                    'options' => array(
+                        'showAnim' => 'slideDown',
+                        'showButtonPanel' => true,
+                        'changeMonth' => true,
+                        'changeYear' => true,
+                        'dateFormat' => 'dd-mm-yy',
+                        'maxDate' => 'today',
+                    ),
+                    'htmlOptions' => array(
+                        'id' => 'almacenproductonota_fecha',
+                        'size' => '15',
+                    ),
+                ), true)
+            ), 
+            array(
+                'name' => 'notaTipo',
+                'header'=>'Tipo',
+                'value' => '$data->idnota0->idtipo0->nombre',  
+                'filter'=>CHtml::listData(
+                            Tipo::model()->findAll(
+                                    array(
+                                        'order'=>'nombre')
+                                    ),
+                                'nombre', 
+                                'nombre'),
+            ),  
+            array(
+                'name' => 'notaNumero',
+                'header'=>'Nº Nota',
+                'value' => '$data->idnota0->numero',  
+                'filter'=>CHtml::activeTextField($model,'notaNumero')
+                . CHtml::activeHiddenField($model, 'idalmacen')
+                . CHtml::activeHiddenField($model, 'idproducto')
+                . CHtml::activeHiddenField($model, 'fechaInicio')
+                . CHtml::activeHiddenField($model, 'fechaFin'),
+            ),   
+            array(
+                'name' => 'ingreso',                
+                'type'  => 'number', // le da el formato de número decimal
+                'htmlOptions'=>array('style' => 'text-align: right;'),
+            ), 
+            array(
+                'name' => 'salida',                
+                'type'  => 'number', // le da el formato de número decimal
+                'htmlOptions'=>array('style' => 'text-align: right;'),
+            ), 
+            array(
+                'name' => 'saldo',                
+                'type'  => 'number', // le da el formato de número decimal
+                'htmlOptions'=>array('style' => 'text-align: right;'),
+            ), 
+            'glosa',
+	),
+));
+
+Yii::app()->clientScript->registerScript('re-install-date-picker', "
+function reinstallDatePicker() {
+     //se deben usar los mismos parámetros que en el widget para ser recargado
+          $('#almacenproductonota_fecha').datepicker(jQuery.extend(
+            jQuery.datepicker.regional['es'],
+            {'changeYear':true,
+            'changeMonth':true,
+            'dateFormat' : 'dd-mm-yy',
+            'showButtonPanel':true,             
+            'maxDate' : 'today',
+            'showAnim':'slideDown'}));
+     }
+");
+ ?>
+<form target="_blank">
+       
+<?php 
+echo TbHtml::submitButton('Imprimir',
+                    array(
+                        'submit'=>array('productonota/reporteKardex'),
+                        )
+        ); 
+        ?>
+    
+    </form>
+		</div>
+	</div>
+</div>

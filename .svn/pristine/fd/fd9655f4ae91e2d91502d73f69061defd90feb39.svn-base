@@ -1,0 +1,350 @@
+<?php
+/*
+ * Productocaracteristica.php
+ *
+ * Version 0.$Rev$
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date$:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ *
+ * This is the model class for table "productocaracteristica".
+ *
+ * The followings are the available columns in table 'productocaracteristica':
+ * @property string $valor
+ * @property string $fecha
+ * @property boolean $eliminado
+ * @property string $usuario
+ * @property integer $idcaracteristica
+ * @property integer $idproducto
+ * @property string $archivo
+ *
+ * The followings are the available model relations:
+ * @property Producto $idproducto0
+ * @property Caracteristica $idcaracteristica0
+ */
+class Productocaracteristica extends CActiveRecord {
+
+    /**
+     * Crea un ámbito por defecto que permite añadir condiciones al modelo
+     */
+    public function defaultScope() {
+        return array(
+            'condition' => $this->getTableAlias(false, false) .
+            '.eliminado = false',
+        );
+    }
+
+    public function primaryKey() {
+        //IMPORTANTE! en este orden se obtienen los ids en $keyvalue de 
+        //la extension.
+        return array('idproducto');
+    }
+
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName() {
+        return 'productocaracteristica';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules() {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            array('idcaracteristica, idproducto', 'numerical', 'integerOnly' => true),
+            array('usuario', 'length', 'max' => 30),
+            array('valor, archivo,eliminado, archivo,idproducto,idcaracteristica', 'safe'),
+//                                array('archivo', 'file', 'types'=>'jpg, gif, png'),
+            // The following rule is used by search().
+            // @todo Please remove those attributes that should not be searched.
+            array('valor, archivo, fecha, eliminado, usuario, idcaracteristica, idproducto, archivo', 'safe', 'on' => 'search'),
+        );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations() {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+            'idproducto0' => array(self::BELONGS_TO, 'Producto', 'idproducto'),
+            'idcaracteristica0' => array(self::BELONGS_TO, 'Caracteristica', 'idcaracteristica'),
+        );
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels() {
+        return array(
+            'valor' => 'Valor',
+            'fecha' => 'Fecha',
+            'eliminado' => 'Eliminado',
+            'usuario' => 'Usuario',
+            'idcaracteristica' => 'Idcaracteristica',
+            'idproducto' => 'Idproducto',
+            'archivo' => 'Archivo',
+        );
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection() {
+        return Yii::app()->almacen;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Productocaracteristica the static model class
+     */
+    public static function model($className = __CLASS__) {
+        return parent::model($className);
+    }
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+        $this->fecha = new CDbExpression('NOW()');
+        $this->usuario = Yii::app()->user->getName();
+        return parent::beforeSave();
+    }
+
+    /**
+     * Consultar características de un producto
+     * @param integer id  Id del producto.
+     * @return array() que continene las características de tipo imagen de un 
+     * producto
+     */
+    public function cargarCaracteristicaImagen($id) {
+        $caracteristica = Caracteristica::model()->tableName();
+        $criteria = new CDbCriteria();
+        $criteria->select = "t.valor,t.idcaracteristica,t.idproducto,CONCAT('uploads/',t.archivo)as archivo,ca.idgenero";
+        $criteria->join = 'INNER JOIN ' . $caracteristica . ' ca ON ca.id = t.idcaracteristica';
+        $criteria->compare('t.idproducto', $id);
+        $criteria->compare('ca.idgenero', Genero::model()->GENEROARCHIVO);
+        $informacion = $this->findAll($criteria);
+        $dato = array();
+        if (count($informacion) > 0) {
+            foreach ($informacion as $i) {
+                array_push($dato, $i->attributes);
+            }
+        }
+        return $dato;
+    }
+
+    /**
+
+      /**
+     * 
+     * Recorre y almacena valores de un array que contenga las caracteristicas
+     * asignando a un producto específico
+     * @param integer idProducto Id del producto al que pertenece
+     * @param model modelo Modelo en el que se almacenaran los datos
+     * @param array caracteristica Array con los valores
+     */
+    public function registrarGeneral($idProducto, $caracteristica, $idalmacen)
+    {
+        if ($idProducto != Null && isset($caracteristica))
+        {
+            for ($i = 1; $i <= count($caracteristica); $i++)
+            {
+                $modelo = new Productocaracteristica;
+                
+                $modelo->valor = $caracteristica[$i]['valor'];
+                if($caracteristica[$i]['tienehijo'] == 1)
+                    $modelo->idcaracteristica = $caracteristica[$i]['idsubcaracteristica'];
+                else
+                    $modelo->idcaracteristica = $caracteristica[$i]['idcaracteristica'];
+                $modelo->idproducto = $idProducto;
+                $modelo->save();
+                
+                if($caracteristica[$i]['idhidden'] == 2)
+                {
+                    $command = Yii::app()->almacen->createCommand(""
+                            . "select * from actualizacaracteristicasporalmacen(".$modelo->idcaracteristica.", '".Yii::app()->user->getName()."', ".$modelo->idproducto.", ".$idalmacen.");");
+                    $command->queryScalar();
+                }
+            }
+        }
+        else
+            echo 'Error al registrar caracteristicas!';
+    }
+    
+    public function registrarActualizaGeneral($idProducto, $caracteristica, $idalmacen)
+    {
+        if ($idProducto != Null && isset($caracteristica))
+        {
+            for ($i = 1; $i <= count($caracteristica); $i++)
+            {
+                if($caracteristica[$i]['idhidden'] == 2) // REGISTRA
+                {
+                    $modelo = new Productocaracteristica;
+
+                    $modelo->valor = $caracteristica[$i]['valor'];
+                    if($caracteristica[$i]['tienehijo'] == 1)
+                        $modelo->idcaracteristica = $caracteristica[$i]['idsubcaracteristica'];
+                    else
+                        $modelo->idcaracteristica = $caracteristica[$i]['idcaracteristica'];
+                    $modelo->idproducto = $idProducto;
+                    $modelo->save();
+
+                    // -------------------------------------------------------------
+                    $command = Yii::app()->almacen->createCommand(""
+                            . "select * from actualizacaracteristicasporalmacen(".$modelo->idcaracteristica.", '".Yii::app()->user->getName()."', ".$modelo->idproducto.", ".$idalmacen.");");
+                    $command->queryScalar();
+                }
+                else    // ACTUALIZA
+                {
+                    if($caracteristica[$i]['tienehijo'] == 1)
+                        $idcaracteristica = $caracteristica[$i]['idsubcaracteristica'];
+                    else
+                        $idcaracteristica = $caracteristica[$i]['idcaracteristica'];
+                        
+                    Productocaracteristica::model()->updateAll(
+                        array(
+                            'valor' => $caracteristica[$i]['valor'],
+                        ),
+                        'idcaracteristica=:idcaracteristica and idproducto=:idproducto',
+                        array(
+                            ':idcaracteristica' => $idcaracteristica,
+                            ':idproducto' => $idProducto,
+                        )
+                    );
+                }
+            }
+        }
+        else
+            echo 'Error al registrar caracteristicas!';
+    }
+    
+    /**
+     * 
+     * Recorre y almacena valores de un array que contenga las rutas de imagenes
+     * asignando a un producto específico
+     * @param integer idProducto Id del producto al que pertenece
+     * @param model modelo Modelo en el que se almacenaran los datos
+     * @param array imagen Array con los valores
+     * @param string directorioTemporal directorio temporal donde se encuentran 
+     * las imagenes a subirse
+     * @param string directorioDestino donde se copiaran las imagenes  
+     */
+    public function registrarImagen($idProducto, $imagen, $directorioTemporal) {
+        Productocaracteristica::model()
+                ->deleteAll('idproducto = '.$idProducto.' and idcaracteristica = '.Caracteristica::FOTOGRAFIA);
+        
+        $swFtp = Yii::app()->ftp;
+        $modelo = new Productocaracteristica;
+        try {
+            if ($idProducto != Null && isset($imagen)) {
+                $modelo->attributes = $imagen;
+                $modelo->idproducto = $idProducto;
+                $productoCaracteristica = $imagen;
+                $cantidad = count($imagen);
+                $swFtp->createDirectory($this->tableName());
+                $swFtp->chdir($this->tableName());
+                $swFtp->createDirectory($idProducto);
+                $swFtp->chdir($idProducto);
+                $swFtp->emptyDirectory();
+
+                if ($cantidad > 0) {
+                    for ($i = 1; $i <= $cantidad; $i++) {
+                        foreach ($productoCaracteristica[$i] as $atributo => $dato) {
+                            if ($atributo == 'idcaracteristica') {
+                                $modelo->idcaracteristica = $dato;
+                            }
+                            if ($atributo == 'archivo') {
+                                $ruta = explode("/", $dato);
+                                if (count($ruta) > 1) {
+                                    $nombreArchivo = $ruta['1'];
+                                    if ($dato != Null) {
+                                        $modelo->archivo = $nombreArchivo;
+                                        if ($modelo->save()) {
+                                            $swFtp->put($nombreArchivo,$directorioTemporal . '/' . $dato,FTP_BINARY);
+                                            $swFtp->chmod( $nombreArchivo,0705);
+                                            $modelo = new Productocaracteristica;
+                                            $modelo->attributes = $imagen;
+                                            $modelo->idproducto = $idProducto;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    exec("rm -rf " . escapeshellarg($directorioTemporal));
+                }
+            }
+        } catch (Exception $ex) {
+            throw new CrugeException('Error al registrar caracteristicas ', 483);
+        }
+    }
+
+    /**
+     * 
+     * Prepara las imagenes en un directorio temporal
+     * @param integer idProducto Id del producto al que pertenece	 
+     * @param string directorioTemporal directorio temporal donde se copiaran las imagenes          
+     */
+    public function prepararImagen($idProducto, $directorioTemporal) {
+       $swFtp = Yii::app()->ftp;
+       $swFtp->chdir($this->tableName());
+        $swFtp->chdir($idProducto);
+        try {
+            if ($idProducto != Null && $directorioTemporal != Null) {
+                $swFtp->downloadDirectoryContent($directorioTemporal . "/uploads");
+            }
+        } catch (Exception $ex) {
+            throw new CrugeException('Error al preparar imagen ', 483);
+        }
+        $swFtp->close();
+    }
+
+
+    /**
+     * Obtener características genro archivo de un producto
+     * @param integer $id id del producto
+     * @return array() que contiene las características de un producto
+     */
+    public function getCaracteristicaArchivoProducto($id) {
+        $caracteristica = Caracteristica::model()->tableName();
+        $tipo = Tipo::model()->tableName();
+        $criteria = new CDbCriteria();
+        $criteria->select = "t.idcaracteristica,t.valor,t.archivo";
+        $criteria->join = 'INNER JOIN ' . $caracteristica . ' ca ON ca.id = t.idcaracteristica';
+        $criteria->addCondition("ca.idgenero = " . Genero::model()->GENEROARCHIVO);
+        $criteria->addCondition("t.idproducto = " . $id);
+        $informacion = $this->findAll($criteria);
+        $dato = array();
+        if (count($informacion) > 0) {
+            foreach ($informacion as $value) {
+                array_push($dato, $value->attributes);
+            }
+        }
+        return $dato;
+    }
+
+}

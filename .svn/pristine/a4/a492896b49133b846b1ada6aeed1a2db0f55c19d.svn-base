@@ -1,0 +1,78 @@
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+?>
+<!--<form target="_blank" style="text-align: right; margin-bottom: 5px">
+<?php
+//    echo TbHtml::submitButton('Detalle', array('icon' => 'print',
+//        'submit' => array('producto/reporteProductoLote'),
+//    ));
+?>
+<?php
+//    echo TbHtml::submitButton('Lista', array('icon' => 'print',
+//        'submit' => array('producto/reporteProductoLista'),
+//    ));
+?>
+</form>-->
+<?php
+echo System::Search(array(
+    'title' => 'Administración de Productos',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model,), true),
+    'heightSearch' => Yii::app()->params['defaultAdminHeight'],
+    'buttons' => array(
+        array('name' => 'print', 'icon' => 'print','widthLinks' => 100, //'url'=>'ddd/sss'
+            'links' => array(
+                array('icon' => 'print', 'url' => 'reporteProductoLote', 'title' => 'detalle'),
+                array('icon' => 'print', 'url' => 'reporteProductoLista', 'title' => 'lista')
+            )),
+        array('name' => 'create','icon' => 'file', 'click' => 'admProducto.create()')
+    ),
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admProducto',
+        'dataProvider' => $model->search(),
+        'height' => Yii::app()->params['defaultAdminHeight'],
+        'columns' => array(
+            array(
+                'name' => 'codigo',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'nombre',
+                'width' => 35,
+            ),
+            array(
+                'name' => 'idalmacen',
+                'width' => 15,
+                'header' => 'Almacen',
+                'value' => '$data->idalmacen0->nombre',
+            ),
+            array(
+                'name' => 'usuario',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'datetime',
+                'width' => 20,
+            ),
+            array('typeCol' => 'buttons',
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'width' => 10,
+                'buttons' => array(
+                    'imprimir' => array('icon' => 'print', 'url' => 'array("reporteProductoDetalle","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'options' => array("target" => "_blank")),
+//                    al descomentar provocara un error en los botones
+//                    'update' => array(
+//                        'url' => 'array("redireccion","id"=>SeguridadModule::enc($data->getPrimaryKey()))',
+//                        'options' => array('ajax' => array('type' => 'get', 'url' => 'js:$(this).attr("href")', 'success' => 'js:function(data) { '
+//                                . 'if (data.url==" "){'
+//                                . 'bootbox.alert(data.actualizable);'
+//                                . '}else{'
+//                                . 'window.location.href=data.url; '
+//                                . '}'
+//                                . '}')),),
+                    'delete' => array('url' => 'array("delete","id"=>SeguridadModule::enc($data->getPrimaryKey()))')
+                ),
+            ),
+        ),
+))));
+?>

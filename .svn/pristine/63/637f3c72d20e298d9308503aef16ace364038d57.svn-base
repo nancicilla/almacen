@@ -1,0 +1,111 @@
+
+var Inventario = new Object();
+Inventario.__proto__ = SystemWindow;
+//variables
+Inventario.nameView = "Inventario";
+Inventario.url = "inventario";
+
+Inventario.init = function () {
+    this.showWarning=false;
+    try {
+        if (this.action === 'update') {
+            this.buttonChange({id:'save', label: 'Finalizar', key: 'G'});
+        }
+        if (this.action === 'create') {
+            this.buttonChange({id:'save', label: 'Registrar', key: 'R'});
+        }
+        
+    } catch (err) {
+        alert('Error al cargar Inventario.init()');
+    }
+}
+
+Inventario.options = function () {
+    this.setActions('create', {
+        WindowTitle: 'Crear Inventario',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {
+        WindowTitle: 'Llenar Inventario',
+        layerEndOn: false,
+        ableBackWindow: true,
+        WindowWidth: 1050,
+        WindowHeight: 500,
+        initButtons: 'save'
+    });
+
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Inventario',
+        WindowWidth: 380,
+        WindowHeight: 300,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+
+Inventario.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    return error;
+}
+Inventario.afterCreate = function () {
+    admInventario.search();
+    Inventario.closeWindow();
+    this.update(this.idKey());
+}
+
+Inventario.actualizarSaldo = function () {
+    var fila = SGridView.fila_seleccionada(this.groupForm + "Pedidoproducto");
+    var saldo = SGridView.get('[' + fila + '][saldo]');
+    var idproducto = SGridView.get('[' + fila + '][id]');
+
+    var url = 'inventario/actualizarSaldo';
+    var variables = 'idproducto=' + idproducto +
+            '&idinventario=' + this.idKey() +
+            '&saldo=' + saldo;
+
+    var idContainer = this.groupForm + 'Response';
+
+    var options = {
+        url: url,
+        idContainer: idContainer,
+        varSend: variables,
+        type: 'get'
+    }
+    this.process(options);
+}
+
+Inventario.beforeUpdate = function () {
+    var error = false;
+    return error;
+}
+
+Inventario.afterUpdate = function () {
+    Inventario.closeWindow();
+}
+
+Inventario.ActualizarSaldoProducto = function () {
+    var grid = this.getSGridView('Pedidoproducto');
+    var idproducto = grid.rowSelected().get('id');
+    var url = this.urlIni + 'inventario/ActualizarSaldoProducto';
+    var variables = 'idproducto=' + idproducto + '&idinventario=' + this.idKey();
+    
+    $.ajax({
+        url: url,
+        data: variables,
+        success: function (data, textStatus, jqXHR) {
+            grid.rowSelected().attributes('nombre', {'style': {background: '#d8e4bc'}});
+            grid.rowSelected().attributes('codigo', {'style': {background: '#d8e4bc'}});
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            Inventario.showMessageError('Ocurrio un error');
+        }
+    });
+};

@@ -1,0 +1,155 @@
+<?php
+/* @var $this NotaController */
+/* @var $model Nota */
+/* @var $form CActiveForm */
+?>
+
+<div class="form">
+
+    <?php
+    $form = $this->beginWidget('CActiveForm', array(
+        'focus' => array($model, 'numero')
+    ));
+    ?>
+    <div class="formWindow">
+
+        <div class="row">
+            <div class="column">
+                <?php echo $form->labelEx($model, 'idalmacen'); ?>
+                <?php
+                echo $form->dropDownList(
+                        $model, 'idalmacen', CHtml::listData(Almacen::model()->findAll(array('order' => 'nombre')), 'id', 'nombre'));
+                ?>
+            </div>
+            <div class="column">
+                <?php echo $form->labelEx($model, 'idtipodocumento'); ?>
+                <?php
+                echo $form->dropDownList(
+                        $model, 'idtipodocumento', CHtml::listData(
+                                Tipodocumento::model()->findAll(
+                                        array('order' => 'nombre',
+                                            'condition' => "comun = true"
+                                )), 'id', 'nombre')
+                        , array('empty' => ''));
+                ?>
+            </div>
+
+            <div class="column">
+                <?php echo $form->labelEx($model, 'idcausa'); ?>
+                <?php
+                echo $form->dropDownList(
+                        $model, 'idcausa', CHtml::listData(
+                                Causa::model()->findAll(
+                                        array('order' => 'nombre'
+                                )), 'id', 'nombre')
+                        , array('empty' => ''));
+                ?>
+            </div>           
+            <div class="column">
+                <?php echo $form->checkBox($model, 'detalle'); ?>
+            </div>
+        </div>
+
+        <div class="row">           
+                <?php echo $form->labelEx($model, 'glosa'); ?>
+                <?php echo $form->textArea($model, 'glosa', array('rows' => 1, 'style' => 'text-transform: uppercase; width: 650px;')); ?>
+        </div>
+        <div class="row">
+            <div class="column">
+                <?php echo $form->labelEx($model, 'iddetallenota'); ?>
+            </div>
+            <div class="column">
+                <?php
+                echo $form->dropDownList(
+                        $model, 'iddetallenota', CHtml::listData(
+                                Detallenota::model()->findAll(
+                                        array('order' => 'detalle'
+                                )), 'id', 'detalle')
+                        , array('empty' => '', 'style' => 'text-transform: uppercase; width: 600px;'));
+                ?>
+            </div>
+        </div>
+
+        <div style="left: 553px; top: 178px; visibility: hidden; cursor:pointer;  width:170px; height:20px;  background: #f4ed90; padding-left: 5px; position: absolute;border:1px solid #1d6fb8; border-bottom:none;">
+            Disponible: <span style="font-weight: bold;" <?php echo 'id="' . System::Id('divSaldo') . '"'; ?>></span>
+        </div>
+
+        <div  class="row">
+
+            <?php
+            echo SGridView::widget('TGridView', array(
+                'id' => 'Productonota',
+                'dataProvider' => $productonota,
+                'buttonAdd' => true,
+                'eventAfterEdition' => 'Nota.verificarGridInsumos();',
+                'buttonText' => '+',
+                'height' => 195,
+                'columns' => array(
+                    array('name' => 'codigo',
+                        'width' => 15,
+                        'header' => 'Código',
+                        'searchUrl' => 'nota/SearchProductoCodigo',
+                        'value' => '',
+                        'searchHeight' => 105,
+                        'searchWidth' => 600,
+                        'value' => '($data->idproducto0== null) ? "" : $data->idproducto0->codigo',
+                        'searchCopyCol' => 'nombre,saldo,disponible,idproducto,udd',
+                    ),
+                    array('name' => 'nombre',
+                        'searchUrl' => 'nota/SearchProductoNombre',
+                        'searchHeight' => 100,
+                        'searchWidth' => 600,
+                        'width' => 30,
+                        'header' => 'Producto',
+                        'value' => '($data->idproducto0== null) ? "" : $data->idproducto0->nombre',
+                        'searchCopyCol' => 'codigo,saldo,disponible,idproducto,udd',
+                    ),
+                    array('name' => 'glosa',
+                        'header' => 'Glosa',
+                        'width' => 30,
+                        'align' => 'left'
+                    ),
+                    array('name' => 'cantidad',
+                        'width' => 10,
+                        'align' => 'right',
+                        'type' => 'number',
+                        'searchDefaulfValue' => '0.0000',
+                        'validateUrl' => 'nota/validarCantidad',
+                        'validateMessage' => 'Excede la cantidad disponible',
+                    ),
+                    array('name' => 'udd',
+                        'header' => 'UDD',
+                        'typeCol' => 'uneditable',
+                        'width' => 5,
+                        'align' => 'right',
+                    ),
+                    array('name' => 'idproducto',
+                        'searchIdName' => 'id',
+                        'key' => true,
+                        'typeCol' => 'hidden',
+                    ),
+                    array('name' => 'disponible',
+                        'header' => 'Saldo',
+                        'typeCol' => 'hidden',
+                        'width' => 10,
+                        'align' => 'right',
+                        'type' => 'number',
+                    ),
+                    array('typeCol' => 'buttons',
+                        'width' => 3,
+                        'buttons' => array('delete')
+                    ),
+                ),
+            ));
+            ?>           
+        </div>   
+
+    </div>
+    <?php
+    echo System::Buttons(array(
+        'nameView' => 'Nota',
+        'buttons' => array()
+    ));
+    ?> 
+    <?php $this->endWidget(); ?>
+</div><!-- form -->

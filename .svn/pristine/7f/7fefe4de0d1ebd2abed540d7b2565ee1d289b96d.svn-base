@@ -1,0 +1,39 @@
+<?php
+/* @var $this CausaController */
+/* @var $data Causa */
+?>
+
+<div class="view">
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('nombre')); ?>:</b>
+	<?php echo CHtml::encode($data->nombre); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('descripcion')); ?>:</b>
+	<?php echo CHtml::encode($data->descripcion); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('editable')); ?>:</b>
+	<?php echo CHtml::encode($data->editable); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('idtipo')); ?>:</b>
+	<?php echo CHtml::encode($data->idtipo); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('usuario')); ?>:</b>
+	<?php echo CHtml::encode($data->usuario); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('eliminado')); ?>:</b>
+	<?php echo CHtml::encode($data->eliminado); ?>
+	<br />
+
+	<?php /*
+	<b><?php echo CHtml::encode($data->getAttributeLabel('fecha')); ?>:</b>
+	<?php echo CHtml::encode(Yii::app()->format->datetime(strtotime($data->fecha))); ?>
+	<br />
+
+	*/ ?>
+
+</div>

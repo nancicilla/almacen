@@ -1,0 +1,124 @@
+<div class="row">
+    <?php
+    if ($model->idestado == Estadotpv::BORRADOR) {
+        $addRow = false;
+    } else {
+        $addRow = false;
+    }
+    if ($model->idestado == Estadotpv::BORRADOR || $model->idestado == Estadotpv::SOLICITUD) {
+        $editable = 1;
+    } else {
+        $editable = 0;
+    }
+    echo SGridView::widget('TGridView', array(
+        'id' => 'gridTraspasoproducto',
+        'dataProvider' => $gridSolicitudProducto,
+        'buttonAdd' => true,
+        'ableAddRow' => $addRow,
+        'buttonText' => '+',
+        'height' => 210,
+        'eventAfterEdition' => 'Traspaso.verificarGrid();',
+        //'eventAfterEdition' => $modelOrden->scenario == 'view'? null : 'Orden.calcularTotalItems();',
+        'eventAfterEditionAutomatic' => true,
+        'columns' => array(
+            array(
+                'name' => 'id',
+                'typeCol' => 'hidden'
+            ),
+            array(
+                'name' => 'idproducto',
+                'key' => true,
+                'value' => '($data->idproducto == null) ? "" : $data->idproducto',
+                'typeCol' => 'hidden'
+            ),
+            array(
+                'name' => 'codigobarra',
+                'typeCol' => 'uneditable',
+                'width' => 13,
+                'header' => 'Código de barra',
+                'value' => '($data->coduniversal == null) ? "" : $data->coduniversal',
+            ),
+            array(
+                'name' => 'codigo',
+                'typeCol' => 'uneditable',
+                'width' => 13,
+                'header' => 'Código',
+                'value' => '($data->codigo == null) ? "" : $data->codigo',
+            ),
+            array(
+                'header' => 'Nombre',
+                'name' => 'nombre',
+                'width' => 46,
+                'value' => '($data->nombre == null) ? "" : $data->nombre',
+                'typeCol' => 'uneditable',
+            ),/*
+            array(
+                'header' => 'Item',
+                'name' => 'nombre',
+                'width' => 72,
+                'typeCol' => 'uneditable',
+                'background' => Yii::app()->params['mainColor']['almacen']['light'],
+                'value' => '($data->nombre == null) ? "" : $data->nombre',
+            ),*/
+            array(
+                'header' => 'Udd',
+                'name' => 'idunidad',
+                'width' => 7,
+                'value' => '($data->idunidad == null) ? "" : $data->idunidad',
+                'typeCol' => 'uneditable',
+                'align' => 'center',
+            ),
+            array(
+                'name' => 'saldoDisponible',
+                'header' => 'Disponible',
+                'value' => '$data->saldo - $data->reserva',
+                'type' => 'number(10, 8)',
+                'typeCol' => 'hidden',
+                'align' => 'right',
+            ),
+            array(
+                'name' => 'cantidadsolicitada',
+                'header' => 'Cantidad Solicitada',
+                'type' => 'number(10, 8)',
+                'width' => 10,
+                'align' => 'right',
+                'typeCol' => 'uneditable',
+                'value' => '($data->cantidadsolicitada == null) ? "" : $data->cantidadsolicitada',
+            ),
+            array(
+                'header' => 'Cantidad Enviada',
+                'name' => 'cantidadenviada',
+                'width' => 8,
+                'align' => 'right',
+                'typeCol' => 'editable(' . $editable . '==1)',
+                'type' => 'number(10,2)',
+                'value' => $model->idestado == Estadotpv::TRASPASO || $model->idestado == Estadotpv::FINALIZADO ?'$data->cantidadenviada':'($data->cantidadsolicitada == null) ? $data->cantidadenviada : $data->cantidadsolicitada',
+                'background' => Yii::app()->params['mainColor']['almacen']['light'],
+                'footer' => array('idfooter' => 'totalCantidadPedido', 'function' => 'sum'),
+            ),
+            array(
+                'name' => 'solicitud',
+                'value'=>'$data->solicitud',
+                'typeCol' => 'hidden',
+                'valueDefault'=>'-1',
+            ),
+            array(
+                'typeCol' => 'buttons',
+                'width' => 3,
+                'buttons' => array(
+                    'Eliminar' => array(
+					'label' => 'Eliminar',
+					'icon' => 'icon-trash',
+					'click' =>'                                                        
+					function(){  
+						SGridView.selectRow(this);                                                            
+						Traspasotpv.eliminarProducto();
+						return false;
+					}',
+					),
+                    ),
+            )
+        )
+    ));
+    ?>
+</div>

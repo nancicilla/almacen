@@ -1,0 +1,826 @@
+<?php
+
+/*
+ * Producto.php
+ *
+ * Version 0.$Rev$
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date$:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ *
+ * This is the model class for table "producto".
+ *
+ * The followings are the available columns in table 'producto':
+ * @property integer $id
+ * @property string $codigo
+ * @property string $nombre
+ * @property string $valor
+ * @property string $costo
+ * @property string $utilidad
+ * @property string $fecha
+ * @property boolean $eliminado
+ * @property string $usuario
+ * @property integer $idclase
+ * @property integer $idfamilia
+ * @property integer $idunidad
+ * @property string $stockminimo
+ * @property string $stockreposicion
+ * @property string $stockmaximo
+ * @property string $saldo
+ * @property integer $idalmacen
+ * @property integer $idproductopadre
+ * @property integer $idalmacen
+ * @property boolean $inventariar
+ * The followings are the available model relations:
+ * @property Productoproducto[] $productoproductos
+ * @property Productoproducto[] $productoproductos1
+ * @property Clase $idclase0
+ * @property Familia $idfamilia0
+ * @property Unidad $idunidad0
+ * @property Almacen $idalmacen0
+ * @property Producto $idproductopadre0
+ * @property Producto[] $productos
+ * @property Productocaracteristica[] $productocaracteristicas
+ * @property Productonota[] $productonotas
+ * @property Productoinventario[] $productoinventarios
+ * @property Almacen $idalmacen0 
+ * @property array $productoComplementario 
+ * 
+ */
+
+class Producto extends CActiveRecord {
+
+    public $existeRelacionProduccion = false;
+    public $codigoAlmacen;
+    public $nombreFamilia;
+    public $codigoFamilia;
+    public $nombreCompletadoFamilia;
+    public $nombreClase;
+    public $codigoClase;
+    public $nombreCompletadoClase;
+    public $nombreCompletoProducto;
+    public $auxiliarCodigo;
+    public $auxiliarNombre;
+    public $stockminimode;
+    public $stockminimoa;
+    public $stockde;
+    public $stocka;
+    public $stockmaximode;
+    public $stockmaximoa;
+    public $puntopedidode;
+    public $puntopedidoa;
+    public $existeImagen;
+
+    public function defaultScope() {
+        return array(
+            'condition' =>
+//            $this->getTableAlias(false, false) .
+//            '.idalmacen in (select unnest(\'{' . CrugeModule::checkAccessAlmacen() . '}\'::int[])) and ' .
+            $this->getTableAlias(false, false) . '.eliminado = false',
+        );
+    }
+
+    public function init() {
+        //se filtran los productos del primer almacen por defecto
+        $alm = Almacen::model()->find(array('order' => 'codigo', 'limit' => 1));
+        if ($alm !== null)
+            $this->idalmacen = $alm->id;
+    }
+
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName() {
+        return 'producto';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules() {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            //array('reserva', 'required', 'on' => 'traspaso'),
+            array('idalmacen,idfamilia,idclase,valor,idunidad,codigo,nombre, codigoAlmacen', 'required', 'on' => array('insert', 'update')),
+            array('nombreFamilia,nombreClase', 'required', 'on' => array('insert', 'update')),
+            array('codigo,nombre', 'unico', 'on' => array('insert', 'update')),
+            array('nombreFamilia', 'isFamilia', 'on' => array('insert', 'update'), 'message' => 'Familia no valida.'),
+            array('nombreClase', 'isClase', 'on' => array('insert', 'update'), 'message' => 'Familia no valida.'),
+            array('codigo', 'length', 'max' => 10),
+            array('coduniversal', 'length', 'max' => 13),
+            array('nombre', 'length', 'max' => 100),
+            array('valor', 'length', 'max' => 4),
+//            array('coduniversal', 'unique', 'on' => array('insert', 'update')),
+            array('valor', 'numerical', 'min' => 1, 'max' => 999),
+            array('coduniversal,stockde,stocka,stockminimode,stockminimoa,stockmaximode,stockmaximoa,puntopedidode,puntopedidoa', 'numerical'),
+            array('stockde,stocka,stockminimode,stockminimoa,stockmaximode,stockmaximoa,puntopedidode,puntopedidoa', 'length', 'max' => 12),
+            array('stocka', 'compareStockRange'),
+            array('stockminimoa', 'compareStockMinimoRange'),
+            array('stockmaximoa', 'compareStockMaximoRange'),
+            array('puntopedidoa', 'comparePuntoPedidoRange'),
+            array('saldo,stockminimo', 'numerical', 'integerOnly' => false, 'message' => '{attribute} debe ser un número.'),
+            array('nombresenasag,id,stockminimo,stockmaximo,puntopedido, saldo,idalmacen,codigoFamilia,nombreCompletadoFamilia,codigoClase,nombreCompletadoClase,nombreClase,nombreFamilia,eliminado', 'safe'),
+            // The following rule is used by search().
+            // @todo Please remove those attributes that should not be searched.
+            array('idalmacen,id,stockminimo,stockmaximo,puntopedido, codigo,saldo, nombre,'
+                . ' valor, costo, utilidad, fecha, eliminado,'
+                . ' usuario, idclase, idfamilia, idunidad',
+                'safe', 'on' => 'search,searchStock'),
+        );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations() {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+            'productoproductos' => array(self::HAS_MANY, 'Productoproducto', 'idproducto1'),
+            'productoproductos1' => array(self::HAS_MANY, 'Productoproducto', 'idproducto2'),
+            'idclase0' => array(self::BELONGS_TO, 'Clase', 'idclase'),
+            'idfamilia0' => array(self::BELONGS_TO, 'Familia', 'idfamilia'),
+            'idunidad0' => array(self::BELONGS_TO, 'Unidad', 'idunidad'),
+            'idalmacen0' => array(self::BELONGS_TO, 'Almacen', 'idalmacen'),
+            'idproductopadre0' => array(self::BELONGS_TO, 'Producto', 'idproductopadre'),
+            'productos' => array(self::HAS_MANY, 'Producto', 'idproductopadre'),
+            'productocaracteristicas' => array(self::HAS_MANY, 'Productocaracteristica', 'idproducto'),
+            'productonotas' => array(self::HAS_MANY, 'Productonota', 'idproducto'),
+            'productoinventarios' => array(self::HAS_MANY, 'Productoinventario', 'idproducto'),
+        );
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels() {
+        return array(
+            'idalmacen' => 'Almacén',
+            'id' => 'ID',
+            'codigo' => 'Código',
+            'nombre' => 'Nombre',
+            'valor' => 'Peso o Medida',
+            'costo' => 'Costo',
+            'utilidad' => 'Utilidad',
+            'fecha' => 'Fecha',
+            'eliminado' => 'Eliminado',
+            'usuario' => 'Usuario',
+            'idclase' => 'Clase',
+            'idfamilia' => 'Familia',
+            'idunidad' => 'Unidad',
+            'nombreFamilia' => 'Familia',
+            'nombreClase' => 'Clase',
+            'codigoAlmacen' => 'Almacén',
+            'saldo' => 'Saldo',
+            'stockminimo' => 'Saldo Mínimo',
+            'stockmaximo' => 'Saldo Máximo',
+            'nombreCompletadoFamilia' => 'Familia',
+            'nombreCompletadoClase' => 'Clase',
+            'idproductopadre' => 'Idproductopadre',
+            'puntopedido' => 'Pto. de Pedido',
+            'productoComplementario' => 'Producto Complementario',
+            'stockminimode' => 'Saldo Mínimo desde',
+            'stockminimoa' => 'Saldo Mínimo hasta',
+            'stockde' => 'Saldo desde',
+            'stocka' => 'Saldo hasta',
+            'stockmaximode' => 'Saldo Máximo desde',
+            'stockmaximoa' => 'Saldo Máximo hasta',
+            'puntopedidode' => 'Pto. de Pedido desde',
+            'puntopedidoa' => 'Pto. de Pedido hasta',
+            'coduniversal' => 'Código Universal',
+            'nombresenasag'=> 'Clasificación SENASAG'
+        );
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function search() {
+        $criteria = new CDbCriteria;
+        $criteria->with = array('idfamilia0', 'idclase0', 'idalmacen0');
+
+        $criteria->compare('t.id', $this->id);
+        $criteria->addSearchCondition('t.codigo', $this->codigo, true, 'AND', 'ILIKE');
+        $criteria->compare('t.coduniversal', $this->coduniversal);
+        $criteria->addSearchCondition('t.nombre', $this->nombre, true, 'AND', 'ILIKE');
+        $criteria->compare('valor', $this->valor, true);
+        $criteria->compare('costo', $this->costo, true);
+        $criteria->compare('utilidad', $this->utilidad, true);
+        if ($this->fecha != Null) {
+            $criteria->addCondition("t.fecha::date = '" . $this->fecha . "'");
+        }
+        $criteria->addSearchCondition('t.usuario', $this->usuario, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('idclase0.nombre', $this->nombreClase, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('idfamilia0.nombre', $this->nombreFamilia, true, 'AND', 'ILIKE');
+
+        $criteria->compare('idunidad', $this->idunidad);
+        $criteria->compare('t.idalmacen', $this->idalmacen);
+
+        Yii::app()->session['reporteProductoLote'] = $criteria;
+
+        return new CActiveDataProvider($this, array(
+            'pagination' => array(
+                'pageSize' => Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']),
+            ),
+            'criteria' => $criteria,
+            'sort' => array(
+                'defaultOrder' => 't.codigo asc,idalmacen0.nombre asc',
+                'attributes' => array(
+                    'idalmacen' => array(
+                        'asc' => 'idalmacen0.nombre',
+                        'desc' => 'idalmacen0.nombre DESC',
+                    ),
+                    '*',
+                ),
+            ),
+        ));
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection() {
+        return Yii::app()->almacen;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Producto the static model class
+     */
+    public static function model($className = __CLASS__) {
+        return parent::model($className);
+    }
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+        if ($this->getScenario() == 'inventariar')
+            return parent::beforeSave();
+        if ($this->getScenario() == 'correccionflete')
+            return parent::beforeSave();
+        if ($this->getScenario() == 'correccioncantidad')
+            return parent::beforeSave();
+        if ($this->getScenario() == 'correccioncosto')
+            return parent::beforeSave();
+        if ($this->getScenario() == 'actualizarsaldo')
+            return parent::beforeSave();
+        if ($this->getScenario() !== 'actualizarSaldos') {
+            if ($this->getScenario() == 'traspaso')
+                return parent::beforeSave();
+
+            $this->codigo = strtoupper($this->codigo);
+            $this->valor = strtoupper($this->valor);
+            $this->fecha = new CDbExpression('NOW()');
+            $this->usuario = Yii::app()->user->getName();
+            $criteria = new CDbCriteria;
+            $criteria->select = 'id';
+            $criteria->condition = 'codigo = ' . $this->codigoAlmacen;
+            $modeloTemporal = Almacen::model()->find($criteria);
+            $this->idalmacen = $modeloTemporal['id'];
+            $this->nombresenasag = strtoupper($this->nombresenasag);
+            if ($this->coduniversal==Null){
+                $this->coduniversal=0;
+            }
+        }
+
+        return parent::beforeSave();
+    }
+
+    /**
+     * Busca y filtra el stock de productos
+     */
+    public function searchStock() {
+
+        $criteria = new CDbCriteria;
+        if ($this->validate()) {
+
+            Yii::app()->session['mostrarReporteProductoStock'] = true;
+
+            if ($this->id != null) {
+                $criteria->addCondition('t.id=' . (int) $this->id . '');
+            }
+            if ($this->codigo != null) {
+                $criteria->addCondition("t.codigo ilike '%" . $this->codigo . "%'");
+            }
+            if ($this->nombre != null) {
+                $criteria->addCondition("t.nombre ilike '%" . $this->nombre . "%'");
+            }
+            if ($this->saldo != null) {
+                $criteria->addCondition("t.saldo=" . $this->saldo);
+            }
+            if ($this->stockminimo != null) {
+                $criteria->addCondition("t.stockminimo=" . $this->stockminimo);
+            }
+            if ($this->stockde != null) {
+                $criteria->addCondition("t.saldo>=" . $this->stockde);
+            }
+            if ($this->stocka != null) {
+                $criteria->addCondition("t.saldo<=" . $this->stocka);
+            }
+            if ($this->stockminimode != null) {
+                $criteria->addCondition("t.stockminimo>=" . $this->stockminimode);
+            }
+            if ($this->stockminimoa != null) {
+                $criteria->addCondition("t.stockminimo<=" . $this->stockminimoa);
+            }
+            if ($this->stockmaximode != null) {
+                $criteria->addCondition("t.stockmaximo>=" . $this->stockmaximode);
+            }
+            if ($this->stockmaximoa != null) {
+                $criteria->addCondition("t.stockmaximo<=" . $this->stockmaximoa);
+            }
+            if ($this->puntopedidode != null) {
+                $criteria->addCondition("t.puntopedido>=" . $this->puntopedidode);
+            }
+            if ($this->puntopedidoa != null) {
+                $criteria->addCondition("t.puntopedido<=" . $this->puntopedidoa);
+            }
+            $criteria->compare('t.idalmacen', $this->idalmacen);
+        } else {
+            Yii::app()->session['mostrarReporteProductoStock'] = false;
+            $criteria->compare('idalmacen', -10);
+        }
+        Yii::app()->session['productoreporteStock'] = $criteria;
+
+        return new CActiveDataProvider($this, array(
+            'pagination' => array(
+                'pageSize' => Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']),
+            ),
+            'criteria' => $criteria,
+            'sort' => array(
+                'defaultOrder' => 'codigo asc',
+                'attributes' => array(
+                    'saldo' => array(
+                        'asc' => 'saldo',
+                        'desc' => 'saldo DESC',
+                    ),
+                    'stockminimo' => array(
+                        'asc' => 'stockminimo',
+                        'desc' => 'stockminimo DESC',
+                    ),
+                    '*',
+                ),
+            ),
+                )
+        );
+    }
+
+    /**
+     *
+     * Verifica si el nombre introducido es una familia         * 
+      @param modelAttribute $attribute Atributo a validar
+     */
+    public function isFamilia($attribute) {
+        if (!empty($this->nombreFamilia)) {
+            $cantidad = Familia::model()->count("nombre = '" . $this->nombreFamilia . "'");
+            if ($cantidad == 0) {
+                $this->addError($attribute, "La familia '" . $this->nombreFamilia . "' no existe");
+            }
+        }
+    }
+
+    /**
+     *
+     * Verifica si el nombre introducido es una clase         * 
+      @param modelAttribute $attribute Atributo a validar
+     */
+    public function isClase($attribute) {
+        if (!empty($this->nombreClase)) {
+            $cantidad = Clase::model()->count("nombre = '" . $this->nombreClase . "'");
+            if ($cantidad == 0) {
+                $this->addError($attribute, "La clase '" . $this->nombreClase . "' no existe");
+            }
+        }
+    }
+
+    /**
+     *
+     * Verifica si el nombre y codigo introducido es unico        * 
+      @param modelAttribute $attribute Atributo a validar
+     */
+    public function unico($attribute) {
+        if (!isset($this->id)) {
+            $informacion = $this->findAllByAttributes(array('codigo' => $this->codigo));
+            $cantidad = count($informacion);
+            if ($cantidad > 0) {
+                $isUnico = false;
+            } else {
+                $isUnico = true;
+            }
+        } else {
+            $criteria = new CDbCriteria;
+            $criteria->addCondition("id <> '" . $this->id . "'");
+            $criteria->addCondition("codigo = '" . $this->codigo . "'");
+            $criteria->addCondition("idproductopadre IS NULL");
+            $criteria->addCondition("eliminado=false");
+            $informacion = $this->findAll($criteria);
+            $cantidad = count($informacion);
+            if ($cantidad > 0) {
+                $isUnico = false;
+            } else {
+                $isUnico = true;
+            }
+        }
+        if (!$isUnico) {
+            $this->addError($attribute, $this->getAttributeLabel($attribute) . ' ' . $this->$attribute . "  ya ha sido tomado.");
+        }
+    }
+
+    /**
+     * Verifica si un producto puede ser actualizado
+     */
+    public function isActualizable() {
+        $command = Yii::app()->almacen->createCommand
+                ("select producto_es_actualizable(" . $this->getPrimaryKey() . ");");
+        return $command->queryScalar();
+    }
+
+    /**
+     *
+     * Replica todos los datos de un producto y sus caracteristicas,creando productos hijos, 
+     * para los subalmacenes del almacen al que pertenece el producto
+     * @param integer $idProducto Id del producto a replicarse   
+     * 
+     * 
+     */
+    public function registrarHijo($idProducto) {
+        try {
+            $command = Yii::app()->almacen->createCommand("select producto_registrar_hijo('" . $idProducto . "');");
+            $command->queryScalar();
+        } catch (Exception $ex) {
+            throw new CrugeException('No se pudo actualizar los productos de subalmacenes.', 483);
+        }
+    }
+
+    /**
+     *
+     * Actualiza todos los datos de un producto, sus caracteristicas y complementarios, 
+     * para los subalmacenes del almacen al que pertenece el producto
+     * @param integer $idProducto Id del producto a actualizarse
+
+     * 
+     * 
+     */
+    public function actualizarHijo($idProducto) {
+        try {
+            $command = Yii::app()->almacen->createCommand("select producto_actualizar_hijo('" . $idProducto . "');");
+            $command->queryScalar();
+        } catch (Exception $ex) {
+            throw new CrugeException('No se pudo actualizar los productos de subalmacenes.', 483);
+        }
+    }
+
+    /**
+     *
+     * Obtiene los productos hijos de un producto, estos pertenecen a subalmacenes       
+     * @param integer $idProducto Id del producto padre
+     * @return array que contiene los id de los productos hijo
+     * 
+     * 
+     */
+    public function getHijo($idProducto) {
+        $criteria = new CDbCriteria;
+        $criteria->select = 't.id';
+        $criteria->compare('t.idproductopadre', $idProducto);
+        $informacion = $this->findAll($criteria);
+
+        $dato = array();
+        if (count($informacion) > 0) {
+            foreach ($informacion as $i) {
+                array_push($dato, $i->attributes);
+            }
+        }
+        return $dato;
+    }
+
+    /**
+     *
+     * Obtiene el nombre del producto concatenado con su código           
+     * @return string Nombre concatenado
+     * 
+     * 
+     */
+    public function getNombreConcatenado() {
+        return $this->nombre . ' (' . $this->codigo . ' ' . $this->idalmacen0->nombre . ')';
+    }
+
+    /**
+     * Remueve el valor de todos los atributos del modelo
+     */
+    public function emptyAttributes() {
+        $this->unsetAttributes();
+        $this->codigoAlmacen = NULL;
+        $this->nombreFamilia = NULL;
+        $this->codigoFamilia = NULL;
+        $this->nombreCompletadoFamilia = NULL;
+        $this->nombreClase = NULL;
+        $this->codigoClase = NULL;
+        $this->nombreCompletadoClase = NULL;
+        $this->nombreCompletoProducto = NULL;
+        $this->auxiliarCodigo = NULL;
+        $this->auxiliarNombre = NULL;
+    }
+
+    /**
+     *
+     * Sirve para validar el rango de busqueda de stock
+     * 
+     */
+    public function compareStockRange($attribute, $params) {
+        if (!empty($this->stocka) && !empty($this->stockde)) {
+            if ($this->stocka < $this->stockde) {
+                $this->addError($attribute, 'El rango establecido para Stock es '
+                        . 'incorrecto.');
+            }
+        }
+    }
+
+    /**
+     *
+     * Sirve para validar el rango de busqueda de stock minimo
+     * 
+     */
+    public function compareStockMinimoRange($attribute, $params) {
+        if (!empty($this->stockminimoa) && !empty($this->stockminimode)) {
+            if ($this->stockminimoa < $this->stockminimode) {
+                $this->addError($attribute, 'El rango establecido para Stock Minimo es '
+                        . 'incorrecto.');
+            }
+        }
+    }
+
+    /**
+     *
+     * Sirve para validar el rango de busqueda de stock maximo
+     * 
+     */
+    public function compareStockMaximoRange($attribute, $params) {
+        if (!empty($this->stockmaximoa) && !empty($this->stockmaximode)) {
+            if ($this->stockmaximoa < $this->stockmaximode) {
+                $this->addError($attribute, 'El rango establecido para Stock Maximo es '
+                        . 'incorrecto.');
+            }
+        }
+    }
+
+    /**
+     *
+     * Sirve para validar el rango de busqueda de punto de pedido
+     * 
+     */
+    public function comparePuntoPedidoRange($attribute, $params) {
+        if (!empty($this->puntopedidoa) && !empty($this->puntopedidode)) {
+            if ($this->puntopedidoa < $this->puntopedidode) {
+                $this->addError($attribute, 'El rango establecido para Punto de pedido es '
+                        . 'incorrecto.');
+            }
+        }
+    }
+
+    /**
+     * Antes de eliminar de forma segura verifica dependencias
+     */
+    protected function beforeSafeDelete() {
+        $swFtp = Yii::app()->ftp;
+        $command = Yii::app()->almacen->createCommand
+                ("select producto_eliminar(" . $this->getPrimaryKey() . ");");
+        $aux = $command->queryScalar();
+        if ($aux !== 'exito') {
+            echo System::messageError($aux);
+            return;
+        } else {
+            $swFtp->chdir(Productocaracteristica::model()->tableName());
+            $swFtp->chdir($this->id);
+            $swFtp->emptyDirectory();
+            return parent::beforeSafeDelete();
+        }
+    }
+
+    /**
+     * Consultar los productos que coincidan con el nombre
+     * @param string $nombre
+     * @param array $productoExcluido //Id de productos que no debe mostrarse
+     * @return \CActiveDataProvider
+     */
+    public function searchProductoNombre($nombre = '', $productoExcluido, $idprod, $idalm) {
+
+        $criteria = new CDbCriteria;
+        $criteria->with = array('idalmacen0');
+        $criteria->addNotInCondition("t.id", $productoExcluido);
+        if ($idprod !== '') {
+            $criteria->addCondition("t.id<>$idprod", "AND");
+        }
+        if ($idalm !== '') {
+            $criteria->addCondition("t.idalmacen=$idalm", "AND");
+        }
+        $criteria->addSearchCondition('t.nombre', $nombre, true, 'AND', 'ILIKE');
+        return new CActiveDataProvider($this, array(
+            'criteria' => $criteria,
+        ));
+    }
+
+    /**
+     * Consultar los productos que coincidan con el codigo
+     * @param string $codigo
+     * @param array $productoExcluido //Id de productos que no debe mostrarse
+     * @return \CActiveDataProvider
+     */
+    public function searchProductoCodigo($codigo = '', $productoExcluido, $idprod, $idalm) {
+        $criteria = new CDbCriteria;
+        $criteria->with = array('idalmacen0', 'idunidad0');
+        $criteria->addNotInCondition("t.id", $productoExcluido);
+        if ($idprod !== '') {
+            $criteria->addCondition("t.id<>$idprod", "AND");
+        }
+        if ($idalm !== '') {
+            $criteria->addCondition("t.idalmacen=$idalm", "AND");
+        }
+        $criteria->addSearchCondition('t.codigo', $codigo, true, 'AND', 'ILIKE');
+        return new CActiveDataProvider($this, array(
+            'criteria' => $criteria,
+        ));
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function asignacionSaldos() {
+        $criteria = new CDbCriteria;
+        $criteria->with = array('idfamilia0', 'idclase0', 'idalmacen0');
+
+        $criteria->compare('t.id', $this->id);
+        $criteria->addSearchCondition('t.codigo', $this->codigo, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('t.nombre', $this->nombre, true, 'AND', 'ILIKE');
+        $criteria->compare('valor', $this->valor, true);
+        $criteria->compare('costo', $this->costo, true);
+        $criteria->compare('utilidad', $this->utilidad, true);
+        if ($this->fecha != Null) {
+            $criteria->addCondition("t.fecha::date = '" . $this->fecha . "'");
+        }
+        $criteria->addSearchCondition('t.usuario', $this->usuario, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('idclase0.nombre', $this->nombreClase, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('idfamilia0.nombre', $this->nombreFamilia, true, 'AND', 'ILIKE');
+
+        $criteria->compare('idunidad', $this->idunidad);
+        $criteria->compare('t.idalmacen', $this->idalmacen);
+
+        return new CActiveDataProvider($this, array(
+            'pagination' => array(
+                'pageSize' => Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']),
+            ),
+            'criteria' => $criteria,
+            'sort' => array(
+                'defaultOrder' => 't.codigo asc,idalmacen0.nombre asc',
+                'attributes' => array(
+                    'idalmacen' => array(
+                        'asc' => 'idalmacen0.nombre',
+                        'desc' => 'idalmacen0.nombre DESC',
+                    ),
+                    '*',
+                ),
+            ),
+        ));
+    }
+
+    public function getIdproductoDestino($idproducto, $idalmacenDestino) {
+        $command = Yii::app()->almacen->createCommand("select p2.id 
+            from producto p 
+            inner join producto p2 
+            on p.codigo=p2.codigo 
+            where  p2.idalmacen=" . $idalmacenDestino . " and p.eliminado=false 
+            and p2.eliminado=false and  p.id=" . $idproducto);
+        return $command->queryScalar();
+    }
+
+    /**
+     * Conocer el saldo disponible de un producto
+     * @param integer $idProducto
+     * @return float Saldo disponible del producto
+     */
+    public function getSaldoDisponible($idProducto) {
+        $criteria = new CDbCriteria;
+        $criteria->compare('t.id', $idProducto);
+        $producto = $this->find($criteria);
+        return $producto->saldo - $producto->reserva;
+    }
+
+    /**
+     * Verifica si existe cantidad suficiente de un producto
+     * @param integer $idProducto
+     * @param float $cantidad Cantidad necesaria
+     * @return boolean
+     */
+    public function isSaldoSuficiente($idProducto, $cantidad) {
+        $model = Producto::model()->findByPk($idProducto);
+        $saldoDisponible = $model->saldo - $model->reserva;
+        if ($cantidad > $saldoDisponible) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    public function inventariar() {
+        $criteria = new CDbCriteria;
+        $criteria->with = array('idalmacen0');
+
+        if ($this->validate()) {
+            $criteria->compare('t.id', $this->id);
+            $criteria->addSearchCondition('t.codigo', $this->codigo, true, 'AND', 'ILIKE');
+            $criteria->addSearchCondition('t.nombre', $this->nombre, true, 'AND', 'ILIKE');
+            $criteria->compare('t.idalmacen', $this->idalmacen);
+        } else {
+            $criteria->compare('t.id', -10);
+        }
+
+        return new CActiveDataProvider($this, array(
+            'pagination' => array(
+                'pageSize' => Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize'])
+            ),
+            'criteria' => $criteria,
+            'sort' => array(
+                'defaultOrder' => 'idalmacen0.nombre, t.codigo',
+                'attributes' => array(
+                    'idalmacen' => array(
+                        'asc' => 'idalmacen0.nombre',
+                        'desc' => 'idalmacen0.nombre DESC',
+                    ),
+                    '*'
+                )
+            )
+        ));
+    }
+
+    /**
+     * Verifica si existen producto para realizar un inventario, es decir is 
+     * alguno de los producto del almacen esta habilitado para realizar inventario
+     * (columna inventariar de tabla producto en true) 
+     * @param integer $idAlmacen al que corresponde el producto
+     * @return boolean
+     */
+    public function existenProductosParaInventario($idAlmacen) {
+        $criteria = new CDbCriteria();
+        $criteria->condition = 'idalmacen =' . $idAlmacen . ' and inventariar=true';
+        $count = $this->count($criteria);
+
+        if ($count > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Actualiza el saldo del producto 
+     * @param float $saldo nuevo saldo del producto
+     * @return boolean
+     */
+    public function actualizarSaldo($saldo) {
+        $this->setScenario("nombre");
+        $nuevosaldo = (float) $this->saldo + (float) $saldo;
+        try {
+            $this->updateAll(array('saldo' => round($nuevosaldo, 4)), 'id=:id', array(':id' => $this->getPrimaryKey()));
+        } catch (Exception $e) {            
+        }
+    }
+
+}

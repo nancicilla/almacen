@@ -1,0 +1,298 @@
+<?php
+/*
+ * Nota.php
+ *
+ * Version 0.$Rev$
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date$:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ *
+ * This is the model class for table "nota".
+ *
+ * The followings are the available columns in table 'nota':
+ * @property integer $id
+ * @property integer $numero
+ * @property string $glosa
+ * @property string $fecha
+ * @property boolean $eliminado
+ * @property string $usuario
+ * @property integer $idtipo
+ * @property integer $idorigen
+ * @property integer $idnotaborrador
+ * @property string $total
+ * @property integer $idchofer
+ * @property integer $idestado
+ * @property string $descripcion
+ * @property string $fechaentrega
+ *
+ * The followings are the available model relations:
+ * @property Productonota[] $productonotas
+ * @property Origen $idorigen0
+ * @property Tipo $idtipo0
+ * @property Tipodocumento $idtipodoc0
+ * @property Estado $idestado0
+ * @property Chofer $idchofer0
+ */
+class Nota extends CActiveRecord {
+
+    public $notaTipo; //tipo de nota al que corresponde el movimiento
+    public $fechaInicio; //busqueda entre rangos
+    public $fechaFin; //busqueda entre rangos
+    public $idcausa;
+    public $idalmacen;
+    public $idalmacenOrigen;
+    public $idalmacenDestino;
+    public $idtipodocumento;
+    
+    /**
+     * Crea un ámbito por defecto que permite añadir condiciones al modelo
+     */
+    public function defaultScope() {
+        return array(
+            'condition' => $this->getTableAlias(false, false) .
+            '.eliminado = false',
+        );
+    }
+
+    /**
+     * @return string the associated database table name
+     */
+
+    public function tableName() {
+        return 'nota';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules() {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            array('idalmacenOrigen,idalmacenDestino, glosa', 'required', 'on' => array('traspaso')),
+            array('glosa,idalmacen,idtipodocumento,idcausa', 'required', 'on' => array('insert', 'update')),
+            array('idtipodocumento', 'required', 'on' => array('salidaVenta')),
+            array('fecha', 'type', 'type' => 'date', 'message' => 'Fecha no es una fecha válida.', 'dateFormat' => Yii::app()->locale->getDateFormat('medium'),'on'=>array('insert','update','search')),
+            array('numero', 'numerical', 'integerOnly' => true, 'message' => 'El Nº de nota debe ser un número entero.'),
+            array('idtipo, idorigen,cantidadcaja', 'numerical', 'integerOnly' => true),
+            array('usuario', 'length', 'max' => 30),
+            array('fechaFin', 'compareDateRange', 'type' => 'date', 'message' => 'Fecha fin no es una fecha válida.', 'dateFormat' => Yii::app()->locale->getDateFormat('medium')),
+            array('fechaInicio', 'type', 'type' => 'date', 'message' => 'Fecha inicio no es una fecha válida.', 'dateFormat' => Yii::app()->locale->getDateFormat('medium')),
+            array('fechaFin', 'type', 'type' => 'date', 'message' => 'Fecha fin no es una fecha válida.', 'dateFormat' => Yii::app()->locale->getDateFormat('medium')),
+            array('fechaFin,fechaInicio', 'required', 'on' => 'checked'),
+            array('glosa, eliminado,descripcion,idchofer,cantidadcaja', 'safe'),
+            // The following rule is used by search().
+            // @todo Please remove those attributes that should not be searched.
+            array('notaTipo,id, numero, glosa, fecha, eliminado,fechaInicio,fechaFin,'
+                . 'usuario, idtipo, idorigen,total,idchofer, idtipodocumento, '
+                . 'idestado, descripcion, fechaentrega',
+                'safe', 'on' => 'search'),
+        );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations() {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+            'productonotas' => array(self::HAS_MANY, 'Productonota', 'idnota'),
+            'idorigen0' => array(self::BELONGS_TO, 'Origen', 'idorigen'),
+            'idtipo0' => array(self::BELONGS_TO, 'Tipo', 'idtipo'),
+            'idtipodoc0' => array(self::BELONGS_TO, 'Tipodocumento', 'idtipodocumento'),
+            'idestado0' => array(self::BELONGS_TO, 'Estado', 'idestado'),
+            'idchofer0' => array(self::BELONGS_TO, 'Chofer', 'idchofer'));
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels() {
+        return array(
+            'id' => 'ID',
+            'numero' => 'Nº',
+            'glosa' => 'Glosa',
+            'fecha' => 'Fecha',
+            'eliminado' => 'Eliminado',
+            'usuario' => 'Usuario',
+            'idtipo' => 'Movimiento',
+            'idorigen' => 'Origen',
+            'fechaInicio' => 'Fecha desde',
+            'fechaFin' => 'Fecha hasta',
+            'total' => 'Total',
+            'idchofer' => 'Chofer',
+            'idestado' => 'Idestado',
+            'descripcion' => 'Descripción',
+            'fechaentrega' => 'Fechaentrega',
+            'cantidadcaja'=> 'Cantidad de cajas',
+            'idcausa'=> 'Causa',
+            'idalmacen'=> 'Almacén',
+            'idalmacenOrigen' => 'Almacén Origen',
+            'idalmacenDestino' => 'Almacén Destino',
+            'idtipodocumento' => 'Documento',
+            'notaTipo' => 'Movimiento',
+        );
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function search() {
+        // @todo Please modify the following code to remove attributes that should not be searched.
+
+        $criteria = new CDbCriteria;
+        $criteria->with = array('idtipo0','idestado0', 'idtipodoc0');
+        if ($this->validate()) {
+            $criteria->compare('t.id', $this->id);
+            $criteria->compare('t.numero', $this->numero);
+            $criteria->addSearchCondition('t.glosa', $this->glosa, true, 'AND', 'ILIKE');
+
+            if ($this->fecha != Null) {
+                $criteria->addCondition("t.fecha::date = '" . $this->fecha . "'");
+            }
+            if ($this->notaTipo != Null) {
+                $criteria->addCondition("idtipo0.nombre ilike '" . $this->notaTipo . "'");
+            }
+            $criteria->compare('t.eliminado',0);
+            $criteria->addSearchCondition('t.usuario', $this->usuario, true, 'AND', 'ILIKE');
+            $criteria->compare('t.idtipo', $this->idtipo);
+            $criteria->compare('t.idorigen', $this->idorigen);
+            $criteria->compare('t.idtipodocumento', $this->idtipodocumento);
+            if ($this->fechaInicio != Null) {
+                if ($this->fechaFin == Null) {
+                    $this->fechaFin = new CDbExpression('NOW()');
+                }
+
+                $criteria->addCondition("t.fecha::date BETWEEN '$this->fechaInicio' AND '$this->fechaFin'");
+            }
+        } else {
+            $criteria->compare('t.idorigen', -10);
+        }
+        Yii::app()->session['notaLote'] = $criteria;
+        
+        return new CActiveDataProvider($this, array(
+            'pagination' => array(
+                'pageSize' => Yii::app()->user->getState(
+                        'pageSize', Yii::app()->params['defaultPageSize']),
+            ),
+            'criteria' => $criteria,
+            'sort' => array(
+                'defaultOrder' => 't.numero desc',
+                'attributes' => array(
+                    'notaTipo' => array(
+                        'asc' => 'idtipo0.nombre',
+                        'desc' => 'idtipo0.nombre DESC',
+                    ),
+                    'idestado' => array(
+                        'asc' => 'idestado0.nombre',
+                        'desc' => 'idestado0.nombre DESC',
+                    ),
+                    'idtipodocumento' => array(
+                        'asc' => 'idtipodoc0.nombre',
+                        'desc' => 'idtipodoc0.nombre DESC',
+                    ),
+                    '*',
+                ),
+            ),
+        ));
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection() {
+        return Yii::app()->almacen;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Nota the static model class
+     */
+    public static function model($className = __CLASS__) {
+        return parent::model($className);
+    }
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+        
+
+        if($this->scenario=='salidaVenta' || $this->scenario=='ingresoDevolucion' || $this->scenario=='anularVenta'){
+            $this->glosa = strtoupper($this->glosa);
+            $this->idestado= Estado::model()->idEstadoVigente;
+            return parent::beforeSave();
+        }
+        
+        
+        if ($this->scenario == 'despacho') {            
+            $this->fechaentrega = new CDbExpression('NOW()');
+            $this->descripcion = strtoupper($this->descripcion);
+        } else {
+            $this->glosa = strtoupper($this->glosa);
+            $this->fecha = new CDbExpression('NOW()');
+            $this->usuario = Yii::app()->user->getName();
+            $this->idestado= Estado::model()->idEstadoVigente;
+        }
+        if(isset(Yii::app()->session['var'])){
+            $this->usuario = Yii::app()->session['var'];
+        }
+        else
+            $this->usuario = Yii::app()->user->getName();
+        return parent::beforeSave();
+    }
+
+    /**
+     *
+     * Sirve para comparar un rango de fechas, verifica que la fecha posterior
+     * sea mayor a la fecha inicial, de no ser asi, se añade un error
+     * 
+     */
+    public function compareDateRange($attribute, $params) {
+        if (!empty($this->fechaFin)) {
+            if (strtotime($this->fechaFin) < strtotime($this->fechaInicio)) {
+                $this->addError($attribute, 'Fecha fin no puede ser menor a la fecha de inicio.');
+            }
+        }
+    }
+    
+    /**
+     * Función que genera un numero de orden ya sea consecutivo
+     * o que rellena los numeros faltantes
+     * @return type
+     */
+    public function generarNumero() {
+        return Yii::app()->almacen->createCommand("SELECT MAX(numero) "
+                . "FROM nota where eliminado=false")->queryScalar()+1;
+    }
+    
+}

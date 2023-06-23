@@ -1,0 +1,104 @@
+<script type = "text/javascript">
+    function verificarAutocomplete() {
+        //verifica que exista un producto seleccionado a partir del autocomplete
+        //en el textfield nombreProducto, de no ser asi, setea el id por defecto
+        //-1 para que no muestre nada en el cgridview
+            var nombreAutocomplete = document.getElementById("Producto_nombreProducto").value;
+            var nombreCorrecto = document.getElementById("Producto_nombreCompletoProducto").value;
+            if(nombreAutocomplete===""){
+                document.getElementById("Producto_id").value = null;
+            }
+            if (nombreAutocomplete!==nombreCorrecto && nombreAutocomplete!==""){
+                document.getElementById("Producto_id").value = -1;
+                bootbox.alert("El producto es inválido!");
+            }
+        }
+</script>
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+/* @var $form CActiveForm */
+?>
+<?php
+    $nombre="";
+?>
+
+
+<div class="wide form">
+    <?php
+    $form = $this->beginWidget('CActiveForm', array(
+        'action' => Yii::app()->createUrl($this->route),
+        'method' => 'get',
+    ));
+    ?>
+
+    <div class="row">
+        <?php echo $form->labelEx( $model, 'idAlmacen'); ?>              
+            <?php
+                echo $form->dropDownList(
+                    $model, 'idAlmacen', 
+                        CHtml::listData(Almacen::model()->findAll(array('order'=>'codigo')),
+                                'id', 
+                                'nombreCompleto'),
+                        array(
+                            'onchange' =>                                     
+                                    ' document.getElementById("Producto_id").value = -1;'.
+                                    ' document.getElementById("Producto_nombreProducto").value = "";',
+                       )
+                    );
+            ?>
+            <?php echo $form->error($model,'idAlmacen');?>
+    </div>
+      
+    <div class="row">
+        <?php echo $form->label($model, 'nombre'); ?>
+        <?php echo $form->hiddenField($model, 'nombreCompletoProducto'); ?> 
+        <?php echo $form->hiddenField($model, 'id'); ?> 
+
+        <?php
+        $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+            'model' => $model,
+           'attribute' => 'nombreProducto',
+            'source'=>'js: function(request, response) {
+                                $.ajax({
+                                    url: "'.$this->createUrl('producto/autocomplete').'",
+                                    dataType: "json",
+                                    data: {
+                                        term: request.term,
+                                        idalmacen: $("#Producto_idAlmacen").val()
+                                    },
+                                    success: function (data) {
+                                            response(data);
+                                    }
+                                })
+                             }',
+            'options' => array(        
+                'showAnim' => 'slideDown',
+                'delay' => '0',
+                'autoFocus' => 'true',
+                'focus' => "js:function(event, ui) {
+                                          $('#Producto_id').val(ui.item.id);
+                                          $('#Producto_nombreCompletoProducto').val(ui.item.nombre);
+                                        }",
+                'select' => "js:function(event, ui) {
+                                          $('#Producto_id').val(ui.item.id);
+                                          $('#Producto_nombreCompletoProducto').val(ui.item.nombre);
+                                          
+                                        }"
+            ),
+            'htmlOptions' => array(
+                'style' => 'height:20px;',
+                'value'=>$nombre,  
+            ),
+        ));
+        ?>
+        <?php echo $form->error($model, 'id'); ?>
+    </div>   
+     
+    <div class="row buttons">
+        <?php echo TbHtml::submitButton('Buscar', array('onclick'=>'verificarAutocomplete()')); ?>
+    </div>
+ 
+<?php $this->endWidget(); ?>
+
+</div><!-- search-form -->

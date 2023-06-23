@@ -1,0 +1,40 @@
+<?php
+
+/* @var $this FamiliaController */
+/* @var $model Familia */
+echo System::Search(array(
+    'title' => 'Administración de Familias',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model,), true),
+    'heightSearch' => 525,
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admFamilia',
+        'dataProvider' => $model->search(),
+        'height' => 525,
+        'columns' => array(
+            array(
+                'name' => 'codigo',
+                'width' => 10,
+            ),
+            array(
+                'name' => 'nombre',
+                'width' => 40),
+            array(
+                'name' => 'usuario',
+                'width' => 20
+            ),
+            array(
+                'name' => 'fecha',
+                'type' => 'datetime',
+                'width' => 20,
+            ),
+            array('typeCol' => 'buttons',
+                'width' => 10,
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'buttons' => array(
+                    'delete' => array('url' => 'array("delete","id"=>SeguridadModule::enc($data->getPrimaryKey()))', 'click' => 'function(){resetAlEliminar();}')
+                ),
+            ),
+        ),
+))));
+?>            
+

@@ -1,0 +1,130 @@
+<?php
+/* @var $this NotaborradorController */
+/* @var $model Notaborrador */
+/* @var $form CActiveForm */
+?>
+
+<div class="wide form">
+
+<?php $form=$this->beginWidget('CActiveForm', array(
+	'action'=>Yii::app()->createUrl($this->route),
+	'method'=>'get',
+)); ?>
+	<div class="row">
+		<?php echo $form->label($model,'glosa'); ?>
+		<?php echo $form->textArea($model,'glosa',array('rows'=>6, 'cols'=>50)); ?>
+	</div>
+
+	<div class="row">
+		<?php echo $form->label($model,'usuario'); ?>
+		<?php echo $form->textField($model,'usuario',array('size'=>30,'maxlength'=>30)); ?>
+	</div>
+<div class="row">
+            <?php echo $form->labelEx($model,'idorigen'); ?>
+            <?php
+            echo $form->dropDownList(
+                    $model, 
+                    'idorigen', 
+                    CHtml::listData(Origen::model()->findAll(), 'id', 'nombre'), 
+                    array('empty' => '')
+            );
+            ?>
+            <?php echo $form->error($model,'idorigen'); ?>
+        </div>
+    
+	<div class="row">
+            <?php echo $form->labelEx($model,'idtipo'); ?>
+            <?php
+            echo $form->dropDownList(
+                    $model, 
+                    'idtipo', 
+                    CHtml::listData(Tipo::model()->findAll(), 'id', 'nombre'), 
+                    array('empty' => '')
+            );
+            ?>
+            <?php echo $form->error($model,'idtipo'); ?>
+        </div>    
+  
+    <div class="row">
+        <br>
+        <?php echo $form->label($model, 'Fecha'); ?>
+    </div>
+    <div class="row">             
+            <?php echo $form->label($model, 'fechaInicio'); ?>
+            <?php
+            echo $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                'model' => $model,
+                'attribute' => 'fechaInicio',
+                'name' => 'fechaInicio',
+                'value' => $model->fechaInicio,
+                'language' => 'es',
+                // additional javascript options for the date picker plugin
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'showButtonPanel' => true,
+                    'changeMonth' => true,
+                    'changeYear' => true,                 
+                    'maxDate' => 'today',
+                    'dateFormat' => 'dd-mm-yy',
+                    'onClose' => 'js:function(selectedDate){'
+                    . 'if (selectedDate===""){'
+                        . '$("#del_search_notaborrador_fecha").datepicker("setDate", $("#al_search_notaborrador_fecha").datepicker("getDate"));'
+                    . '}'
+                    . '$("#al_search_notaborrador_fecha").datepicker("option", "minDate",selectedDate);'
+                    . '}',                ),
+                'htmlOptions' => array(
+                    'id' => 'del_search_notaborrador_fecha',
+                    'size' => '10',
+                    'value'=>Yii::app()->format->date(date('d-m-Y')),
+                ),
+                    ), true)
+            ?>
+       
+
+        </div>
+        <div class="row">
+            <?php echo $form->label($model, 'fechaFin'); ?>
+            <?php
+            echo $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                'model' => $model,
+                'attribute' => 'fechaFin',
+                'name' => 'notaborrador[fechaFin]',
+                'value' => $model->fechaFin,
+                'language' => 'es',
+                // additional javascript options for the date picker plugin
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'showButtonPanel' => true,
+                    'changeMonth' => true,
+                    'changeYear' => true,
+                    'dateFormat' => 'dd-mm-yy',
+                    'maxDate' => 'today',
+                    'onClose' => 'js:function(selectedDate){'
+                    . 'if (selectedDate===""){'
+                        . '$("#al_search_notaborrador_fecha").datepicker("setDate", new Date());'
+                        . '$("#del_search_notaborrador_fecha").datepicker("option", "maxDate", new Date());'
+                    
+                    . '}'
+                    . 'else{'                    
+                        . '$("#del_search_notaborrador_fecha").datepicker("option", "maxDate", selectedDate);'
+                    . '}'
+                    . '}',            
+                ),
+                'htmlOptions' => array(
+                    'id' => 'al_search_notanotaborrador_fecha',
+                    'size' => '10',
+                    'value'=>Yii::app()->format->date(date('d-m-Y')),
+                ),
+                    ), true)
+            ?>
+        
+
+        </div> 
+   
+	<div class="row buttons">
+		<?php echo TbHtml::submitButton('Buscar'); ?>
+	</div>
+
+<?php $this->endWidget(); ?>
+
+</div><!-- search-form -->

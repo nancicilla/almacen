@@ -1,0 +1,225 @@
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+/* @var $form CActiveForm */
+?>
+<script type = "text/javascript">
+    function verificarAutocomplete() {
+        //verifica que exista un producto seleccionado a partir del autocomplete
+        //en el textfield nombreProducto, de no ser asi, setea el id por defecto
+        //-1 para que no muestre nada en el cgridviewProducto[nombreCompletoProducto]
+        var nombreAutocomplete = document.getElementById("Producto_codigo").value;
+        var nombreCorrecto = document.getElementById("Producto_auxiliarCodigo").value;
+        if (nombreAutocomplete.trim() === "" || (nombreAutocomplete !== nombreCorrecto)) {
+            document.getElementById("Producto_id").value = null;
+        }
+    }
+</script>
+<?php
+$nombreCodigo = "";
+$nombreProducto = "";
+$nombreClase = "";
+$nombreFamilia = "";
+?>
+<div class="form">
+
+    <?php
+    $form = $this->beginWidget('CActiveForm', array(
+        'action' => Yii::app()->createUrl($this->route),
+        'method' => 'get',
+    ));
+    ?>
+
+    <div class="row">
+        <div class="column">
+            <?php echo $form->label($model, 'idalmacen'); ?>
+            <?php
+            echo $form->dropDownList(
+                    $model, 'idalmacen', 
+                    CHtml::listData(Almacen::model()->findAll(array('order' => 'nombre')), 
+                            'id', 'nombre'), array('empty' => '')
+            );
+            ?>
+        </div>   
+        <div class="column">
+            <?php echo $form->label($model, 'Codigo'); ?>
+            <?php
+            $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+                'model' => $model,
+                'attribute' => 'codigo',
+                'source' => 'js: function(request, response) {
+                                $.ajax({
+                                    url: "' . $this->createUrl('producto/autocompleteCodigo') . '",
+                                    dataType: "json",
+                                    data: {
+                                        term: request.term,
+                                        idalmacen: $("#Producto_idalmacen").val()
+                                    },
+                                    success: function (data) {
+                                            response(data);
+                                    }
+                                })
+                             }',
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'delay' => '0',
+                    'autoFocus' => 'true',
+                    'focus' => "js:function(event, ui) {
+                                          $('#Producto_auxiliarCodigo').val(ui.item.nombre);
+                                        }",
+                    'select' => "js:function(event, ui) {
+                                          $('#Producto_auxiliarCodigo').val(ui.item.nombre);                                          
+                                        }"
+                ),
+                'htmlOptions' => array(
+                    'style' => 'height:20px;width:150px;',
+                    'value' => $nombreCodigo,
+                ),
+            ));
+            ?>
+        </div>  
+        <div class="column">
+            <?php echo $form->label($model, 'nombre'); ?>
+            <?php
+            $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+                'model' => $model,
+                'attribute' => 'nombre',
+                'source' => 'js: function(request, response) {
+                                $.ajax({
+                                    url: "' . $this->createUrl('producto/autocompleteNombre') . '",
+                                    dataType: "json",
+                                    data: {
+                                        term: request.term,
+                                        idalmacen: $("#Producto_idalmacen").val()
+                                    },
+                                    success: function (data) {
+                                            response(data);
+                                    }
+                                })
+                             }',
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'delay' => '0',
+                    'autoFocus' => 'true',
+                    'focus' => "js:function(event, ui) {
+                                          $('#Producto_auxiliarNombre').val(ui.item.nombre);
+                                        }",
+                    'select' => "js:function(event, ui) {
+                                          $('#Producto_auxiliarNombre').val(ui.item.nombre);
+                                        }"
+                ),
+                'htmlOptions' => array(
+                    'style' => 'height:20px;',
+                    'value' => $nombreProducto,
+                ),
+            ));
+            ?>
+        </div>   
+
+        <div class="column">
+            <?php echo $form->labelEx($model, 'nombreFamilia'); ?>
+            <?php
+            $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+                'model' => $model,
+                'attribute' => 'nombreFamilia',
+                'source' => $this->createUrl("familia/autocomplete"),
+                // additional javascript options for the autocomplete plugin
+                'options' => array(//        
+                    'showAnim' => 'slideDown',
+                    'delay' => '0',
+                    'autoFocus' => 'true',
+                    'focus' => "js:function(event, ui) {
+                                          $('#Producto_nombreCompletadoFamilia').val(ui.item.nombre);
+                                        }",
+                    'select' => "js:function(event, ui) {
+                                          $('#Producto_nombreCompletadoFamilia').val(ui.item.nombre);
+                                        }"
+                ),
+                'htmlOptions' => array(
+                    'style' => 'height:20px;',
+                    'value' => $nombreFamilia,
+                ),
+            ));
+            ?>
+        </div>
+        <div class="column">
+            <?php echo $form->labelEx($model, 'nombreClase'); ?>
+            <?php
+            $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+                'model' => $model,
+                'attribute' => 'nombreClase',
+                'source' => $this->createUrl("clase/autocomplete"),
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'delay' => '0',
+                    'autoFocus' => 'true',
+                    'focus' => "js:function(event, ui) {
+                                          $('#Producto_nombreCompletadoClase').val(ui.item.nombre);  
+                                        }",
+                    'select' => "js:function(event, ui) {
+                                          $('#Producto_nombreCompletadoClase').val(ui.item.nombre);
+                                        }"
+                ),
+                'htmlOptions' => array(
+                    'style' => 'height:20px;',
+                    'value' => $nombreClase,
+                ),
+            ));
+            ?>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            <?php echo $form->label($model, 'valor'); ?>
+            <?php echo $form->textField($model, 'valor', array('size' => 3, 'maxlength' => 3)); ?>
+        </div>	
+        <div class="column">
+            <?php echo $form->labelEx($model, 'idunidad'); ?>	
+
+            <?php
+            echo $form->dropDownList(
+                    $model, 'idunidad', CHtml::listData(Unidad::model()->findAll(array('order' => 'simbolo')), 'id', 'simbolo'), array('empty' => '')
+            );
+            ?>
+
+        </div>
+        <div class="column">
+            <?php echo $form->label($model, 'usuario'); ?>
+            <?php echo $form->textField($model, 'usuario', array('size' => 30, 'maxlength' => 30)); ?>
+        </div>
+
+        <div class="column">
+            <?php echo $form->label($model, 'fecha'); ?>
+            <?php
+            echo $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                'model' => $model,
+                'attribute' => 'fecha',
+                'name' => 'producto[fecha]',
+                'value' => $model->fecha,
+                'language' => 'es',
+                // additional javascript options for the date picker plugin
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'showButtonPanel' => true,
+                    'changeMonth' => true,
+                    'changeYear' => true,
+                    'dateFormat' => 'dd-mm-yy',
+                    'maxDate' => 'today',
+                ),
+                'htmlOptions' => array(
+                    'id' => '_search_producto_fecha',
+                    'size' => '10',
+                ),
+                    ), true)
+            ?>
+
+        </div>
+    </div>
+
+    <div class="row buttons">
+        <?php echo TbHtml::submitButton('Buscar', array('icon' => 'search', 'onclick' => 'verificarAutocomplete()')); ?>
+    </div>
+
+    <?php $this->endWidget(); ?>
+
+</div><!-- search-form -->

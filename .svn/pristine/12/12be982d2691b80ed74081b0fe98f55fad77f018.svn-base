@@ -1,0 +1,47 @@
+<?php
+
+/* @var $this CausaController */
+/* @var $model Causa */
+
+echo System::Search(array(
+    'title' => 'Administración de Causas',
+    'formSearch' => $this->renderPartial('_search', array('model' => $model,), true),
+    'heightSearch' => 525,
+    'contentSearch' => SGridView::widget('TGridViewSearch', array(
+        'id' => 'admAlmacen',
+        'dataProvider' => $model->search(),
+        'height' => 525,
+        'columns' => array(
+            array(
+                'name' => 'nombre',
+                'width' => 20),
+            array(
+                'name' => 'descripcion',
+                'width' => 20),
+            array(
+                'name' => 'idtipo',
+                'value' => '$data->idtipo0->nombre',
+                'width' => 10
+            ),
+            array(
+                'name' => 'usuario',
+                'width' => 20),
+            array(
+                'name' => 'fecha',
+                'type' => 'datetime',
+                'width' => 20
+            ),
+            array('typeCol' => 'buttons',
+                'deleteConfirmation' => '¿Seguro que desea eliminar este elemento?',
+                'width' => 10,
+                'buttons' => array(
+                    'update' => array('url' => 'array("update","id"=>SeguridadModule::enc($data->getPrimaryKey()))'),
+                    'delete' => array('url' => 'array("delete","id"=>SeguridadModule::enc($data->getPrimaryKey()))')
+                ),
+            ),
+        ),
+            )
+    )
+        )
+);
+?>

@@ -1,0 +1,53 @@
+<?php
+/* @var $this ProductoController */
+/* @var $data Producto */
+?>
+
+<div class="view">
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('codigo')); ?>:</b>
+	<?php echo CHtml::encode($data->codigo); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('nombre')); ?>:</b>
+	<?php echo CHtml::encode($data->nombre); ?>
+	<br />
+
+<?php /*
+	<b><?php echo CHtml::encode($data->getAttributeLabel('costo')); ?>:</b>
+	<?php echo CHtml::encode($data->costo); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('utilidad')); ?>:</b>
+	<?php echo CHtml::encode($data->utilidad); ?>
+	<br />
+
+ */ ?>
+ 
+
+	<?php /*
+	<b><?php echo CHtml::encode($data->getAttributeLabel('eliminado')); ?>:</b>
+	<?php echo CHtml::encode($data->eliminado); ?>
+	<br />	
+*/ ?>
+	<b><?php echo CHtml::encode($data->getAttributeLabel('nombreClase')); ?>:</b>
+	<?php echo CHtml::encode($data->idclase0->nombre); ?>
+	<br />
+
+	<b><?php echo CHtml::encode($data->getAttributeLabel('nombreFamilia')); ?>:</b>
+	<?php echo CHtml::encode($data->idfamilia0->nombre); ?>
+	<br />
+	
+	<b><?php echo CHtml::encode($data->getAttributeLabel('valor')); ?>:</b>
+	<?php echo CHtml::encode($data->valor); ?>
+	<br />
+    <b><?php echo CHtml::encode($data->getAttributeLabel('idunidad')); ?>:</b>
+	<?php echo CHtml::encode($data->idunidad0->simbolo); ?>
+	<br />
+	<b><?php echo CHtml::encode($data->getAttributeLabel('fecha')); ?>:</b>
+	<?php echo CHtml::encode(Yii::app()->format->datetime(strtotime($data->fecha))); ?>
+	<br />
+    <b><?php echo CHtml::encode($data->getAttributeLabel('usuario')); ?>:</b>
+	<?php echo CHtml::encode($data->usuario); ?>
+	<br />
+</div>

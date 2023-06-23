@@ -1,0 +1,385 @@
+<script type = "text/javascript">
+    $(document).ready(function() {
+        //de acuerdo al escenario se determina si los elementos iniciales deben
+        //deshabilitarse o no, se 
+        var deshabilitarElementos = <?php echo(json_encode(($model->scenario == 'update') ? true : false)); ?>;
+        if (deshabilitarElementos === true) {
+            //contiene todos los elementos pertenecientes a la clase 
+            //clonnable-field-1 (características del producto)
+            var elementosClase1 = document.getElementsByClassName('clonnable-field-1');
+            var i;
+            for (i = 0; i < elementosClase1.length; i++) {
+                if ((elementosClase1[i].id !== "caracteristica_Productocaracteristica_0_idcaracteristica")
+                        && (elementosClase1[i].id !== "imagen_Productoimagen_0_idcaracteristica")) {
+                    if ((elementosClase1[i].id).match(/caracteristica_.*/) && (<?php echo(json_encode(!empty($productoCaracteristica))); ?>)) {
+                        document.getElementById(elementosClase1[i].id).disabled = true;
+                    }
+                    if ((elementosClase1[i].id).match(/imagen_.*/) && (<?php echo(json_encode(!empty($productoImagen))); ?>)) {
+                        document.getElementById(elementosClase1[i].id).disabled = true;
+                    }
+                }
+            }
+        }
+    });
+
+    /* Habilita todos los los elementos pertenecientes a la clase clonnable-field-1
+     * antes de enviar el formulario. Es necesario porque el si el campo esta 
+     * deshabilitado no se envia su información.
+     */
+    function habilitarTodo() {
+        $('.clonnable-field-1').prop('disabled', false);
+    }
+
+    /*
+     * Genera el codigo de un producto y asigna al campo 
+     */
+    function generarCodigo() {
+        var codigoAlmacen = document.getElementById("Producto_codigoAlmacen").value;
+        var valor = document.getElementById("Producto_valor").value;
+        var codigoFamilia = document.getElementById("Producto_codigoFamilia").value;
+        var codigoClase = document.getElementById("Producto_codigoClase").value;
+        var codigo = "";
+        if (codigoAlmacen) {
+            if (codigoFamilia) {
+                if (codigoClase) {
+                    if (valor) {
+                        valor = calcularValor(valor);
+                    }
+                } else {
+                    valor = "";
+                }
+            } else {
+                codigoClase = "";
+                valor = "";
+            }
+            codigo = codigoAlmacen.concat(codigoFamilia).concat(codigoClase).concat(valor);
+        }
+        document.getElementById("codigo").value = codigo;
+    }
+    /*
+     * Genera el nombre de un producto y asigna al campo 
+     */
+    function generarNombre() {
+        var valor = document.getElementById("Producto_valor").value;
+        var nombreFamilia = document.getElementById("Producto_nombreCompletadoFamilia").value;
+        var nombreClase = document.getElementById("Producto_nombreCompletadoClase").value;
+        var unidad = document.getElementById("Producto_idunidad");
+        var simbolo = unidad.options[unidad.selectedIndex].text;
+        var nombre = "";
+        if (isNaN(valor))
+            valor = '';
+        if (nombreFamilia) {
+            if (nombreClase) {
+                if (!valor) {
+                    simbolo = "";
+                }
+            } else {
+                valor = "";
+                simbolo = "";
+            }
+            nombre = nombreFamilia.concat(' ').concat(nombreClase).concat(' ').concat(valor).concat(' ').concat(simbolo);
+            document.getElementById("Producto_nombre").value = nombre;
+        }
+    }
+    /*
+     * Calcula el valor a utilizarse en el codigo 
+     * @param valor Valor a tratarse
+     * @return valor a asignarse al codigo 
+     */
+
+    function calcularValor(valor) {
+        var valorModificado;
+        if (isNaN(valor)) {
+            valorModificado = ""
+        } else {
+            valorSplitted = valor.split(".");
+            if (valorSplitted.length < 2) {
+                valorModificado = parseInt(valor, 10);
+                if (valor < 100) {
+                    valorModificado = '0'.concat(valorModificado);
+                    if (valor < 10) {
+                        valorModificado = '0'.concat(valorModificado);
+                    }
+
+                }
+            } else {
+                valorModificado = valor;
+            }
+        }
+        return valorModificado;
+    }
+
+
+</script>
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+/* @var $form CActiveForm */
+?>
+
+<div class="form">
+
+    <?php
+    $form = $this->beginWidget('CActiveForm', array(
+        'id' => 'producto-form',
+        // Please note: When you enable ajax validation, make sure the corresponding
+        // controller action is handling ajax validation correctly.
+        // There is a call to performAjaxValidation() commented in generated controller code.
+        // See class documentation of CActiveForm for details on this.
+        'enableAjaxValidation' => false,
+    ));
+    ?>
+    <?php
+    ?>
+    <?php Yii::app()->clientScript->registerCoreScript('jquery'); ?>
+
+    <p class="note"><span class="required">*</span> Campos requeridos.</p>
+
+    <?php echo $form->errorSummary($model); ?>
+
+    <div class="row">
+        <div class="column">
+            <?php echo $form->labelEx($model, 'codigoAlmacen'); ?>
+            <?php
+            echo $form->dropDownList(
+                    $model, 'codigoAlmacen', CHtml::listData(Almacen::model()->findAll(array('order' => 'codigo', 'condition' => 'idalmacen is null')), 'codigo', 'nombreCompleto'), array('onChange' => "generarCodigo();")
+            );
+            ?>       
+        </div>
+        <div class="column">
+            <?php echo $form->labelEx($model, 'nombreFamilia'); ?>
+            <?php echo $form->hiddenField($model, 'idfamilia'); ?>
+            <?php echo $form->hiddenField($model, 'codigoFamilia'); ?>
+            <?php echo $form->hiddenField($model, 'nombreCompletadoFamilia'); ?>
+            <?php
+            $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+                'model' => $model,
+                'attribute' => 'nombreFamilia',
+                'source' => $this->createUrl("familia/autocomplete"),
+                // additional javascript options for the autocomplete plugin
+                'options' => array(//        
+                    'showAnim' => 'slideDown',
+                    'delay' => '0',
+                    'autoFocus' => 'true',
+                    'focus' => "js:function(event, ui) {
+                                          $('#Producto_idfamilia').val(ui.item.id);
+                                          $('#Producto_codigoFamilia').val(ui.item.codigo);
+                                          $('#Producto_nombreCompletadoFamilia').val(ui.item.nombre);
+                                          generarCodigo();   
+                                          generarNombre();
+                                        }",
+                    'select' => "js:function(event, ui) {
+                                          $('#Producto_idfamilia').val(ui.item.id);
+                                          $('#Producto_codigoFamilia').val(ui.item.codigo);
+                                          $('#Producto_nombreCompletadoFamilia').val(ui.item.nombre);
+                                          generarCodigo();
+                                          generarNombre();
+                                        }"
+                ),
+                'htmlOptions' => array(
+                    'style' => 'height:20px;width:320px;',
+                ),
+            ));
+            ?>
+            <?php echo $form->error($model, 'idfamilia'); ?>
+            <?php echo $form->error($model, 'nombreFamilia'); ?>
+        </div>
+        <div class="column">
+            <?php echo $form->labelEx($model, 'nombreClase'); ?>
+            <?php echo $form->hiddenField($model, 'idclase'); ?>
+            <?php echo $form->hiddenField($model, 'codigoClase'); ?>
+            <?php echo $form->hiddenField($model, 'nombreCompletadoClase'); ?>
+            <?php
+            $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+                'model' => $model,
+                'attribute' => 'nombreClase',
+                'source' => $this->createUrl("clase/autocomplete"),
+                'options' => array(
+                    'prompt' => 'introduzca',
+                    'showAnim' => 'slideDown',
+                    'delay' => '0',
+                    'autoFocus' => 'true',
+                    'focus' => "js:function(event, ui) {
+                                          $('#Producto_idclase').val(ui.item.id);
+                                          $('#Producto_codigoClase').val(ui.item.codigo);
+                                          $('#Producto_nombreCompletadoClase').val(ui.item.nombre);
+                                          generarCodigo();
+                                          generarNombre();
+                                        }",
+                    'select' => "js:function(event, ui) {
+                                          $('#Producto_idclase').val(ui.item.id);
+                                          $('#Producto_codigoClase').val(ui.item.codigo);
+                                          $('#Producto_nombreCompletadoClase').val(ui.item.nombre);
+                                          generarCodigo(); 
+                                          generarNombre();
+                                        }"
+                ),
+                'htmlOptions' => array(
+                    'style' => 'height:20px;width:320px;',
+                ),
+            ));
+            ?>
+            <?php echo $form->error($model, 'idclase'); ?>
+            <?php echo $form->error($model, 'nombreClase'); ?>
+        </div>	
+        <div class="column">
+            <?php echo $form->labelEx($model, 'valor', array('label' => 'Peso o medida')); ?>
+            <?php echo $form->textField($model, 'valor', array('class'=>'numeric','precision'=>'3,2','maxlength'=>'3','style' => 'width:80px;', 'onkeyup' => 'generarCodigo(); generarNombre();')); ?>
+            <?php echo $form->error($model, 'valor'); ?>
+        </div>
+        <div class="column">
+            <?php echo $form->labelEx($model, 'idunidad'); ?>	
+
+            <?php
+            echo $form->dropDownList(
+                    $model, 'idunidad', CHtml::listData(Unidad::model()->findAll(array('order' => 'simbolo')), 'id', 'simbolo'), array('onChange' => "generarCodigo(); generarNombre();", 'style' => 'width:70px;')
+            );
+            ?>
+            <?php echo $form->error($model, 'idunidad'); ?>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            <?php echo $form->labelEx($model, 'codigo', array('label' => 'Código')); ?>
+            <?php echo $form->textField($model, 'codigo', array('id' => 'codigo', 'size' => 12, 'maxlength' => 12, 'style' => 'text-transform: uppercase', 'readonly' => 'true')); ?>
+            <?php echo $form->error($model, 'codigo'); ?>
+        </div>
+        <div class="column">
+            <?php echo $form->labelEx($model, 'nombre'); ?>
+            <?php echo $form->textField($model, 'nombre', array('maxlength' => 30, 'style' => 'text-transform: uppercase;width:850px;', 'readonly' => 'true')); ?>
+            <?php echo $form->error($model, 'nombre'); ?>
+        </div>
+    </div>
+
+    <div class="row" style="border: 1px solid #0066A4; padding: 10px;">
+        <div class="row" style="text-align: center; background-color: #0066A4; font-weight: bold; color: white; padding: 2px;">Características</div>
+        <?php
+        $this->widget(
+                'ext.clonnableFields.ClonnableFields', array(
+            'id' => 'caracteristica',
+//          'models'=> null , //required, one to many model relation or array
+            'datas' => $productoCaracteristica,
+            'rowGroupName' => 'Productocaracteristica', //required, all fields will be with this key number
+            'startRows' => 1, //optional, default: 1 - The number of rows at widget start
+            'labelsMode' => 2, //optional, default: 1 - (0 - never, 1 - always, 2 - only if rows exist)
+            'addButtonLabel' => '<i class="icon-plus"></i>Añadir',
+            'removeButtonLabel' => '<i class="icon-trash"></i>',
+            'fields' => array(//required  
+                array(
+                    'label' => array(
+                        'title' => 'Característica',
+                        'htmlOptions' => array('data-toggle' => 'popover', 'title' => 'Select2 field', 'data-content' => 'Select gender from the list', 'data-trigger' => 'hover', 'data-placement' => 'top'),
+                    ),
+                    'field' => array(//required
+                        'name' => 'idcaracteristica',
+                        'class' => 'TemplateSelectField', //required.
+                        'attribute' => 'idcaracteristica', //required, model attribute or field name
+                        'htmlOptions' => array('maxlength' => '128'), //optional                    
+                        'data' => CHtml::listData(Caracteristica::model()->findAll(array('order' => 'nombre', 'condition' => 'idgenero = ' . Genero::model()->generoGeneral)), 'id', 'nombre'),
+                        'params' => array(//optional
+                            'asDropDownList' => true,
+                        ),
+                    ),
+                    'fieldHtmlOptions' => array('class' => 'span3'),
+                ),
+                array
+                    (
+                    'label' => array(
+//                      'title'=>'Valor',                      
+                    ),
+                    'field' => array(
+                        'name' => 'valor',
+                        'class' => 'TemplateTextField',
+                        'attribute' => 'valor',
+                        'htmlOptions' => array('style' => 'text-transform: uppercase;'),
+                    ),
+                ),
+            ),
+                )
+        );
+        ?>
+    </div>
+    <div class="row" style="border: 1px solid #0066A4; padding: 10px;">
+        <div class="row" style="text-align: center; background-color: #0066A4; font-weight: bold; color: white; padding: 2px;">Imágenes</div>
+        <?php
+        $this->widget(
+                'ext.clonnableFields.ClonnableFields', array(
+            'id' => 'imagen',
+//          'models'=> null , //required, one to many model relation or array
+            'datas' => $productoImagen,
+            'rowGroupName' => 'Productoimagen', //required, all fields will be with this key number
+            'startRows' => 1, //optional, default: 1 - The number of rows at widget start
+            'labelsMode' => 2, //optional, default: 1 - (0 - never, 1 - always, 2 - only if rows exist)
+            'addButtonLabel' => '<i class="icon-plus"></i>Añadir',
+            'removeButtonLabel' => '<i class="icon-trash"></i>',
+            'fields' => array(//required  
+                array(
+                    'label' => array(
+//                    'title' => 'Galería de Imágenes',
+                        'htmlOptions' => array('data-toggle' => 'popover', 'title' => 'Select2 field', 'data-content' => 'Select gender from the list', 'data-trigger' => 'hover', 'data-placement' => 'top'),
+                    ),
+                    'field' => array(//required
+                        'name' => 'idcaracteristica',
+                        'class' => 'TemplateSelectField', //required.
+                        'attribute' => 'idcaracteristica', //required, model attribute or field name
+                        'htmlOptions' => array('maxlength' => '128'), //optional                    
+                        'data' => CHtml::listData(Caracteristica::model()->findAll(array('order' => 'nombre', 'condition' => 'idgenero = ' . Genero::model()->generoArchivo)), 'id', 'nombre'),
+                        'params' => array(//optional
+                            'asDropDownList' => true,
+                        ),
+                    ),
+                    'fieldHtmlOptions' => array('class' => 'span3'),
+                ),
+                array
+                    (
+                    'label' => array(
+                    // 'title'=>'Archivo',                      
+                    ),
+                    'field' => array(
+                        'name' => 'archivo',
+                        'class' => 'TemplateFineUploaderField',
+                        'attribute' => 'archivo',
+                        'params' => array(
+                            'action' => Yii::app()->baseUrl . '/' . Yii::app()->session['directorioTemporal'] . $this->UPLOAD_FILE,
+                            'deleteAction' => Yii::app()->baseUrl . '/' . Yii::app()->session['directorioTemporal'] . $this->DELETE_FILE,
+                            'allowedExtensions' => "['jpeg', 'jpg', 'png']",
+                            'debug' => 'true',
+                            'imagesUrl' => Yii::app()->baseUrl . '/' . Yii::app()->session['directorioTemporal'] . '/',
+                            'imageStyle' => 'height:100px;',
+                            'emptyImage' => $this->NO_PHOTO_FILE,
+                        ),
+                    ),
+                ),
+            ),
+                )
+        );
+        ?>
+    </div>
+    <div class="row" style="border: 1px solid #0066A4; padding: 10px;">
+        <div class="row" style="text-align: center; background-color: #0066A4; font-weight: bold; color: white; padding: 2px;">Producto Complementario</div>
+        <?php
+        $this->widget('ext.select2.ESelect2', array(
+            'id' => 'productoComplementario',
+            'name' => 'productoComplementario',
+            'value' => $productoComplementario,
+            'data' => CHtml::listData(Producto::model()->findAll(array('order' => 'idalmacen,codigo')), 'id', 'nombreConcatenado'),
+            'htmlOptions' => array(
+                'multiple' => 'multiple',
+                'style' => 'width:100%;'
+            ),
+            'options' => array(
+                'placeholder' => 'Introduzca el nombre',
+                'allowClear' => true,
+            ),
+        ));
+        ?>
+    </div>
+    <div class="row buttons">
+        <?php echo TbHtml::submitButton($model->isNewRecord ? 'Crear' : 'Guardar', array('onclick' => 'habilitarTodo()')); ?>
+    </div>          
+    <?php
+    $this->endWidget();
+    ?>
+</div>
+
+

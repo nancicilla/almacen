@@ -1,0 +1,37 @@
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Ver Producto</h1>
+
+<?php $this->widget('zii.widgets.CDetailView', array(
+	'data'=>$model,
+	'attributes'=>array(
+		'codigo',
+		'nombre',				
+		array(
+                'label'=>$model->getAttributeLabel('nombreClase'),
+                'value'=>$model->idclase0->nombre
+                ),
+        array(
+            'label'=>$model->getAttributeLabel('nombreFamilia'),
+            'value'=>$model->idfamilia0->nombre
+        ),
+        'valor',
+        array(
+            'label'=>$model->getAttributeLabel('idunidad'),
+            'value'=>$model->idunidad0->simbolo
+        ),		
+        array(
+			 'name' => 'fecha',
+			 'value'=>Yii::app()->format->datetime(strtotime($model->fecha)),
+		),
+		'usuario'
+	),
+)); ?>		</div>
+	</div>
+</div>

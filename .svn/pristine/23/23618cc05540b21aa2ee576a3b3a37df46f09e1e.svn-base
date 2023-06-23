@@ -1,0 +1,37 @@
+<?php
+/*
+ * _suplementario.php
+ *
+ * Version 0.$Rev$
+ *
+ * Creacion: 30/01/2015
+ *
+ * Ultima Actualizacion: $Date$
+ *
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+?>
+<div style="height: 260px; overflow: auto;">
+    <?php
+    $this->widget('ext.select2.ESelect2', array(
+        'id' => 'productoComplementario',
+        'name' => 'productoComplementario',
+        'value' => $productoComplementario,
+        'data' => CHtml::listData(Producto::model()->findAll(array('order' => 'idalmacen,codigo')), 'id', 'nombreConcatenado'),
+        'htmlOptions' => array(
+            'multiple' => 'multiple',
+            'style' => 'width:100%;'
+        ),
+        'options' => array(
+            'placeholder' => 'Introduzca el nombre',
+            'allowClear' => true,
+        ),
+    ));
+    ?>
+</div>

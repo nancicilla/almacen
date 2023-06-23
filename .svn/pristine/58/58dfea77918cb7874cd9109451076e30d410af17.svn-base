@@ -1,0 +1,82 @@
+var admTraspasotpv = new Object();
+admTraspasotpv.__proto__ = SystemSearch;
+
+//declare var
+admTraspasotpv.nameView = "admTraspasotpv";
+admTraspasotpv.url = "traspasotpv/admin";
+admTraspasotpv.idContainer = "";
+admTraspasotpv.eventRow = "THIS.update();";
+admTraspasotpv.nextView = "Traspasotpv";
+//functions
+admTraspasotpv.init = function () {
+    try {
+        var THIS=this;
+        $('#'+this.Id('producto')).keyup(function(e){
+                var k = (document.all) ? e.keyCode : e.which;
+                if(k!=37 && k!=38  && k!=39  && k!=40  && k!=13  && k!=9) {
+                    THIS.set('idproducto','');
+                    THIS.ById('producto').style.background="";
+                }
+            });            
+        $('#'+this.Id('producto')).blur(function(){
+                    if(THIS.get('idproducto')==''){
+                        this.value='';
+                        THIS.ById('producto').style.background="";
+                        THIS.search();
+
+                    }
+                });
+    } catch (err) {
+        alert('Error al cargar admTraspasotpv.init()');
+    }
+};
+
+admTraspasotpv.options = function () {
+    var afterFunction = '';
+    var updateFunction = 'THIS.search(Traspasotpv.idKeySend());';
+    //para actualizar la lista si actualiza/borrar/crea un formulario
+    var idKey = SGridView.getSelected('id');
+    var varsSend = "";
+    var url = "";
+    var nameContainer = "";
+
+    var options = {
+        idKey: idKey,
+        afterFunction: afterFunction,
+        updateFunction: updateFunction,
+        varsSend: varsSend
+    };
+
+    return options;
+
+};
+admTraspasotpv.confirmarSolicitud = function () {
+
+   jQuery.ajax({
+       type: "GET",
+       url: "tpv/traspaso/VerificaEstadosTraspaso?id="+SGridView.getSelected('id'),  
+       contentType: "application/json; charset=utf-8",
+       dataType: "json",
+       success: function (data, status, jqXHR) {  
+        
+          if(!data.finalizado.estado && (data.solicitud.estado)){
+            var id=SGridView.getSelected('id');
+            Traspasotpv.registrarConfirmacion(id);
+            return;
+        }
+            if(data.finalizado.estado) {
+                bootbox.alert("La Solicitud está finalizada, no se puede confirmar esta Solicitud.");
+            return;}
+            if(!data.traspaso.estado || !data.borrador.estado) {
+                bootbox.alert("No se puede realizar la operación.");
+                return;}
+
+            },
+
+            error: function (jqXHR, status) {           
+              // error handler
+          }
+
+      });
+
+};

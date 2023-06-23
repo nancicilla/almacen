@@ -1,0 +1,155 @@
+<?php
+/* @var $this ProductonotaController */
+/* @var $model Productonota */
+/* @var $form CActiveForm */
+?>
+<?php
+$nombreProducto = "";
+?>
+
+<div class="form">
+
+    <?php
+    $form = $this->beginWidget('CActiveForm', array(
+        'action' => Yii::app()->createUrl($this->route),
+        'method' => 'get',
+        'id' => 'admKardex'
+    ));
+    ?>
+    <div class="row">
+        <?php echo $form->labelEx($model, 'almacen'); ?>              
+        <?php
+        echo $form->dropDownList(
+                $model, 'idalmacen', CHtml::listData(Almacen::model()->findAll(array('order' => 'codigo')), 'id', 'nombreCompleto')
+        );
+        ?> 
+
+    </div>
+
+    <div class="row">
+        <?php echo $form->label($model, 'nombreProducto'); ?>
+        <?php echo $form->hiddenField($model, 'nombreCompletoProducto'); ?> 
+        <?php echo $form->hiddenField($model, 'idproducto'); ?>       
+        <?php
+        $this->widget('zii.widgets.jui.CJuiAutoComplete', array(
+            'model' => $model,
+            'attribute' => 'nombreProducto',
+            'source' => 'js: function(request, response) {
+                                $.ajax({
+                                    url: "' . $this->createUrl('producto/autocomplete') . '",
+                                    dataType: "json",
+                                    data: {
+                                        term: request.term,
+                                        idalmacen: $("#Productonota_idalmacen").val()
+                                    },
+                                    success: function (data) {
+                                            response(data);
+                                    }
+                                })
+                             }',
+            'options' => array(
+                'showAnim' => 'slideDown',
+                'delay' => '0',
+                'autoFocus' => 'true',
+                'focus' => "js:function(event, ui) {
+                                          $('#Productonota_idproducto').val(ui.item.id);
+                                          $('#Productonota_nombreCompletoProducto').val(ui.item.nombre);
+                                        }",
+                'select' => "js:function(event, ui) {
+                                          $('#Productonota_idproducto').val(ui.item.id);
+                                          $('#Productonota_nombreCompletoProducto').val(ui.item.nombre);
+                                          admKardex.search();
+                                          admKardex.productoSeleccionado=true;
+                                        }"
+            ),
+            'htmlOptions' => array(
+                'style' => 'height:20px;',
+                'value' => $nombreProducto,
+            ),
+        ));
+        ?>
+    </div>
+
+    <div class="row">             
+        <?php echo $form->label($model, 'fechaInicio'); ?>
+        <?php
+        echo $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+            'model' => $model,
+            'attribute' => 'fechaInicio',
+            'name' => 'fechaInicio',
+            'value' => $model->fechaInicio,
+            'language' => 'es',
+            // additional javascript options for the date picker plugin
+            'options' => array(
+                'showAnim' => 'slideDown',
+                'showButtonPanel' => true,
+                'changeMonth' => true,
+                'changeYear' => true,
+                'maxDate' => 'today',
+                'dateFormat' => 'dd-mm-yy',
+                'onClose' => 'js:function(selectedDate){'
+                . 'if (selectedDate===""){'
+                . '$("#Productonota_fechaFin").datepicker("setDate", "");'
+                . '}'
+                . 'else{'
+                . 'if ($("#Productonota_fechaFin").datepicker("getDate")===null){'
+                . '$("#Productonota_fechaFin").datepicker("setDate", selectedDate);'
+                . '$("#Productonota_fechaFin").datepicker("option", "maxDate",new Date());'
+                . '}'
+                . '}'
+                . '$("#Productonota_fechaFin").datepicker("option", "minDate",selectedDate);'
+                . 'admKardex.search();'
+                . '}',),
+            'htmlOptions' => array(
+                'id' => 'Productonota_fechaInicio',
+                'size' => '10',
+            ),
+                ), true)
+        ?>
+
+
+    </div>
+    <div class="row">
+        <?php echo $form->label($model, 'fechaFin'); ?>
+        <?php
+        echo $this->widget('zii.widgets.jui.CJuiDatePicker', array(
+            'model' => $model,
+            'attribute' => 'fechaFin',
+            'name' => 'productonota[fechaFin]',
+            'value' => $model->fechaFin,
+            'language' => 'es',
+            // additional javascript options for the date picker plugin
+            'options' => array(
+                'showAnim' => 'slideDown',
+                'showButtonPanel' => true,
+                'changeMonth' => true,
+                'changeYear' => true,
+                'dateFormat' => 'dd-mm-yy',
+                'maxDate' => 'today',
+                'onClose' => 'js:function(selectedDate){'
+                . 'if (selectedDate===""){'
+                . '$("#Productonota_fechaInicio").datepicker("setDate", "");'
+                . '$("#Productonota_fechaInicio").datepicker("option", "maxDate", new Date());'
+                . '}'
+                . 'else{'
+                . 'if ($("#Productonota_fechaInicio").datepicker("getDate")===null){'
+                . '$("#Productonota_fechaInicio").datepicker("setDate", selectedDate);'
+                . '}'
+                . '$("#Productonota_fechaInicio").datepicker("option", "maxDate", selectedDate);'
+                . '}'
+                . 'admKardex.search();'
+                . '}',
+            ),
+            'htmlOptions' => array(
+                'id' => 'Productonota_fechaFin',
+                'size' => '10',
+            ),
+                ), true)
+        ?>
+
+
+    </div>        
+
+    <?php $this->endWidget(); ?>
+
+</div><!-- search-form -->

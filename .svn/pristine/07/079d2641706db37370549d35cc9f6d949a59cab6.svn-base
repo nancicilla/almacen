@@ -1,0 +1,811 @@
+<?php
+
+/*
+ * OrdentrabajoController.php
+ *
+ * Version 0.$Rev: 286 $
+ *
+ * Creacion: 22/08/2018
+ *
+ * Ultima Actualizacion: $Date: 2015-10-13 09:08:14 -0400 (mar 13 de oct de 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+
+class OrdentrabajoController extends Controller {
+    /*
+     * IMPORTANTE!!!
+     * Los métodos filters(),_publicActionsList() y accessRules() deben copiarse
+     * tal cual en todos los controladores del proyecto
+     */
+
+    /*
+     * se debe usar este método filters en todos los controladores para permitir
+     * filtrar si el usuario tiene acceso a las acciones y controlador o no, 
+     */
+
+    public function filters() {
+        return array_merge(
+                array(
+                    'accessControl',
+                    array('CrugeUiAccessControlFilter', 'publicActions' => self::_publicActionsList()),
+                )
+        );
+    }
+
+    /*
+     * en este array deben ir las acciones publicas del modulo, las que se 
+     * pueden acceder sin necesitar permisos, por defecto todas las acciones
+     * se acceden solo con autorizacion, por eso el array no tiene acciones
+     */
+
+    private function _publicActionsList() {
+        //en este array deben ir las acciones publicas del modulo, las que se 
+        //pueden acceder sin necesitar permisos, por defecto todas las acciones
+        //se acceden solo con autorizacion, por eso el array no tiene acciones
+        return array(
+            '',
+        );
+    }
+
+    public function accessRules() {
+        return array(
+            array(
+                'allow',
+                'actions' => self::_publicActionsList(),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'users' => array('@'),
+            ),
+            array(
+                'deny', // deny all users
+                'users' => array('*'),
+            ),
+        );
+    }
+
+    /**
+     * Creates a new model.
+     */
+    public function actionCreate() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Ordentrabajo;
+        $productos = array();
+        if (isset($_POST['Ordentrabajo'])) {
+            $model->attributes = $_POST['Ordentrabajo'];
+            if ($model->validate()){
+                $maxnumero = Yii::app()->almacen->createCommand("select COALESCE(max(numero)+1,1) from ordentrabajo")->queryScalar();
+                $model->numero = $maxnumero;
+                $model->idestado = Estado::EN_PROCESO;
+                $modelReceta = Receta::model()->find('idproducto='.$model->idproducto);
+                $model->costounitario = $modelReceta->costounitario;
+                $model->totalproducido = $modelReceta->totalproducido;
+                if ($model->save()) {
+                    $productos = $_POST['Producto'];
+                    foreach ($productos as $producto):
+                        $modelOrdentrabajoinsumo = new Ordentrabajoinsumo();
+                        $modelOrdentrabajoinsumo->idordentrabajo = $model->id;
+                        $modelOrdentrabajoinsumo->idproducto = $producto['id'];
+                        $modelOrdentrabajoinsumo->cantidad = $producto['cantidad'];
+                        $modelOrdentrabajoinsumo->costounitario = $producto['ultimoppp'];
+                        if (!$modelOrdentrabajoinsumo->save()) {
+                            print_r($modelOrdentrabajoinsumo->getErrors());
+                            return;
+                        }
+                    endforeach;
+                    $modelOrdentrabajoEstado = new Ordentrabajoestado;
+                    $modelOrdentrabajoEstado->idordentrabajo = $model->id;
+                    $modelOrdentrabajoEstado->idestado = $model->idestado;
+                    $modelOrdentrabajoEstado->descripcion = $model->descripcion;
+                    $modelOrdentrabajoEstado->save();
+                    $idalmacenes = Yii::app()->almacen->createCommand("select p.idalmacen from ordentrabajoinsumo oti join producto p on oti.idproducto=p.id where idordentrabajo =".$model->id." group by p.idalmacen")->queryAll();
+                    foreach ($idalmacenes as $almacen):
+                        $productosalmacen = array();
+                        foreach ($productos as $dato):
+                            $producto = Producto::model()->find('id='.$dato['id']. ' and idalmacen='.$almacen['idalmacen']);
+                            array_push($productosalmacen, array('id'=>$producto['id'],'cantidad'=>$dato['cantidad']));
+                        endforeach;
+                        $productoOT = Producto::model()->find("id=".$model->idproducto);
+                        $arrayParametros = array(
+                            'productosorigen' => $productosalmacen,
+                            //'glosa' => 'Salida de insumos por orden de Trabajo N° ' . $model->numero,
+                            'glosa' => 'Salida para O.T. N° ' . $model->numero . ' - ' . $productoOT->codigo,
+                            'idordentrabajo' => $model->id,
+                            'idalmacen' => $almacen['idalmacen'] //Almacen::INSUMOS
+                        );
+                        $erroresSalida = $this->registrarNotaSalidaAlmacen($arrayParametros);
+                        if ($erroresSalida['error']) {
+                            echo System::hasErrors($erroresSalida['mensaje']);
+                            return;
+                        }
+                    endforeach;
+                    echo System::dataReturn('Creación exitosa!', array('id' => SeguridadModule::enc($model->id)));
+                    return;
+                } else {
+                    echo System::hasErrors('Revise los datos! ', $model);
+                    return;
+                }
+            } else {
+                    echo System::hasErrors('Revise los datos! ', $model);
+                    return;
+            }
+        }
+        if (isset($_GET['parametros'])) {
+            $var = $_GET['parametros'];
+            $objparams = CJSON::decode($var, false);
+            $productos = Receta::model()->obtenerInsumosOriginal($objparams->idproducto);
+            $model->idproducto = $objparams->idproducto;
+            $producto = $objparams->producto;
+            if (!empty($objparams->cantidadproducir)) {
+                $model->cantidadproducir = $objparams->cantidadproducir;
+            }
+            $model->producto=$producto->producto;
+        }
+        $this->renderPartial('create', array(
+            'model' => $model,
+            'productos' => $productos,
+                ), false, true);
+    }
+
+    /**
+     * Updates a particular model.
+     * @param integer $id the ID of the model to be updated
+     */
+    public function actionUpdate($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = $this->loadModel(SeguridadModule::dec($id));
+        $model->producto = "(".$model->idproducto0->codigo.") ".$model->idproducto0->nombre . ' ['.$model->idproducto0->idalmacen0->nombre.']';
+        $productos = Ordentrabajoinsumo::model()->obtenerInsumos($model->id);
+
+        if (isset($_POST['Ordentrabajo'])) {
+            $model->attributes = $_POST['Ordentrabajo'];
+            $modelReceta = Receta::model()->find('idproducto='.$model->idproducto);
+            $model->costounitario = $modelReceta->costounitario;
+            $model->totalproducido = $modelReceta->totalproducido;
+            if ($model->save()) {
+                 $productos = $_POST['Producto'];
+                foreach ($productos as $producto):
+                    $modelOrdentrabajoinsumo = new Ordentrabajoinsumo();
+                    $modelOrdentrabajoinsumo->idordentrabajo = $model->id;
+                    $modelOrdentrabajoinsumo->idproducto = $producto['id'];
+                    $modelOrdentrabajoinsumo->cantidad = $producto['cantidad'];
+                    $modelOrdentrabajoinsumo->costounitario = $producto['ultimoppp'];
+                    if (!$modelOrdentrabajoinsumo->save()) {
+                        print_r($modelOrdentrabajoinsumo->getErrors());
+                        return;
+                    }
+                    $arrayParametros = array(
+                        'productosorigen' => $productos,
+                        'glosa' => 'Salida de insumos por orden de Trabajo N° ' . $model->numero,
+                        'idordentrabajo' => $model->id,
+                        'idalmacen' => Almacen::INSUMOS
+                    );
+                    $erroresSalida = $this->registrarNotaSalidaAlmacen($arrayParametros);
+                    if ($erroresSalida['error']) {
+                        echo System::hasErrors($erroresSalida['mensaje']);
+                        return;
+                    }
+                endforeach;
+                echo System::dataReturn('', array('id' => SeguridadModule::enc($model->id)));
+                return;
+            } else {
+                echo System::hasErrors('Revise los datos! ', $model);
+                return;
+            }
+        }
+
+        $this->renderPartial('update', array(
+            'model' => $model,
+            'productos' => $productos,
+                ), false, true);
+    }
+
+    /**
+     * Deletes safely a particular model.
+     * If deletion is successful, the browser will be redirected to the 'admin' page.
+     * @param integer $id the ID of the model to be deleted
+     */
+    public function actionDelete($id) {
+        $this->loadModel(SeguridadModule::dec($id))->safeDelete();
+        self::actionAdmin();
+    }
+
+    /**
+     * Manages all models.
+     */
+    public function actionAdmin() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $model = new Ordentrabajo('search');
+        $model->unsetAttributes();  // clear any default values
+
+        if (isset($_GET['pageSize'])) {
+            Yii::app()->user->setState('pageSize', (int) $_GET['pageSize']);
+        } else {
+            Yii::app()->user->setState('pageSize', Yii::app()->params['defaultPageSize']);
+        }
+
+        if (isset($_GET['Ordentrabajo'])) {
+            $model->attributes = $_GET['Ordentrabajo'];
+            if (!$model->validate()) {
+                echo System::hasErrorSearch($model);
+                return;
+            }
+        }
+
+        $this->renderPartial('admin', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return Ordentrabajo the loaded model
+     * @throws CHttpException
+     */
+    public function loadModel($id) {
+        $model = Ordentrabajo::model()->findByPk($id);
+        if ($model === null)
+            throw new CHttpException(404, 'The requested page does not exist.');
+        return $model;
+    }
+
+    /**
+     * Performs the AJAX validation.
+     * @param Ordentrabajo $model the model to be validated
+     */
+    protected function performAjaxValidation($model) {
+        if (isset($_POST['ajax']) && $_POST['ajax'] === 'ordentrabajo-form') {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+    }
+
+    public function actionAutocompleteCodigoNombre() {
+        $request = trim($_GET['term']);
+        $requestMayuscula = strtoupper($request);
+        if ($request != '') {
+            $model = Producto::model()->findProducto($requestMayuscula);
+            $data = array();
+            foreach ($model as $get) {
+                $data[] = array(
+                    'id' => $get->id,
+                    'value' => '(' . $get->codigo . ') ' . $get->nombre.' ['.$get->almacen.']',
+                    'nombre' => $get->nombre,
+                    'simbol' => $get->simbolo,
+                );
+            }
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+
+    public function registrarNotaSalidaAlmacen($arrayParametros) {
+        $idcontracuenta = Costoindirecto::model()->findByPk(Costoindirecto::COSTO_INSUMO)->idcuenta;
+
+        $productos = $arrayParametros['productosorigen'];
+        $glosa = $arrayParametros['glosa'];
+        $idordentrabajo = $arrayParametros['idordentrabajo'];
+
+        $nota = new Nota;
+        $nota->scenario = 'OrdenTrabajo';
+        $nota->idtipo = Tipo::model()->SALIDA; //INGRESO
+        $nota->idtipodocumento = Tipodocumento::ORDEN_TRABAJO;
+        $nota->glosa = $glosa;
+        $nota->numero = $nota->generarNumero();
+        $nota->setScenario("TraspasoOrdenTrabajo");
+        $nota->idcontracuenta = $idcontracuenta;
+        $nota->iddocumento = $idordentrabajo;
+        $nota->idalmacen = $arrayParametros['idalmacen'];
+        $nota->idestado = Estado::model()->idEstadoVigente;
+        $nota->total = 0;
+        $nota->idorigen= Origen::model()->ALMACEN;
+        for ($k = 0; $k < count($productos); $k++) {
+            $nota->total += $productos[$k]['cantidad'];
+        }
+
+        if ($nota->save()) {
+            Productonota::model()->registrarProductoNota_SalidaOrdentrabajo($nota->id, $productos, $nota->numero, Tipo::model()->SALIDA, Tipodocumento::ORDEN_TRABAJO, $glosa);
+            return array('mensaje' => 'Sin errores', 'numeroNota' => $nota->numero, 'error' => false, 'idnota' => $nota->id);
+        } else {
+            print_r($nota->getErrors());
+            return array('mensaje' => 'No se pudo guardar la nota', 'error' => true);
+        }
+    }
+
+    public function actionRegistrarEntrega($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false,);
+
+        $idorden = SeguridadModule::dec($id);
+        $model = Ordentrabajo::model()->findByPk($idorden);
+        $model->gastounitario = $model->costounitario;
+        $model->total =$model->totalproducido?1:0;
+        if (isset($_POST['Ordentrabajo'])) {
+            $model->scenario = 'registrarEntrega';
+            $model->cantidad = $_POST['Ordentrabajo']['cantidad'];
+            $model->costotrabajo = $_POST['Ordentrabajo']['costotrabajo'];
+            $modelnota = Nota::model()->find('iddocumento='.$model->id.' AND idtipodocumento ='. Tipodocumento::DEVOLUCION_ORDEN_TRABAJO);
+            if (count($modelnota)>0){
+                $totalDevolucion = Yii::app()->almacen->createCommand('select COALESCE(sum(ingresoimporte),0) from productonota where idnota =' . $modelnota->id)->queryScalar();
+            }else{
+                $totalDevolucion = 0;
+            }
+
+            if (!$model->validate()) {
+                echo System::hasErrors('Verificar Datos de Entrega', $model);
+                return;
+            }
+            $modEntrega = new Entregaordentrabajo;
+            $modEntrega->cantidad = $_POST['Ordentrabajo']['cantidad'];
+            $modEntrega->costotrabajo = $_POST['Ordentrabajo']['costotrabajo'];
+            $modEntrega->idordentrabajo = SeguridadModule::dec($id);
+            $fecha = new CDbExpression('NOW()');
+            $modEntrega->fecha = $fecha;
+            $modEntrega->observacionentrega = $_POST['Ordentrabajo']['observacionentrega'];
+            if ($modEntrega->save()) {
+                $model->idestado = Estado::ESTADO_ENTREGA;
+                $modelInsumos = Ordentrabajoinsumo::model()->findAll('idordentrabajo='.$model->id);
+                $costoInsumo = 0;
+                foreach ($modelInsumos as $modelInsumo):
+                    $costoInsumo+=($modelInsumo['costounitario']*$modelInsumo['cantidad']);
+                endforeach;
+                if ($model->save()){
+                    $modelOrdentrabajoEstado = new Ordentrabajoestado;
+                    $modelOrdentrabajoEstado->idordentrabajo = $model->id;
+                    $modelOrdentrabajoEstado->idestado = $model->idestado;
+                    $modelOrdentrabajoEstado->descripcion = $modEntrega->observacionentrega;
+                    $modelOrdentrabajoEstado->save();
+                    $productoN["id"] = $model->idproducto0->id;
+                    $productoN["cantidad"] = $_POST['Ordentrabajo']['cantidad'];
+                    $productoN["saldo"] = $model->idproducto0->saldo;
+                    $productoN["productoProducido"] = "(".$model->idproducto0->codigo.") ".$model->idproducto0->nombre;
+                    $dataService = array('norden' => $model->numero,
+                        'productoNormal' => $productoN,
+                        'usuario' => Yii::app()->user->getName(),
+                        'iddocumento' => $model->id,
+                        'idtipodocumento' => Tipodocumento::ENTREGA_ORDEN_TRABAJO,
+                        'costotrabajo' => $_POST['Ordentrabajo']['costotrabajo'],
+                        'costoinsumo' => $costoInsumo,
+                        'totalDevolucion' =>$totalDevolucion,
+                    );
+                    $response = $this->registrarNotaIngresoAlmacenPorEntrega($dataService);
+                }
+                echo System::dataReturn('', array('id' => $id));
+                return;
+            } else {
+                echo System::hasErrors('Revisar los datos! ', $model);
+                return;
+            }
+        }
+        $unidad = Yii::app()->produccion->createCommand('select simbolo from unidad where id=' . $model->idproducto0->idunidad)->queryScalar();
+        $model->simbolo = $unidad;
+
+        $this->renderPartial('registrarEntrega', array(
+            'model' => $model,
+                ), false, true);
+    }
+
+    public function registrarNotaIngresoAlmacenPorEntrega($dataService) {
+        $norden = $dataService['norden'];
+        $productoNormal = $dataService['productoNormal']; //array
+        $usuario = $dataService['usuario'];
+        $iddocumento = $dataService['iddocumento'];
+        $costotrabajo = $dataService['costotrabajo'];
+        $costoinsumo = $dataService['costoinsumo'];
+        $devolucion = $dataService['totalDevolucion'];
+
+        $transaction = Yii::app()->db->beginTransaction();
+            try {
+                $model = new Nota;
+                $model->setScenario('entrega');
+                // ----------- Descripción de la orden de producción -----------
+                $mensaje = 'INGRESO POR ENTREGA DE O.T. Nº ' . $norden . ' - ' . $productoNormal['productoProducido'];
+                $model->scenario = 'miUsuario';
+                Yii::app()->session['var'] = $usuario;
+                $model->glosa = $mensaje;
+                $model->idtipo = Tipo::model()->INGRESO;
+                $model->idorigen = Origen::model()->ALMACEN;
+                $model->total = round($productoNormal["cantidad"], 2);
+                $model->numero = Nota::model()->generarNumero();
+                $model->idtipodocumento = $dataService['idtipodocumento'];
+                $model->iddocumento = $iddocumento;
+                $idAlmacenProductosEnProceso = Almacen::model()->idAlmacenProductosEnProceso;
+                $model->idcontracuenta = Almacen::model()->findBySql('select idcuenta from almacen where id = ' . $idAlmacenProductosEnProceso)->idcuenta;
+                $model->idalmacen = Producto::model()->findBySql('select * from producto where id = ' . $productoNormal['id'])->idalmacen;
+                if ((float) $productoNormal["cantidad"] > 0 && $model->save()) {
+                    if ((float) $productoNormal['cantidad'] != 0) {
+                        $modelProductonota = new Productonota;
+                        $modelProducto = Producto::model()->findBySql('select * from producto where id = ' . $productoNormal['id']);
+                        $modelProductonota->scenario = 'miUsuario';
+                        $modelProductonota->glosa = $mensaje;
+                        $modelProductonota->importefijo = true;
+                        $modelProductonota->ingreso = round($productoNormal['cantidad'], 4);
+                        $modelProductonota->salida = 0;
+                        $modelProductonota->saldo = $modelProducto->saldo + (float) $productoNormal['cantidad'];
+//                        if ($modelProducto->costo == 0 || $modelProducto->costo == null) {
+//                            if ($modelProducto->saldo <= 0 || $modelProducto->saldoimporte <= 0) {
+//                                $modelProductonota->ingresoimporte = $costotrabajo + ($modelProducto->ultimoppp * round($productoNormal['cantidad'], 4));
+//                            } else {
+//                                $modelProductonota->ingresoimporte = $costotrabajo + (($modelProducto->saldoimporte / $modelProducto->saldo) * round($productoNormal['cantidad'], 4));
+//                            }
+//                        } else {
+//                            $modelProductonota->ingresoimporte = $costotrabajo + ($modelProducto->costo * round($productoNormal['cantidad'], 4));
+//                        }
+                        $modelProductonota->ingresoimporte = ($costoinsumo+$costotrabajo) - $devolucion;
+                        $modelProductonota->salidaimporte = 0;
+                        $modelProductonota->saldoimporte = $modelProducto->saldoimporte + $modelProductonota->ingresoimporte;
+                        $modelProductonota->idproducto = $productoNormal['id'];
+                        $modelProductonota->idnota = $model->id;
+                        $modelProductonota->idalmacen = $modelProducto->id;
+
+                        if ($modelProductonota->save()) {
+                            $modelProducto->saldoIncrementar = $productoNormal['cantidad'];
+                            $modelProducto->saldoimporteIncrementar = $modelProductonota->ingresoimporte;
+                            $modelProducto->updateSaldoReserva();
+                        }
+                    }
+                    unset(Yii::app()->session['var']);
+                }
+                $transaction->commit();
+            } catch (Exception $exc) {
+                $transaction->rollback();
+            }
+        $dataReturn = array('respuesta' => true, 'idproductonota' => $modelProductonota->id);
+        return $dataReturn;
+    }
+    
+    public function actionVerificaEstadosOrden() {
+
+        $identificador = SeguridadModule::dec($_GET["idorden"]);
+        $ordenmodel = Ordentrabajo::model()->findByPk($identificador);
+        $data = array();
+
+        //verifica estado EN PROCESO
+        $data['enproceso'] = array(
+            'estado' => false);
+        //verifica estado entrega
+        $data['entrega'] = array(
+            'estado' => false);
+
+        switch ($ordenmodel->idestado) {
+            case Estado::EN_PROCESO:
+                $data['enproceso'] = array(
+                    'estado' => true);
+                break;
+            case Estado::ESTADO_ENTREGA:
+                $data['entrega'] = array(
+                    'estado' => true);
+                break;
+        }
+
+        $this->layout = 'empty';
+        echo CJSON::encode($data);
+    }
+    
+    public function actionReporteOrden($id) {
+
+        $txt = SeguridadModule::dec($id);
+        $re = new JasperReport('/reports/Almacen/ordentrabajo', JasperReport::FORMAT_PDF, array(
+            'pId' => $txt,
+            'pUsuario' => Yii::app()->user->getName(),
+            'formatNumberProduccion' => Yii::app()->params['formatNumberProduccion'],
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+        $re->exec();
+        if ($re->getPages() > 0) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+    
+    public function actionAutocompleteResponsable() {
+        $request = trim($_GET['term']);
+        $requestMayuscula = strtoupper($request);
+        if ($request != '') {
+            $model = Ordentrabajo::model()->findResponsable($requestMayuscula)->getData();
+            $data = array();
+            foreach ($model as $get) {
+                $data[] = array(
+                    'id' => $get->responsable,
+                    'value' =>  $get->responsable,
+                );
+            }
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+    
+    public function actionRegistrarDevolucion($id) {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false,);
+
+        $idorden = SeguridadModule::dec($id);
+        $model = Ordentrabajo::model()->findByPk($idorden);
+
+        $productos = Ordentrabajoinsumo::model()->obtenerInsumos($idorden);
+        if (isset($_POST['Ordentrabajo'])) {
+            $productos = $_POST['Producto'];
+            $model->scenario = 'registrarDevolucion';
+            if (!$model->validate()) {
+                echo System::hasErrors('Verificar Datos de Devolución', $model);
+                return;
+            }
+            $modelDevolucion = new Devolucion;
+            $modelDevolucion->idordentrabajo = $model->id;
+            $fecha = new CDbExpression('NOW()');
+            $modelDevolucion->fecha = $fecha;
+            if ($modelDevolucion->save()) {
+                foreach ($productos as $producto):
+                    if ($producto['Devolver']>0){
+                        $modelDevolucionProducto = new Devolucionproducto;
+                        $modelDevolucionProducto->iddevolucion = $modelDevolucion->id;
+                        $modelDevolucionProducto->idproducto =$producto['idproducto'];
+                        $modelDevolucionProducto->cantidad =$producto['Devolver'];
+                        $modelDevolucionProducto->idordentrabajoinsumo =$producto['id'];
+                        $modelDevolucionProducto->save();
+                    }
+                endforeach;
+                // -------------------------
+                $idalmacenes = Yii::app()->almacen->createCommand("select p.idalmacen from ordentrabajoinsumo oti join producto p on oti.idproducto=p.id where idordentrabajo =".$model->id." group by p.idalmacen")->queryAll();
+                foreach ($idalmacenes as $almacen):
+                    $productosalmacen = array();
+                    foreach ($productos as $dato):
+                        $producto = Producto::model()->find('id='.$dato['idproducto']. ' and idalmacen='.$almacen['idalmacen']);
+                        array_push($productosalmacen, array('id'=>$producto->id,'cantidad'=>$dato['Devolver']));
+                    endforeach;
+                    $dataService = array('norden' => $model->numero,
+                        'productoNormal' => $productosalmacen,
+                        'idalmacen' => $almacen['idalmacen'],
+                        'idproducto' => $model->idproducto,
+                        'productoProducido' => "(".$model->idproducto0->codigo.") ".$model->idproducto0->nombre,
+                        'usuario' => Yii::app()->user->getName(),
+                        'iddocumento' => $model->id,
+                        'cantidad' => $model->cantidadproducir,
+                        'idtipodocumento' => Tipodocumento::DEVOLUCION_ORDEN_TRABAJO,
+                    );
+                    $response = $this->registrarNotaIngresoAlmacenPorDevolucion($dataService);
+                endforeach;
+                //---------------------------
+                
+                echo System::dataReturn('', array('id' => $id));
+                return;
+            } else {
+                echo System::hasErrors('Revisar los datos! ', $model);
+                return;
+            }
+        }
+        $unidad = Yii::app()->produccion->createCommand('select simbolo from unidad where id=' . $model->idproducto0->idunidad)->queryScalar();
+        $model->simbolo = $unidad;
+
+        $this->renderPartial('registrarDevolucion', array(
+            'model' => $model,'productos'=>$productos
+                ), false, true);
+    }
+    
+    public function registrarNotaIngresoAlmacenPorDevolucion($dataService) {
+        $norden = $dataService['norden'];
+        $productoNormal = $dataService['productoNormal']; //array
+        $usuario = $dataService['usuario'];
+        $iddocumento = $dataService['iddocumento'];
+
+        $transaction = Yii::app()->db->beginTransaction();
+            try {
+                $model = new Nota;
+                $model->setScenario('entrega');
+                // ----------- Descripción de la orden de producción -----------
+                $mensaje = 'INGRESO POR DEVOLUCION DE O.T. Nº ' . $norden . ' - ' . $dataService['productoProducido'];
+                $model->scenario = 'miUsuario';
+                Yii::app()->session['var'] = $usuario;
+                $model->glosa = $mensaje;
+                $model->idtipo = Tipo::model()->INGRESO;
+                $model->idorigen = Origen::model()->ALMACEN;
+                $model->total = round($dataService["cantidad"], 2);
+                $model->numero = Nota::model()->generarNumero();
+                $model->idtipodocumento = $dataService['idtipodocumento'];
+                $model->iddocumento = $iddocumento;
+                $idAlmacenProductosEnProceso = Almacen::model()->idAlmacenProductosEnProceso;
+                $model->idcontracuenta = Almacen::model()->findBySql('select idcuenta from almacen where id = ' . $idAlmacenProductosEnProceso)->idcuenta;
+                $model->idalmacen = $dataService['idalmacen'];
+                if ($model->save()) {
+                    foreach ($productoNormal as $producto):
+                        if ((float) $producto['cantidad'] != 0) {
+                            $modelProductonota = new Productonota;
+                            $modelProducto = Producto::model()->findBySql('select * from producto where id = ' . $producto['id']);
+                            $modelProductonota->scenario = 'miUsuario';
+                            $modelProductonota->glosa = $mensaje;
+                            $modelProductonota->ingreso = round($producto['cantidad'], 4);
+                            $modelProductonota->salida = 0;
+                            $modelProductonota->saldo = $modelProducto->saldo + (float) $producto['cantidad'];
+                            if ($modelProducto->costo == 0 || $modelProducto->costo == null) {
+                                if ($modelProducto->saldo <= 0 || $modelProducto->saldoimporte <= 0) {
+                                    $modelProductonota->ingresoimporte = ($modelProducto->ultimoppp * round($producto['cantidad'], 4));
+                                } else {
+                                    $modelProductonota->ingresoimporte = (($modelProducto->saldoimporte / $modelProducto->saldo) * round($producto['cantidad'], 4));
+                                }
+                            } else {
+                                $modelProductonota->ingresoimporte = ($modelProducto->costo * round($producto['cantidad'], 4));
+                            }
+                            $modelProductonota->salidaimporte = 0;
+                            $modelProductonota->saldoimporte = $modelProducto->saldoimporte + $modelProductonota->ingresoimporte;
+                            $modelProductonota->idproducto = $producto['id'];
+                            $modelProductonota->idnota = $model->id;
+                            $modelProductonota->idalmacen = $modelProducto->id;
+                            if ($modelProductonota->save()) {
+                                $modelProducto->saldoIncrementar = $producto['cantidad'];
+                                $modelProducto->saldoimporteIncrementar = $modelProductonota->ingresoimporte;
+                                $modelProducto->updateSaldoReserva();
+                            }
+                        }
+                    endforeach;
+                    unset(Yii::app()->session['var']);
+                }
+                $transaction->commit();
+            } catch (Exception $exc) {
+                $transaction->rollback();
+            }
+        $dataReturn = array('respuesta' => true, 'idproductonota' => $modelProductonota->id);
+        return $dataReturn;
+    }
+
+    public function actionVentanaReportePendientesFecha() {
+        Yii::app()->getClientScript()->scriptMap = array('jquery.js' => false, 'jquery.ui.js' => false, 'jquery-ui.min.js' => false);
+
+        $ordenmodel = new Ordentrabajo;
+        $this->renderPartial('reportePendientesFecha', array(
+            'model' => $ordenmodel
+                ), false, true);
+    }
+    
+    public function actionReporteOrdenesPendientesFechas() {
+        if (!isset($_GET['Ordentrabajo'])) {
+            throw new CrugeException('No se enviaron parámetros a la accion actionReporteOrdenesPendientesFechas.', 483);
+        }
+        $fechaFin = $_GET['Ordentrabajo']['fechaFin'];
+        $fechaInicio = $_GET['Ordentrabajo']['fechaInicio'];
+        if ($fechaInicio === '') {
+            $criteria = new CDbCriteria();
+            $criteria->order = 't.id ASC';
+            $ordenModel = Orden::model()->find($criteria);
+            $fechaInicio = $ordenModel->id0->fecha;
+        }
+        if ($fechaFin === '') {
+            $fechaFin = date('Y-m-d');
+        }
+        $arrayordenes = Ordentrabajo::model()->findAll('idestado<>4 and id in (select distinct idordentrabajo from "' . getGestionSchema() . '".ordentrabajoestado where fecha::date between  \'' . $fechaInicio . '\'::date and  \'' . $fechaFin . '\'::date and idestado = 25  AND idordentrabajo NOT IN (select distinct idordentrabajo from "' . getGestionSchema() . '".ordentrabajoestado where fecha::date between  \'' . $fechaInicio . '\'::date and \'' . $fechaFin . '\'::date and idestado > 25) order by idordentrabajo)');
+
+        $arrayids = array();
+        foreach ($arrayordenes as $value) {
+            $arrayids[] = $value->id;
+        }
+        $txt = implode(",", $arrayids);
+//        echo $_GET['Ordentrabajo']['fechaFin'];return;
+        $re = new JasperReport('/reports/Almacen/ordentrabajoPendienteFechas', JasperReport::FORMAT_PDF, array(
+            'pIds' => $txt,
+            'pUsuario' => Yii::app()->user->getName(),
+            'pFechaInicio' => Yii::app()->format->date(strtotime($fechaInicio)),
+            'pFechaFin' => Yii::app()->format->date(strtotime($fechaFin)),
+            'formatNumberProduccion' => Yii::app()->params['formatNumberProduccion'],
+            'REPORT_LOCALE' => Yii::app()->params['appLocale'],
+        ));
+
+        $re->exec();
+
+        if ($re->getPages() > 0) {
+            echo $re->toPDF();
+        } else {
+            throw new CrugeException('El reporte no tiene páginas.', 483);
+        }
+    }
+    
+    public function actionVerificaAnularOrden() {
+        //validaciones
+        if ($_GET['id'] == null) {
+            echo System::messageError('El ID de la orden que se envió es nulo');
+            self::actionAdmin();
+            return;
+        }
+        $idorden = SeguridadModule::dec($_GET['id']);
+        $model = $this->loadModel($idorden);
+        if ($model == null) {
+            echo System::messageError('No se encontró la orden. id:' . $idorden);
+            self::actionAdmin();
+            return;
+        }
+        $ultimoestado = $model->idestado;
+        $nombreestado = $model->idestado0->nombre;
+        //si la orden esta en estado planificada
+        if (($ultimoestado == Estado::ANULADO || $ultimoestado == Estado::ESTADO_ENTREGA)) {
+            echo System::messageError('No se puede continuar con la anulacion.La orden está en estado ' . $nombreestado);
+            self::actionAdmin();
+            return;
+        }
+        echo System::messageConfirm('');
+    }
+    
+    /**
+     * Funcion de autocompletar un campo textfield de producto
+     */
+    public function actionAutocompleteProducto() {
+        $request = trim($_GET['term']);
+        if ($request != '') {
+            $criteria = new CDbCriteria();
+            $criteria->join = 'INNER JOIN almacen al ON al.id = t.idalmacen';
+
+            $criteria->addCondition("al.idalmacen IS NULL");
+            $criteria->addCondition("t.nombre ilike '%$request%'");
+            $model = Producto::model()->findAll($criteria);
+
+            $data = array();
+            foreach ($model as $get) {
+                $formato = '%s';
+                $data[] = array(
+                    'label' => sprintf($formato, $get->nombre),
+                    'value' => $get->nombre,
+                    'id' => $get->id);
+            }
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+    
+    /**
+     * Funcion de autocompletar un campo textfield de ingrediente en la Búsqueda Avanzada
+     */
+    public function actionAutocompleteIngrediente() {
+
+        $request = trim($_GET['term']);
+        $requestMayuscula = strtoupper($request);
+        if ($request != '') {
+            $criteria = new CDbCriteria();
+            $criteria->join = 'INNER JOIN almacen al ON al.id = t.idalmacen';
+
+            $criteria->addCondition("al.idalmacen IS NULL");
+            $criteria->addCondition("upper(t.codigo) LIKE '%$requestMayuscula%' OR upper(t.nombre) LIKE '%$requestMayuscula%'");
+            $model = Producto::model()->findAll($criteria);
+
+            $data = array();
+            foreach ($model as $get) {
+                $formato = '%s - %s';
+                $data[] = array(
+                    'label' => sprintf($formato, $get->codigo, $get->nombre),
+                    'value' => $get->nombre,
+                    'id' => $get->id);
+            }
+            $this->layout = 'empty';
+            echo CJSON::encode($data);
+        }
+    }
+    
+    public function actionAnularOrdentrabajo() {
+        $respuesta = 0;
+        $idOrdentrabajo = filter_input(INPUT_POST, 'idOrdentrabajo');
+        $motivoAnulacion = filter_input(INPUT_POST, 'motivo');
+        $ordenTrabajo = Ordentrabajo::model()->findByPk(SeguridadModule::dec($idOrdentrabajo));
+        if (count($ordenTrabajo)>0) {
+            $ordenTrabajo->idestado = Estado::ANULADO;
+            $ordenTrabajo->descripcionanulacion = $motivoAnulacion;
+            $ordenTrabajo->fechaanulacion='now()';
+            $ordenTrabajo->usuarioanulacion = Yii::app()->user->getName();;
+            if ($ordenTrabajo->update()) {
+                $respuesta = 1;
+                $response['actualizo'] = $respuesta;
+            }
+        }else{
+            $response['errorSaldo'] = 1;
+        }
+        echo json_encode($response);
+    }
+
+}

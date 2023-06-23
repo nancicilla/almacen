@@ -1,0 +1,80 @@
+<?php
+/* @var $this ProductoController */
+/* @var $model Producto */
+
+Yii::app()->clientScript->registerScript('search', "
+$('.search-button').click(function(){
+	$('.search-form').toggle();
+	return false;
+});
+$('.search-form form').submit(function(){
+	$('#stock-grid').yiiGridView('update', {
+		data: $(this).serialize()
+	});
+	return false;
+});
+");
+?>
+<div class="container">
+    <div class="offset-12">
+	<div id="content">
+            <h1>Stock de productos</h1>
+
+<div class="search-form" >
+    
+<?php $this->renderPartial('_search_stock',array(
+	'model'=>$model,
+)); ?>    
+</div><!-- search-form -->
+
+<div id="flash-msgs">
+<?php if(Yii::app()->user->hasFlash("error")): ?>
+<div class="flash-error">
+<?php echo Yii::app()->user->getFlash("error"); ?>
+</div>
+<?php endif; ?>
+</div>
+<?php $this->widget('bootstrap.widgets.TbGridView', array(
+	'id'=>'stock-grid',
+	'dataProvider'=>$model->searchStock(),
+	'filter'=>$model,
+        'rowCssClassExpression'=>'($data->almacenproductos[0]->stockminimo > $data->almacenproductos[0]->saldo)?"error":"odd"',
+        'ajaxUpdate' => 'flash-msgs',
+	'columns'=>array(            
+            'codigo',
+            'nombre',                       
+            array(
+                'name' => 'stockminimo', 
+                'value' => '$data->almacenproductos[0]->stockminimo', 
+                'htmlOptions'=>array('style' => 'text-align: right;'),
+                'type'  => 'number', // le da el formato de número decimal
+                'filter'=>CHtml::activeTextField($model,'stockminimo')                
+            ),
+             array(
+                'name' => 'saldo', 
+                'value' => '$data->almacenproductos[0]->saldo',  
+                'htmlOptions'=>array('style' => 'text-align: right;'),
+                'type'  => 'number', // le da el formato de número decimal
+                'filter'=>CHtml::activeTextField($model,'saldo')
+                . CHtml::activeHiddenField($model, 'idAlmacen')
+                . CHtml::activeHiddenField($model, 'id')
+            ),  
+	),
+    )
+);
+
+ ?>
+<form target="_blank">
+       
+<?php 
+echo TbHtml::submitButton('Imprimir',
+                    array(
+                        'submit'=>array('producto/reporteProductoStock'),
+                        )
+        ); 
+        ?>
+    
+    </form>
+		</div>
+	</div>
+</div>

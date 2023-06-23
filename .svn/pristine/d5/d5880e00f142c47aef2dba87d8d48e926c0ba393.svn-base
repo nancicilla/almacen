@@ -1,0 +1,171 @@
+<?php
+/* @var $this OrdenController */
+/* @var $model Orden */
+/* @var $form CActiveForm */
+?>
+<div class="container">
+    <div class="offset-12">
+        <div style="padding: 5px;" id="content">
+            <div class="form">
+                <?php
+                $form = $this->beginWidget('CActiveForm');
+                ?>
+                <div class="formWindow">
+                    
+                    <div class="row">
+                        <div class="column">
+                            <div class="row">
+                                <?php echo $form->labelEx($model, 'idalmacenorigen'); ?>
+                                <?php
+                                echo $form->dropDownList(
+                                        $model, 'idalmacenorigen', CHtml::listData(Almacen::model()->findAll(array('order' => 'nombre')), 'id', 'nombre'));
+                                ?>
+                            </div>           
+                            <div style="width:500px;"  class="row">
+                                <?php
+                                echo SGridView::widget('TGridView', array(
+                                    'id' => 'ProductosTraspasoOrigen',
+                                    'dataProvider' => $productostraspasoorigen,
+                                    'buttonAdd' => true,
+                                    'eventAfterEdition' => 'TraspasoEntreAlmacenes.verificarGridInsumos();',
+                                    'buttonText' => '+',
+                                    'height' => 195,
+                                    'columns' => array(
+                                        array('name' => 'idproducto',
+                                            'searchIdName' => 'id',
+                                            'key' => true,
+                                            'typeCol' => 'hidden',
+                                        ),
+                                        array('name' => 'disponible',
+                                            'typeCol' => 'hidden',
+                                            'align' => 'right',
+                                            'type' => 'number',
+                                        ),
+                                        array('name' => 'codigo',
+                                            'width' => 15,
+                                            'header' => 'Código',
+                                            'searchUrl' => 'nota/SearchProductoCodigo_traspAlmac',
+                                            'value' => '',
+                                            'searchHeight' => 105,
+                                            'searchWidth' => 600,
+                                            'value' => '($data->idproducto0== null) ? "" : $data->idproducto0->codigo',
+                                            'searchCopyCol' => 'nombre,disponible,idproducto,udd',
+                                        ),
+                                        array('name' => 'nombre',
+                                            'searchUrl' => 'nota/SearchProductoNombre_traspAlmac',
+                                            'searchHeight' => 100,
+                                            'searchWidth' => 600,
+                                            'width' => 45,
+                                            'header' => 'Producto',
+                                            'value' => '($data->idproducto0== null) ? "" : $data->idproducto0->nombre',
+                                            'searchCopyCol' => 'codigo,disponible,idproducto,udd',
+                                        ),
+                                        array('name' => 'cantidad',
+                                            'width' => 10,
+                                            'align' => 'right',
+                                            'type' => 'number',
+                                            'background'=>'#B1FFB1',
+                                            'searchDefaulfValue' => '0.0000',
+                                            'validateUrl' => 'nota/validarCantidad',
+                                            'validateMessage' => 'Excede la cantidad disponible',
+                                        ),
+                                        array('name' => 'udd',
+                                            'width' => 5,
+                                            'header' => 'UDD',
+                                            'typeCol' => 'uneditable',
+                                            'align' => 'right',
+                                        ),                              
+
+                                       
+                                        array('typeCol' => 'buttons',
+                                            'width' => 5,
+                                            'buttons' => array('delete')
+                                        ),
+                                    ),
+                                ));
+                                ?>           
+                            </div>  
+                        </div>
+                                         
+                        <div style="width:450px;" class="column">
+                            <div class="row">
+                                <?php echo $form->labelEx($model, 'idalmacendestino'); ?>
+                                <?php
+                                echo $form->dropDownList(
+                                        $model, 'idalmacendestino', CHtml::listData(Almacen::model()->findAll(array('order' => 'nombre')), 'id', 'nombre'));
+                                ?>
+                            </div>
+                            <div  class="row">
+                                <?php
+                                echo SGridView::widget('TGridView', array(
+                                    'id' => 'ProductosTraspasoDestino',
+                                    'dataProvider' => $productostraspasodestino,
+                                    'buttonAdd' => true,
+                                    'buttonText' => '+',
+                                    'height' => 195,
+                                    'columns' => array(                                
+                                        array('name' => 'idproducto',
+                                            'searchIdName' => 'id',
+                                            'key' => true,
+                                            'typeCol' => 'hidden',
+                                        ),
+                                        array('name' => 'disponible',
+                                            'typeCol' => 'hidden',
+                                            'align' => 'right',
+                                            'type' => 'number',
+                                        ),
+                                        array('name' => 'codigo',
+                                            'width' => 15,
+                                            'header' => 'Código',
+                                            'searchUrl' => 'nota/SearchProductoCodigo_traspAlmac',
+                                            'value' => '',
+                                            'searchHeight' => 105,
+                                            'searchWidth' => 600,
+                                            'value' => '($data->idproducto0== null) ? "" : $data->idproducto0->codigo',
+                                            'searchCopyCol' => 'nombre,saldo,disponible,idproducto,udd',
+                                        ),
+                                        array('name' => 'nombre',
+                                            'searchUrl' => 'nota/SearchProductoNombre_traspAlmac',
+                                            'searchHeight' => 100,
+                                            'searchWidth' => 600,
+                                            'width' => 55,
+                                            'header' => 'Producto',
+                                            'value' => '($data->idproducto0== null) ? "" : $data->idproducto0->nombre',
+                                            'searchCopyCol' => 'codigo,disponible,idproducto,udd',
+                                        ),
+                                        array('name' => 'udd',
+                                            'width' => 5,
+                                            'header' => 'UDD',
+                                            'typeCol' => 'uneditable',
+                                            'align' => 'right',
+                                        ),     
+                                        array('typeCol' => 'buttons',
+                                            'width' => 5,
+                                            'buttons' => array('delete')
+                                        ),
+                                    ),
+                                ));
+                                ?>           
+                            </div> 
+                        </div>
+                            
+                        
+                    </div>   
+                    <div class="row">           
+                            <?php echo $form->labelEx($model, 'glosa'); ?>
+                            <?php echo $form->textArea($model, 'glosa', array('rows' => 1, 'style' => 'text-transform: uppercase; width: 650px;')); ?>
+                    </div>
+                </div>     
+<?php
+echo System::Buttons(array(
+    'nameView' => 'TraspasoEntreAlmacenes',
+    'buttons' => array(
+    ),
+)
+);
+?> 
+                <?php $this->endWidget(); ?>
+            </div><!-- form -->
+        </div>
+    </div>
+</div>

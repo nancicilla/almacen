@@ -1,0 +1,296 @@
+<?php
+
+/*
+ * FtblMoodleAsientointegrado.php
+ *
+ * Version 0.$Rev: 244 $
+ *
+ * Creacion: 04/02/2019
+ *
+ * Ultima Actualizacion: $Date: 2015-03-17 10:26:19 -0400 (mar, 17 mar 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+
+ * This is the model class for table "ftbl_moodle_asientointegrado".
+ *
+ * The followings are the available columns in table 'ftbl_moodle_asientointegrado':
+ * @property integer $id
+ * @property string $glosa
+ * @property string $fecharegistro
+ * @property string $fecha
+ * @property boolean $eliminado
+ * @property integer $idasiento
+ * @property boolean $borrador
+ */
+
+class FtblMoodleAsientointegrado extends CActiveRecord {
+
+    const VENTA = 7;
+
+    /**
+     * Crea un ámbito por defecto que permite añadir condiciones al modelo
+     */
+    public function defaultScope() {
+        return array(
+            'condition' => $this->getTableAlias(false, false) .
+            '.eliminado = false',
+        );
+    }
+
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName() {
+        return 'ftbl_moodle_asientointegrado';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules() {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            array('id, idasiento', 'numerical', 'integerOnly' => true),
+            array('glosa, fecharegistro, fecha, eliminado, borrador', 'safe'),
+            // The following rule is used by search().
+            // @todo Please remove those attributes that should not be searched.
+            array('id, glosa, fecharegistro, fecha, eliminado, idasiento, borrador', 'safe', 'on' => 'search'),
+        );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations() {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+        );
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels() {
+        return array(
+            'id' => 'ID',
+            'glosa' => 'Glosa',
+            'fecharegistro' => 'Fecharegistro',
+            'fecha' => 'Fecha',
+            'eliminado' => 'Eliminado',
+            'idasiento' => 'Idasiento',
+            'borrador' => 'Borrador',
+        );
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function search() {
+        // @todo Please modify the following code to remove attributes that should not be searched.
+
+        $criteria = new CDbCriteria;
+
+        $criteria->compare('t.id', $this->id);
+        $criteria->addSearchCondition('t.glosa', $this->glosa, true, 'AND', 'ILIKE');
+        if ($this->fecharegistro != Null) {
+            $criteria->addCondition("t.fecharegistro::date = '" . $this->fecharegistro . "'");
+        }
+        if ($this->fecha != Null) {
+            $criteria->addCondition("t.fecha::date = '" . $this->fecha . "'");
+        }
+        $criteria->compare('t.idasiento', $this->idasiento);
+        $criteria->compare('t.borrador', $this->borrador);
+
+        return new CActiveDataProvider($this, array(
+            'pagination' => array(
+                'pageSize' => Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']),
+            ),
+            'criteria' => $criteria,
+        ));
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection() {
+        return Yii::app()->almacen;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return FtblMoodleAsientointegrado the static model class
+     */
+    public static function model($className = __CLASS__) {
+        return parent::model($className);
+    }
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+        $this->glosa = strtoupper($this->glosa);
+        $this->fecha = new CDbExpression('NOW()');
+        return parent::beforeSave();
+    }
+
+    public function registrarAsientoPendiente($model) {
+
+        $cliente = Cliente::model()->find('id = ' . $model->idcliente);
+        $idgrupo = 1;
+        $orden = 1;
+        $ordenHaber = 2;
+        $asientoIntegrado = new FtblMoodleAsientointegrado();
+        $maximoId = Yii::app()->almacen->createCommand()
+                ->select('max(id)')
+                ->from('ftbl_moodle_asientointegrado')
+                ->queryRow();
+        $glosaAsientoIntegrado = 'CXC "Prod. Pendiente de Recepción"';
+//        $asientoIntegrado->id = $maximoId['max'] + 1;
+        $asientoIntegrado->glosa = strtoupper($glosaAsientoIntegrado);
+        $asientoIntegrado->fecharegistro = new CDbExpression('NOW()');
+        $asientoIntegrado->fecha = new CDbExpression('NOW()');
+        $asientoIntegrado->eliminado = false;
+        $asientoIntegrado->borrador = false;
+        $asientoIntegrado->usuario = Yii::app()->user->getName();
+
+        if ($asientoIntegrado->save()) {
+            $tipoAsientoIntegrado = new FtblMoodleTipoasientointegrado();
+            $tipoAsientoIntegrado->idasientointegrado = $asientoIntegrado->id;
+            $tipoAsientoIntegrado->idtipo = FtblMoodleAsientointegrado::VENTA;
+            $tipoAsientoIntegrado->save();
+            $idasientointegrado = $asientoIntegrado->id;
+        } else {
+            echo System::hasErrors('No se ha podido registrar el asiento registrado! ');
+            return 0;
+        }
+        $r = Solicituddevolucionproducto::model()->findAll('idsolicituddevolucion='.$model->id);
+        $total=0;
+        if (count($r)>0){
+            foreach ($r as $dato):
+                $total+=($dato->cantidad*$dato->precio);
+            endforeach;
+            FtblMoodleCuentaasientointegrado::model()
+                    ->registrar(
+                            array('debe' => $total,
+                                'haber' => 0,
+                                'glosa' => 'CXC "Prod. Pendiente de Recepción"',
+                                'orden' => $orden,
+                                'idasientointegrado' => $idasientointegrado,
+                                'idcuenta' => null,//$cliente->idcuenta,
+                                'idgrupo' => $idgrupo
+                            )
+            );
+            FtblMoodleCuentaasientointegrado::model()
+                    ->registrar(
+                            array('debe' => 0,
+                                'haber' => ($total*$cliente->descuento)/100,
+                                'glosa' => 'DESCUENTO',
+                                'orden' => $ordenHaber,
+                                'idasientointegrado' => $idasientointegrado,
+                                'idcuenta' => $cliente->idcuentadescuento,
+                                'idgrupo' => $idgrupo
+                            )
+            );
+            $ordenHaber++;
+            FtblMoodleCuentaasientointegrado::model()
+                    ->registrar(
+                            array('debe' => 0,
+                                'haber' => ($total*(100-$cliente->descuento))/100,
+                                'glosa' => $cliente->nombre,
+                                'orden' => $ordenHaber,
+                                'idasientointegrado' => $idasientointegrado,
+                                'idcuenta' => $cliente->idcuenta,
+                                'idgrupo' => $idgrupo
+                            )
+            );
+        }
+    }
+
+    public function registrarAsientoRecepcion($model) {
+
+        $cliente = Cliente::model()->find('id = ' . $model->idcliente);
+        $idgrupo = 1;
+        $orden = 1;
+        $ordenHaber = 2;
+        $asientoIntegrado = new FtblMoodleAsientointegrado();
+        $maximoId = Yii::app()->almacen->createCommand()
+                ->select('max(id)')
+                ->from('ftbl_moodle_asientointegrado')
+                ->queryRow();
+        $glosaAsientoIntegrado = 'CXC "Prod. Pendiente de Recepción"';
+//        $asientoIntegrado->id = $maximoId['max'] + 1;
+        $asientoIntegrado->glosa = strtoupper($glosaAsientoIntegrado);
+        $asientoIntegrado->fecharegistro = new CDbExpression('NOW()');
+        $asientoIntegrado->fecha = new CDbExpression('NOW()');
+        $asientoIntegrado->eliminado = false;
+        $asientoIntegrado->borrador = false;
+        $asientoIntegrado->usuario = Yii::app()->user->getName();
+
+        if ($asientoIntegrado->save()) {
+            $tipoAsientoIntegrado = new FtblMoodleTipoasientointegrado();
+            $tipoAsientoIntegrado->idasientointegrado = $asientoIntegrado->id;
+            $tipoAsientoIntegrado->idtipo = FtblMoodleAsientointegrado::VENTA;
+            $tipoAsientoIntegrado->save();
+            $idasientointegrado = $asientoIntegrado->id;
+        } else {
+            echo System::hasErrors('No se ha podido registrar el asiento registrado! ');
+            return 0;
+        }
+        $r = Solicituddevolucionproducto::model()->findAll('idsolicituddevolucion='.$model->id);
+        $total=0;
+        if (count($r)>0){
+            foreach ($r as $dato):
+                $total+=($dato->cantidad*$dato->precio);
+            endforeach;
+            FtblMoodleCuentaasientointegrado::model()
+                    ->registrar(
+                            array('debe' => $total,
+                                'haber' => 0,
+                                'glosa' => 'Venta',
+                                'orden' => $orden,
+                                'idasientointegrado' => $idasientointegrado,
+                                'idcuenta' => $cliente->idcuentaventa,
+                                'idgrupo' => $idgrupo
+                            )
+            );
+            FtblMoodleCuentaasientointegrado::model()
+                    ->registrar(
+                            array('debe' => 0,
+                                'haber' => $total,
+                                'glosa' => 'CXC "Prod. Pendiente de Recepción"',
+                                'orden' => $ordenHaber,
+                                'idasientointegrado' => $idasientointegrado,
+                                'idcuenta' => null,
+                                'idgrupo' => $idgrupo
+                            )
+            );
+        }
+    }
+}

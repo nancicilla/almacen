@@ -1,0 +1,14 @@
+<?php
+/* @var $this AlmacenproductoController */
+/* @var $model Almacenproducto */
+
+
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Actualización de Almacenproducto</h1>
+
+<?php $this->renderPartial('_form', array('model'=>$model)); ?>		</div>
+	</div>
+</div>

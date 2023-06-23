@@ -1,0 +1,250 @@
+<?php
+/* @var $this CaracteristicaController */
+/* @var $model Caracteristica */
+
+Yii::app()->clientScript->registerScript('search', "
+$('.search-button').click(function(){
+	$('.search-form').toggle();
+	return false;
+});
+$('.search-form form').submit(function(){
+	$('#caracteristica-grid').yiiGridView('update', {
+		data: $(this).serialize()
+	});
+	return false;
+});
+");
+$pageSize=Yii::app()->user->getState('pageSize',Yii::app()->params['defaultPageSize']);
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+<h1>Administración de Caracteristicas</h1>
+
+<div class="form">
+
+<?php $form=$this->beginWidget('CActiveForm', array(
+	'id'=>'caracteristica-form',
+	// Please note: When you enable ajax validation, make sure the corresponding
+	// controller action is handling ajax validation correctly.
+	// There is a call to performAjaxValidation() commented in generated controller code.
+	// See class documentation of CActiveForm for details on this.
+	'enableAjaxValidation'=>false,
+)); ?>
+
+	<p class="note"><span class="required">*</span> Campos requeridos.</p>
+
+	<?php echo $form->errorSummary($model); ?>
+
+	<div class="row">
+            <div class="column">
+		<?php echo $form->labelEx($model,'nombre'); ?>
+            </div>
+            <div class="column">
+        	<?php echo $form->textField($model,'nombre',array('size'=>30,'maxlength'=>30,'style' => 'text-transform: uppercase')); ?>
+		<?php echo $form->error($model,'nombre'); ?>
+                <?php echo $form->hiddenField($model, 'id'); ?>
+            </div>
+	
+            <div class="column">
+                <?php echo $form->labelEx($model,'idgenero'); ?>
+            </div>
+            <div class="column">
+            <?php
+            echo $form->dropDownList(
+                    $model, 
+                    'idgenero', 
+                    CHtml::listData(Genero::model()->findAll(), 'id', 'nombre'), 
+                    array('disabled'=>$model->tieneProducto())
+            );
+            ?>
+            <?php echo $form->error($model,'idgenero'); ?>
+            </div>
+            <div class="column">
+                <?php echo TbHtml::button('', 
+                        array('id' => 'btnNuevo', 
+                            'icon' => 'plus', 
+                            'onclick' => 'habilitarNuevo();',
+                            'title'=>'Nuevo')) ?>
+                <?php echo TbHtml::button('', array('id' => 'btnModificar',
+                    'icon' => 'pencil', 
+                    'onclick' => 'habilitarModificar();',
+                    'title'=>'Modificar')) ?>
+                <?php
+                echo TbHtml::ajaxSubmitButton('', TbHtml::normalizeUrl(array('caracteristica/createAjax')), array(
+                    'dataType' => 'json',
+                    'type' => 'post',
+                    'success' => "function(data) {
+                        if(data.status=='success'){                                
+                            resetAlGuardar();
+                        } else {
+                            $.each(data, function(key, val) {
+                                $('#caracteristica-form #' + key + '_em_').text(val);                                                    
+                                $('#caracteristica-form #' + key + '_em_').show();
+                            });
+                        }
+                    }"
+                        ), array(
+                    'id' => 'btnGuardar',
+                    'icon' =>'floppy-save',
+                    'title'=>'Guardar'
+                ));
+                ?>
+                <?php echo TbHtml::button('', array('id' => 'btnCancelar', 
+                    'icon' => 'remove', 'onclick' => 'cancelarRegistro();',
+                    'title'=>'Cancelar')) ?>
+            </div>
+        </div>
+<?php $this->endWidget(); ?>
+
+</div>
+
+<?php $this->widget('bootstrap.widgets.TbGridView', array(
+	'id'=>'caracteristica-grid',
+        'ajaxUpdate' =>true,
+        'afterAjaxUpdate' => 'reinstallDatePicker',
+	'dataProvider'=>$model->search(),
+	'filter'=>$model,
+        'ajaxUpdate' =>true,
+	'columns'=>array(
+		'nombre',
+                array(
+                    'name' => 'idgenero',
+                    'value' => '$data->idgenero0->nombre',
+                    'filter' => CHtml::listData(Genero::model()->findall(), 'id', 'nombre')
+                    ),   
+                'usuario',
+                 array(
+                'name'=>'fecha',
+                'type' => 'datetime',
+                'filter' =>$this->widget('zii.widgets.jui.CJuiDatePicker', array(
+                'model'=>$model, 
+                'attribute'=>'fecha',
+                'name' => 'caracteristica[fecha]',
+                'value' => $model->fecha,
+                'language' => 'es',
+                // additional javascript options for the date picker plugin
+                'options' => array(
+                    'showAnim' => 'slideDown',
+                    'showButtonPanel' => true,
+                    'changeMonth' => true,
+                    'changeYear' => true,
+                    'dateFormat' => 'dd-mm-yy',
+                    'maxDate' => 'today',
+                ),
+                'htmlOptions' => array(
+                    'id' => 'caracteristica_fecha',
+                    'size' => '10',
+                ),
+                    ), true)
+                ),    
+		array(
+			'class'=>'bootstrap.widgets.TbButtonColumn',
+                                'header'=>CHtml::dropDownList('pageSize',$pageSize,
+                                    array(Yii::app()->params['1PageSize']=>Yii::app()->params['1PageSize'],
+                                            Yii::app()->params['2PageSize']=>Yii::app()->params['2PageSize'],
+                                            Yii::app()->params['3PageSize']=>Yii::app()->params['3PageSize'],
+                                            Yii::app()->params['4PageSize']=>Yii::app()->params['4PageSize'],
+                                            Yii::app()->params['5PageSize']=>Yii::app()->params['5PageSize'],
+                                        ),
+                                    array(
+                                        'style' => 'width:70px; margin: 0 auto;',
+                                        'onchange'=>"$.fn.yiiGridView.update('caracteristica-grid',{ data:{pageSize: $(this).val() }})",
+                                    )
+                                ),
+                                'deleteConfirmation'=>'¿Seguro que desea eliminar este elemento?',
+                                'template' => '{delete}',
+				'buttons' => 	array(
+						'delete'=>array('url'=>'array("delete","id"=>SeguridadModule::enc($data->getPrimaryKey()))')
+                            			),
+		),
+	),
+    'selectableRows' => 1,
+    'selectionChanged' => 'cargarDatos',
+));
+
+Yii::app()->clientScript->registerScript('re-install-date-picker', "
+function reinstallDatePicker() {
+     //se deben usar los mismos parámetros que en el widget para ser recargado
+          $('#caracteristica_fecha').datepicker(jQuery.extend(
+            jQuery.datepicker.regional['es'],
+            {'changeYear':true,
+            'changeMonth':true,
+            'showButtonPanel':true,
+            'maxDate':'today',
+            'dateFormat' : 'dd-mm-yy',
+            'showAnim':'slideDown'}));
+     }
+");
+?>
+<script type="text/javascript">
+    $("#btnGuardar").prop("disabled", true);
+    $("#btnModificar").prop("disabled", true);
+    $("#btnCancelar").prop("disabled", true);
+    $("#Caracteristica_nombre").prop("disabled", true);
+    $("#Caracteristica_idgenero").prop("disabled", true);
+    function cancelarRegistro(){
+        $("#btnGuardar").prop("disabled", true);
+        $("#btnCancelar").prop("disabled", true);
+        $("#btnNuevo").prop("disabled", false);
+        $("#Caracteristica_nombre").prop("disabled", true);
+        $("#Caracteristica_idgenero").prop("disabled", true);
+        $("#btnModificar").prop("disabled", true);
+    }
+    function habilitarModificar() {
+        $("#btnNuevo").prop("disabled", true);
+        $("#btnModificar").prop("disabled",true);
+        $("#btnGuardar").prop("disabled", false);
+        $("#btnCancelar").prop("disabled", false);
+        $("#Caracteristica_nombre").prop("disabled", false);
+        $("#Caracteristica_idgenero").prop("disabled", false);
+        $("#Caracteristica_nombre").focus();
+    };
+    function cancelarModificar() {
+        $("#btnNuevo").prop("disabled", false);
+        $("#btnModificar").prop("disabled",false);
+        $("#btnGuardar").prop("disabled", true);
+        $("#btnCancelar").prop("disabled", true);
+        $("#Caracteristica_nombre").prop("disabled", true);
+        $("#Caracteristica_idgenero").prop("disabled", true);
+
+    };
+    function habilitarNuevo() {
+        $("#btnModificar").prop("disabled", true);
+        $("#btnNuevo").prop("disabled", true);
+        $("#btnGuardar").prop("disabled", false);
+        $("#btnCancelar").prop("disabled", false);
+        $("#Caracteristica_nombre").prop("disabled", false);
+        $("#Caracteristica_idgenero").prop("disabled", false);
+        $("#caracteristica-form")[0].reset();
+        $("#Caracteristica_id").val('');
+        $("#Caracteristica_nombre").focus();
+    };
+    function resetAlGuardar() {
+        $('#caracteristica-form')[0].reset();
+        $.fn.yiiGridView.update('caracteristica-grid');
+        $('#btnGuardar').prop('disabled', true);
+        $('#btnCancelar').prop('disabled', true);
+        $('#btnNuevo').prop('disabled', false);
+        $('#Caracteristica_nombre').prop('disabled', true);
+        $("#Caracteristica_idgenero").prop("disabled", true);
+
+    };
+    function cargarDatos(id) {
+        $('#btnModificar').prop('disabled', false);
+        var idSeleccionado = $.fn.yiiGridView.getSelection(id);
+        var nombre = getGridViewSelectedColValue('caracteristica-grid',0);
+        $('#Caracteristica_id').val(idSeleccionado);
+        $('#Caracteristica_nombre').val(nombre);
+        var ddlGenero = document.getElementById('Caracteristica_idgenero');
+        for (var i = 0; i < ddlGenero.options.length; i++) {
+            if (ddlGenero.options[i].text === getGridViewSelectedColValue('caracteristica-grid',1)) {
+            ddlGenero.selectedIndex = i;
+            break;
+        }
+    }
+}
+</script>
+		</div>
+	</div>
+</div>

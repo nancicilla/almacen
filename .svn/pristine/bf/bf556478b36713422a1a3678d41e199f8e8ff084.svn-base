@@ -1,0 +1,42 @@
+<?php
+
+/*
+ * WSNotaborradorController.php
+ *
+ * Version 0.$Rev: 204 $
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date: 2015-05-19 15:24:15 -0400 (Tue, 19 May 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+class WSNotaborradorController extends CController{
+    public function actions()
+    {
+       return array(
+        'Notaborrador' => array(
+          'class' => 'CWebServiceAction',
+        ),
+      );
+    }
+
+      /**
+     * Registra una nota borrador en el almacen
+     * @param string $glosa
+     * @param integer $tipo
+     * @param integer $idOrigen
+     * @param array $producto
+     * @return string
+     * @soap
+     */
+    public function registrarNotaBorrador($glosa,$tipo,$idOrigen,$producto){
+        return Notaborrador::model()->registrarNotaBorrador($glosa, $tipo, $idOrigen, $producto);
+    }
+}

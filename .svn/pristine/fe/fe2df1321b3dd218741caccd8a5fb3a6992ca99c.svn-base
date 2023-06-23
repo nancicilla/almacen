@@ -1,0 +1,166 @@
+var Ordentrabajo = new Object();
+Ordentrabajo.__proto__ = SystemWindow;
+//variables
+Ordentrabajo.nameView = "Ordentrabajo";
+Ordentrabajo.url = "ordentrabajo";
+
+Ordentrabajo.init = function () {
+    Ordentrabajo.gridSearchVars('Producto', '&idproductoorden=' + $('#' + Ordentrabajo.Id("idproducto")).val()); //Ordentrabajo.get('idproducto'));
+    if (this.action == "create"){
+        
+        //Ordentrabajo.gridSearchVars('Producto', '&idproductoorden=' + $('#' + Ordentrabajo.Id("idproducto")).val()); //Ordentrabajo.get('idproducto'));
+        this.gridEventClickRow('Producto', 'Ordentrabajo.showDisponible();');
+        this.gridEventBlur('Producto', 'Ordentrabajo.hiddenDisponible();');
+    }
+    if (this.action == "update"){
+        this.buttonChange({id: 'save', display: 'none'});
+        this.disabledForm();
+    }
+    if (this.action === 'registrarEntrega') {
+        this.buttonChange({id: 'save', label: 'Registrar', key: 'G'});
+    }
+};
+Ordentrabajo.options = function () {
+    this.setActions('create', {
+        WindowTitle: 'Crear Orden de Trabajo',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {        
+        WindowTitle: 'Ver Orden de Trabajo',
+        initButtons: 'cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('registrarEntrega', {layerHeight: 356,
+        WindowWidth: 850,
+        WindowHeight: 280,
+        WindowTitle: 'Registrar entrega',
+        initButtons: 'save',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Ordentrabajo',
+        WindowWidth: 900,
+        WindowHeight: 495,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+
+Ordentrabajo.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    var grid = this.getSGridView('Producto');
+    var cantidad = 0;
+    var noDisponible = 0;
+    for (var f = 1; f <= grid.rows; f++){
+        var saldoDisponible = parseFloat(grid.row(f).get('saldoDisponible'));
+        if(grid.row(f).get('id') > 0 && grid.row(f).get('cantidad') == 0){
+            cantidad++;  
+        }
+        if (cantidad > saldoDisponible) {
+//            grid.row(f).attributes('cantidad', {validate: false, tooltip: 'Excede la cantidad disponible'});
+            grid.row(f).attributes('cantidad', {'style': {'color': 'red', 'font-weight': 'bold'}});
+            noDisponible++;
+        }else{
+            grid.row(f).attributes('cantidad', {validate: true, tooltip: ''});
+        }
+    }
+    if (cantidad==0){
+        error = false;
+    }else{
+        error = true;
+        Ordentrabajo.showMessageError('Existen productos con cantidad cero');
+    }
+    if (!error){
+        if (noDisponible > 0) {
+            error = true;
+            Ordentrabajo.showMessageError('Existen productos no disponibles');
+        } else {
+            error = false;
+        } 
+    }
+    Ordentrabajo.verificarGrid();
+    return error;
+}
+Ordentrabajo.afterCreate = function () {
+    Ordentrabajo.reload();
+}
+
+Ordentrabajo.beforeUpdate = function () {
+    var error = false;//false es no existe error antes de actulizar formulario
+    return error;
+}
+Ordentrabajo.afterUpdate = function () {
+    Ordentrabajo.closeWindow();
+}
+Ordentrabajo.registrarEntrega = function (options) {
+    this.action = 'registrarEntrega';
+    //var options={idKey:id};    
+    this.open(this.getOptions(options));
+};
+Ordentrabajo.afterRegistrarEntrega = function () {
+    Ordentrabajo.closeWindow();
+}
+Ordentrabajo.showDisponible = function () {
+    var divSaldoDisponible = this.ById('divSaldoDisponible');
+    var grid = this.getSGridView('Producto');
+
+    var saldodisponible = grid.rowSelected().get('saldoDisponible');
+
+    if (grid.rowSelected().get('id') != '') {
+        divSaldoDisponible.innerHTML = parseFloat(saldodisponible).toFixed(8);
+        divSaldoDisponible.parentElement.style.visibility = 'visible';
+    } else {
+        divSaldoDisponible.innerHTML = '';
+        divSaldoDisponible.parentElement.style.visibility = 'hidden';
+    }
+};
+
+Ordentrabajo.hiddenDisponible = function () {
+    var divSaldoDisponible = this.ById('divSaldoDisponible');
+    divSaldoDisponible.parentElement.style.visibility = 'hidden';
+};
+Ordentrabajo.verificarGrid = function () {
+
+    var grid = this.getSGridView('Producto');
+    var noDisponible = 0;
+
+    for (var f = 1; f <= grid.rows; f++)
+    {
+        var cantidad = parseFloat(grid.row(f).get('cantidad'));
+        var saldoDisponible = parseFloat(grid.row(f).get('saldoDisponible'));
+        var Disponiblereal = 0;
+        if (this.action === 'create') {
+            Disponiblereal = saldoDisponible;
+        }
+        if (this.action === 'update') {
+            if (estado == 4) {
+                Disponiblereal = saldoDisponible;
+            } else {
+                Disponiblereal = saldoDisponible + cantidad;
+            }
+        }
+        if (cantidad > Disponiblereal) {
+            grid.row(f).attributes('cantidad', {validate: false, tooltip: 'Excede la cantidad disponible'});
+//            grid.row(f).attributes('cantidad', {'style': {'color': 'red', 'font-weight': 'bold'}});
+            noDisponible++;
+        }else{
+            grid.row(f).attributes('cantidad', {validate: true, tooltip: ''});
+        }
+    }
+//    if (noDisponible > 0) {
+//        $('#' + Traspasotpv.Id("disponible")).val(0);
+//    } else {
+//        $('#' + Traspasotpv.Id("disponible")).val(1);
+//    }
+};

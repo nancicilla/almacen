@@ -1,0 +1,12 @@
+<?php
+/* @var $this NotaController */
+/* @var $model Nota */
+
+?>
+<div class="container">
+	<div class="offset-12">
+		<div id="content">
+                    <?php $this->renderPartial('_form', array('model'=>$model,'productonotaborrador' => $productonotaborrador)); ?>                    
+		</div>
+	</div>
+</div>

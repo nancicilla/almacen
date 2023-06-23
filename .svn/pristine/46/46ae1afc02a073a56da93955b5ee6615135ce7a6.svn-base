@@ -1,0 +1,145 @@
+<?php
+
+/*
+ * WSNotaborradorController.php
+ *
+ * Version 0.$Rev: 204 $
+ *
+ * Creacion: 17/03/2015
+ *
+ * Ultima Actualizacion: $Date: 2015-05-19 15:24:15 -0400 (Tue, 19 May 2015) $:
+ * 
+ * Copyright 2015 SOLUR SRL.
+ * Monteagudo esq. Los Sauces, Sucre, Bolivia.
+ * Todos los derechos reservados.
+ *
+ * Este software es información confidencial y de propiedad de SOLUR SRL.
+ * Usted no podrá divulgar dicha Información Confidencial y la utilizará 
+ * únicamente de acuerdo con los términos del acuerdo de licencia con SOLUR SRL.
+ */
+
+class WSSeguimientoController extends CController {
+    protected static $success=true;
+    protected static $messageError='';
+    protected static $modelError=array();
+    protected static $usuario='';
+
+
+    public function actions() {
+        return array(
+            'registrarSeguimiento' => array(//url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'RegistrarSeguimiento'//funcion
+            ),
+            'registrarSeguimientoProductos' => array(//url
+                'class' => 'CWebServiceAction',
+                'classMap' => 'RegistrarSeguimientoProductos'//funcion
+            )
+//            'registrar' => array(//url
+//                'class' => 'CWebServiceAction',
+//                'classMap' => 'Registrar'//funcion
+//            )
+            
+        );
+    }
+   
+    
+    public static function getResponse(){
+        if(self::$messageError!='')self::$success=false;
+        
+        return array('success'=>  self::$success,
+                     'messageError'=>  self::$messageError==''?'':'ERROR EN EJECUCION [WSSeguimientoController]: '.PHP_EOL.self::$messageError,
+                     '$modelError'=>  self::$modelError
+                );
+    }
+    
+    /**
+     * Registra el seguimiento a un producto
+     * @param array $dataService
+     * @return array
+     * @soap
+     */
+    public function registrarSeguimiento($dataService) {
+        try {
+            //return self::getResponse();
+                $idproducto=isset($dataService['idproducto']) && $dataService['idproducto']!=''?$dataService['idproducto']:null ;
+                // <editor-fold defaultstate="collapsed" desc="Validar llaves">
+                    if ($idproducto == null) {
+                        //self::$success = false;
+                        self::$messageError = 'NO EXISTE idproducto';
+                        return self::getResponse();
+                    }
+                
+                // </editor-fold>
+
+                $descripcion=isset($dataService['descripcion'])?$dataService['descripcion']:'';
+                $nombre=isset($dataService['nombre'])?$dataService['nombre']:'';
+                self::$usuario=isset($dataService['usuario'])?$dataService['usuario']:self::$usuario;
+
+                    $seguimiento = new Seguimiento();   
+                    $seguimiento->scenario='WS.Registar';
+                    $seguimiento->tabla = 'PRODUCTO';
+                    //$seguimiento->scenario = 'venta';
+                    $seguimiento->idtabla = $idproducto;
+                    $seguimiento->idproducto = $idproducto;
+                    $seguimiento->usuario=  self::$usuario;
+                    $seguimiento->descripcion = $descripcion;
+                   if(!$seguimiento->save()){
+                       //self::$success=false;
+                       self::$messageError='Validacion de datos de modelo es INCORRECTA';
+                       self::$modelError[]=$seguimiento->getErrors();
+                       return self::getResponse();
+
+                   }else{
+                      
+                        $modelAlerta=new Alerta;
+                         $modelAlerta->idalertatipo=  Alertatipo::$PRODUCTO_NO_DISPONIBLE;;
+                         $modelAlerta->iddocumento=$idproducto;
+                         $modelAlerta->descripcion=$descripcion.PHP_EOL.$nombre;
+                         $modelAlerta->save();
+                   }
+                return self::getResponse();  
+        
+        
+        }catch (Exception $e){            
+                  self::$messageError = 'Excepción capturada WS: '.$e->getMessage();
+                  return self::getResponse();
+        }
+    }
+
+    
+    
+    /**
+     * Registra el seguimiento a varios productos
+     * @param array $dataService 
+     * @return array
+     * @soap
+     */
+    public function registrarSeguimientoProductos($dataService) {
+        
+       //  
+        try{
+        $productos=isset($dataService['productos'])?$dataService['productos']:array() ;
+        self::$usuario=isset($dataService['usuario'])?$dataService['usuario']:'';
+        $errors='';
+        //return self::getResponse();
+        foreach ($productos as $producto){
+            $response=  self::registrarSeguimiento($producto);
+            if($response['success']==false){
+               $errors=($errors!=''?PHP_EOL:'').$response['messageError'];
+            }; 
+        }
+        
+        if($errors!=''){
+            self::$messageError=$errors;
+        }
+        
+        }catch (Exception $e){            
+                  self::$messageError = 'Excepción capturada WS: '.$e->getMessage();
+                  return self::getResponse();
+        }
+        
+        return self::getResponse();   
+    }
+    
+}

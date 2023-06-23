@@ -1,0 +1,173 @@
+<?php
+
+/**
+ * This is the model class for table "causa".
+ *
+ * The followings are the available columns in table 'causa':
+ * @property integer $id
+ * @property string $nombre
+ * @property string $descripcion
+ * @property boolean $editable
+ * @property integer $idtipo
+ * @property string $usuario
+ * @property boolean $eliminado
+ * @property string $fecha
+ *
+ * The followings are the available model relations:
+ * @property Tipo $idtipo0
+ */
+class Causa extends CActiveRecord {
+
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName() {
+        return 'causa';
+    }
+
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules() {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            array('idtipo', 'numerical', 'integerOnly' => true),
+            array('idtipo, nombre', 'required','on' => array('insert', 'update')),
+            array('nombre, usuario', 'length', 'max' => 50),
+            array('descripcion, editable, eliminado, fecha', 'safe'),
+            // The following rule is used by search().
+            // @todo Please remove those attributes that should not be searched.
+            array('id, nombre, descripcion, editable, idtipo, usuario, eliminado, fecha', 'safe', 'on' => 'search'),
+        );
+    }
+
+    /**
+     * @return array relational rules.
+     */
+    public function relations() {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+            'idtipo0' => array(self::BELONGS_TO, 'Tipo', 'idtipo'),
+        );
+    }
+
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels() {
+        return array(
+            'id' => 'ID',
+            'nombre' => 'Nombre',
+            'descripcion' => 'Descripcion',
+            'editable' => 'Editable',
+            'idtipo' => 'Tipo de Nota',
+            'usuario' => 'Usuario',
+            'eliminado' => 'Eliminado',
+            'fecha' => 'Fecha',
+        );
+    }
+
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     *
+     * Typical usecase:
+     * - Initialize the model fields with values from filter form.
+     * - Execute this method to get CActiveDataProvider instance which will filter
+     * models according to data in model fields.
+     * - Pass data provider to CGridView, CListView or any similar widget.
+     *
+     * @return CActiveDataProvider the data provider that can return the models
+     * based on the search/filter conditions.
+     */
+    public function search() {
+        // @todo Please modify the following code to remove attributes that should not be searched.
+
+        $criteria = new CDbCriteria;
+
+        $criteria->compare('id', $this->id);
+        $criteria->addSearchCondition('nombre', $this->nombre, true, 'AND', 'ILIKE');
+        $criteria->addSearchCondition('descripcion', $this->descripcion, true, 'AND', 'ILIKE');
+        $criteria->compare('editable', true);
+        $criteria->compare('idtipo', $this->idtipo);
+        $criteria->addSearchCondition('usuario', $this->usuario, true, 'AND', 'ILIKE');
+        $criteria->compare('t.eliminado',0);
+        if ($this->fecha != Null) {
+            $criteria->addCondition("fecha::date = '" . $this->fecha . "'");
+        }
+
+        return new CActiveDataProvider($this, array(
+            'pagination' => array(
+                'pageSize' => Yii::app()->user->getState('pageSize', Yii::app()->params['defaultPageSize']),
+            ),
+            'criteria' => $criteria,
+            'sort' => array(
+                'defaultOrder' => 't.fecha desc',
+            ),
+        ));
+    }
+
+    /**
+     * @return CDbConnection the database connection used for this class
+     */
+    public function getDbConnection() {
+        return Yii::app()->almacen;
+    }
+
+    /**
+     * Returns the static model of the specified AR class.
+     * Please note that you should have this exact method in all your CActiveRecord descendants!
+     * @param string $className active record class name.
+     * @return Causa the static model class
+     */
+    public static function model($className = __CLASS__) {
+        return parent::model($className);
+    }
+
+    /**
+     *
+     * Sentencias entes de ejecutar metodo save
+     * Antes de guardar se cambia todos los campos  de tipo character
+     * varying y text a mayúsculas
+     * Si existe el campo fecha, este toma el valor de la fecha actual antes
+     * de almacenarse
+     * Si existe el campo usuario, toma el valor del usuario actual antes de
+     * almacenarse
+     * 
+     */
+    public function beforeSave() {
+        $this->nombre = strtoupper($this->nombre);
+        $this->descripcion = strtoupper($this->descripcion);
+        $this->usuario = Yii::app()->user->getName();
+        $this->editable = true;
+        $this->fecha = new CDbExpression('NOW()');
+        return parent::beforeSave();
+    }
+
+    /**
+     * Verifica si la causa esta parametrizada, de ser asi no permite 
+     * eliminarla 
+     */
+    public function esEliminable() {
+        $command = Yii::app()->almacen->createCommand
+                ("select causa_es_eliminable(" . $this->getPrimaryKey() . ");");
+        return $command->queryScalar();
+    }
+
+    /**
+     * Antes de borrar verificar que la causa no este parametrizada
+     * en caso de no cumplir con la condiciones
+     * se muestra una excepción y no se lleva a cabo la eliminación.
+     */
+    protected function beforeDelete() {
+        if ($this->esEliminable($this->id)) {
+            return parent::beforeDelete();
+        } else {
+            echo System::messageError('La causa está parametrizada, '
+                    . 'no se puede eliminar!');
+            return;
+        }
+    }
+
+}

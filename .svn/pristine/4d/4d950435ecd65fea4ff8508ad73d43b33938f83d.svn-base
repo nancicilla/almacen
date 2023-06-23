@@ -1,0 +1,168 @@
+var Notaborrador = new Object();
+Notaborrador.__proto__ = SystemWindow;
+//variables
+Notaborrador.nameView = "Notaborrador";
+Notaborrador.url = "notaborrador";
+
+Notaborrador.init = function () {
+    try {
+        Notaborrador.filtrarAlmacenDestino($('#' + this.Id("idalmacenOrigen")).val());
+        
+        if (this.action === 'verNotaBorrador') {
+            this.buttonChange({id: 'save', label: 'Cerrar', key: 'G'});
+        }
+        if (this.action === 'registrarTraspaso') {
+            this.buttonChange({id:'save', label: 'Registrar', key: 'R'});
+        }
+        
+        this.gridSearchVars('Productonotaborrador','&idalmacn='+$('#' + this.Id("idalmacenOrigen")).val());
+        $('#' + this.Id("idalmacenOrigen")).live('change', function (e)
+        {
+            Notaborrador.filtrarAlmacenDestino($(this).val());
+            Notaborrador.gridReset('Productonotaborrador');
+            Notaborrador.gridSearchVars('Productonotaborrador','&idalmacn='+$(this).val());
+        });
+
+        this.gridEventClickRow('Productonotaborrador','Notaborrador.showDisponible();');
+        this.gridEventBlur('Productonotaborrador','Notaborrador.hiddenDisponible();');
+    } catch (err) {
+        //alert('Error al cargar Notaborrador.init()');
+    }
+}
+
+Notaborrador.options = function () {
+    this.setActions('create', {
+        WindowTitle: 'Crear Notaborrador',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    this.setActions('update', {        
+        WindowTitle: 'Modificar Notaborrador',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    
+    this.setActions('registrarTraspaso', {        
+        WindowTitle: 'Registrar Traspaso',
+        initButtons: 'save,cancel',
+        layerEndOn: false,
+        ableBackWindow: true
+    });
+    
+    this.setActions('verNotaBorrador', {
+            layerHeight: 356,
+            WindowWidth: 740,
+            WindowHeight: 363,
+            WindowTitle: 'Ver Nota Borrador',
+            initButtons: 'back',
+            layerEndOn: false,
+            ableBackWindow: true
+    });
+
+    var options = {
+        WindowName: this.nameView,
+        WindowTitle: 'Notaborrador',
+        WindowWidth: 250,
+        WindowHeight: 255,
+        WindowInitFunction: '',
+        WindowCloseFunction: '',
+        WindowMaxFunction: '',
+        WindowMinFunction: '',
+        WindowOnBackground: true,
+        typeLoading: 'on'// on,off,onMain
+    };
+    return options;
+}
+
+Notaborrador.beforeCreate = function () {
+    var error = false;//false es no existe error antes de crear formulario
+    return error;
+}
+Notaborrador.afterCreate = function () {
+    Notaborrador.reload();
+}
+
+Notaborrador.beforeUpdate = function () {
+    var error = false;//false es no existe error antes de actulizar formulario
+    return error;
+}
+Notaborrador.afterUpdate = function () {
+    Notaborrador.closeWindow();
+}
+
+Notaborrador.registrarTraspaso = function(options){
+    this.action='registrarTraspaso';      
+       var options=this.options();
+       options['WindowTitle']=(this.layer[this.action]!=null && this.layer[this.action]['WindowTitle']!=null)?this.layer[this.action]['WindowTitle']:this.action;
+       options['WindowWidth']= 725,
+       options['WindowHeight']= 425,
+       options.url=this.url+'/registrarTraspaso';
+       this.open(options);   
+}
+
+/**
+ * Function para filtrar almacenes destino en el dropdownlist al elegir un 
+ * determinado almacen origen
+ */
+Notaborrador.filtrarAlmacenDestino = function(idAlmacenOrigen) {
+    var action = 'almacen/almacen/filtrarAlmacenDestino?idAlmacenOrigen='+idAlmacenOrigen;
+    $.getJSON(action, function (listaJson) {
+        $('#' + Notaborrador.Id("idalmacenDestino")).find('option').each(function () {
+           $(this).remove();
+        });
+        $('#' +  Notaborrador.Id("idalmacenDestino")).append("<option value=''>");
+        $.each(listaJson, function (key, almacen) {
+            $('#' +  Notaborrador.Id("idalmacenDestino")).append("<option value='" + almacen.id + "'>" + almacen.nombre + "</option>");
+        });
+    });
+};
+
+Notaborrador.afterRegistrarTraspaso = function () {
+    Notaborrador.reload();
+}
+
+Notaborrador.showDisponible = function(){
+    var divSaldo = this.ById('divSaldo');
+    var grid = this.getSGridView('Productonotaborrador');   
+    
+    var saldodisponible = grid.rowSelected().get('disponible');
+
+    if(grid.rowSelected().get('idproducto') != ''){
+        divSaldo.innerHTML = parseFloat(saldodisponible).toFixed(4);
+        divSaldo.parentElement.style.visibility = 'visible';
+    }else{
+        divSaldo.innerHTML = '';
+        divSaldo.parentElement.style.visibility = 'hidden';
+    }  
+}
+
+Notaborrador.hiddenDisponible = function(){
+   var divSaldo = this.ById('divSaldo');
+   divSaldo.parentElement.style.visibility = 'hidden';
+}
+
+Notaborrador.verificarGridInsumos = function() {
+    var grid = this.getSGridView('Productonotaborrador'); 
+
+    for(var f = 1; f <= grid.rows; f++)
+    {
+        var disponible = grid.row(f).get('disponible');
+        var cantidad = grid.row(f).get('cantidad');
+            
+        if(cantidad > disponible)
+            grid.row(f).attributes('cantidad',{validate:false,tooltip:'Excede la cantidad disponible'});
+        else
+            grid.row(f).attributes('cantidad',{validate:true,tooltip:''});
+    }
+}
+
+Notaborrador.verNotaBorrador = function(id) {
+    this.action='verNotaBorrador';
+    this.open(this.getOptions(id));
+};
+
+Notaborrador.afterVerNotaBorrador = function() {
+    Notaborrador.closeWindow();
+};
