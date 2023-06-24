@@ -443,7 +443,7 @@ from historialproyectocaracteristica h where h.id= (select id from historialproy
         if($lista[$i]['hijos']=='[]'){
         // inicio No tiene Hijos
             $pdf->SetFont('', 'B',$tamanioLetra);
-            $tamdescripcion=($tamanioCelda*ceil(strlen($lista[$i]['nombre'])/20))+1+((ceil(strlen($lista[$i]['tipovalor']))/20)/2);
+            $tamdescripcion=($tamanioCelda*ceil(strlen($lista[$i]['nombre'])/12))+1+((ceil(strlen($lista[$i]['tipovalor']))/12)/2);
                
             if($lista[$i]['tipovalor']=='0'){
                 //inicio parte tipo texto
@@ -458,9 +458,12 @@ from historialproyectocaracteristica h where h.id= (select id from historialproy
                     // fin parte tipo imagen
 
             }
+            if($tamanioFila<12){
+                 $tamanioFila=11;
+             }
             $pdf->MultiCell(35, $tamanioFila, $lista[$i]['nombre'], 1, 'L', 0, 0, '', '', true, 0, true, true, $tamanioFila, 10);
             $pdf->SetFont('','',$tamanioLetra);
-            $pdf->MultiCell(110, $tamanioFila,$lista[$i]['valor'], 1, 'L', 0, 0, '', '', true, 0, true, true, $tamanioFila, 10);
+            $pdf->MultiCell(110, $tamanioFila, $lista[$i]['valor'], 1, 'L', 0, 0, '', '', true, 0, true, true, $tamanioFila, 10);
             $pdf->MultiCell(25, $tamanioFila, '', 1, 'L', 0, 0, '', '', true, 0, true, true, $tamanioFila, 10);
             $pdf->ln();
     
